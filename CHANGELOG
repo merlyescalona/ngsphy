@@ -1,0 +1,45 @@
+Version 1.1.0
+		Changed name repository to simphy-ngs-wrapper
+Version 1.0.9
+		Changed functionality of the script. It now takes a single prefix and a project
+		folder, iterates over all the species trees, takes the fasta files with the
+		selected prefix and mates those files outputting them into a folder
+		inside the project folder called INDIVIDUALS
+Version 1.0.8
+		Generated "individuals" go now into a "individuals" folder, organized by
+		Species tree ID and Gene Tree ID, all files in a single folder is at all
+		manageable.
+		Reformatted the names of the generated files.
+		Mating file "db", now has an extra field. This field identifies the individual.
+Version 1.0.7
+		Single output folder for all the sequences.
+		All individuals have a specific name which allows not to get confused.
+Version 1.0.6
+		Getting information about the species tree that have even/odd number
+		of individuals per species
+Version 1.0.5
+		It is possible to write different number of output according to
+		preferences.
+Version 1.0.4
+		Run is no longer finished if a replicate has no sequences
+		it will just skip it.
+Version 1.0.3
+		Enhanced logger
+Version 1.0.2
+		Added logging handler
+Version 1.0.1
+		Multiple prefixes for simphy datasets
+		Automatically defining the format of the numbers
+Version 1.0.0
+		Mating running, missing tests on larger group.
+		Formatter for bash added
+		outgroups are used with a single sequence
+Version 0.0.2
+		Still issues with the outgroups.
+		Mating done
+		Added error coloring
+		I'm going to have problems when replicates are above 9999
+Version 0.0.1
+		How to simulate 2 outgroups - is it better with outgroups or without outgroups.
+		SO - What's the meaning of this parameter in terms of outgroups
+		I'll omit the outgroups for this version
