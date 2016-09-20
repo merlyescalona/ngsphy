@@ -1,6 +1,9 @@
 # SimPhy NGS wrapper
 
-A program to simulate mating and next-generation sequencing reads from a SimPhy project.
+This is a plugin for [SimPhy](https://github.com/adamallo/SimPhy) [ **Mallo et al. 2015**][^Mallo2015] *A comprehensive simulator of gene family
+evolution*. SimPhy NGS Wrapper generates diploid individuals from the sequences
+generated of a SimPhy project, and afterwards generates reads from such
+individuals with a next-generation sequencing simulator, ART.
 
 For more information about usage and installation please go to the [wiki page](https://gitlab.com/merlyescalona/simphy-ngs-wrapper/wikis/home)
 
@@ -47,3 +50,6 @@ Where:
         description of the sequence, this description specifies one of
         the sequences used to generate the individual.
 - S1/S2:    Tag that indetifies the strand of the individual.
+
+
+[^Mallo2015]: Mallo D, de Oliveira Martins L, Posada D (2015) SimPhy: Phylogenomic Simulation of Gene, Locus and Species Trees. Syst. Biol. doi: http://dx.doi.org/10.1093/sysbio/syv082

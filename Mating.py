@@ -2,7 +2,7 @@
 ################################################################################
 #
 #    Copyright (C) 2016  Merly Escalona  <merlyescalona@uvigo.es>
-#    SimPhyMating is free software: you can redistribute it and/or modify
+#    simphy-ngs-wrapper is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
@@ -31,7 +31,7 @@ class Mating:
     """
     Mating class
     """
-    def __init__(self, args):
+    def __init__(self, args,logger):
         """
             :param self:
             :param args: Arguments that come from the command line parser
@@ -61,7 +61,7 @@ class Mating:
         # ----------------------------------------------------------------------
         # Logging
         # ----------------------------------------------------------------------
-        self.appLogger=logging.getLogger('')
+        self.appLogger=logging.getLogger('sngsw')
         loggerFormatter=mlf(fmt="%(asctime)s - %(levelname)s:\t%(message)s",datefmt="%d/%m/%Y %I:%M:%S %p")
 
         fileHandler=logging.FileHandler(filename="{0}/{1}.mating.log".format(self.path, self.projectName))
