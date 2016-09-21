@@ -2,7 +2,7 @@ import argparse,datetime,logging,os,sys
 import numpy as np
 import random as rnd
 import MELoggingFormatter as mlf
-import SettingsParser as sp
+import Settings as sp
 from select import select
 
 ################################################################################
@@ -13,13 +13,9 @@ FIX_VERSION=0
 PROGRAM_NAME="simphy.ngs.wrapper.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
 ################################################################################
-# python mating.py -p <prefixES_sequence_filename> -SF <simphy_path>
-# python mating.py -p data -sf /media/merly/ME-Conus/conusSim/csTest1/
-################################################################################
+
 class SimPhyNGSWrapper:
     def __init__(self,args):
-        # I'll check the arguments, and only if, they are correct I'll call
-        # any of the correpondent process.
         self.path=os.getcwd()
         self.startTime=datetime.datetime.now()
         self.endTime=None
@@ -36,24 +32,34 @@ class SimPhyNGSWrapper:
             datefmt="%d/%m/%Y %I:%M:%S %p"))
         ch.setLevel(args.log)
         self.appLogger.addHandler(ch)
-        self.appLogger.log(logging.INFO,"Starting")
-        self.settingsFile="./settings.txt"
+        self.appLogger.info("Starting")
+        self.settingsFile=""
         if (args.settings):
             self.settingsFile=os.path.basename(args.settings)
-        if (not os.path.exists(self.settingsFile)):
-            self.ending(False,"Settings folder ({0}) does not exist. ".format(self.settingsFile))
         else:
-            self.appLogger.debug("Starting process")
-            self.run()
+            self.settingsFile=os.path.basename("./settings.txt")
 
     def run(self):
-        self.settings=sp.SettingsParser(self.settingsFile)
-        good,message=self.settings.checkArgs()
-        if (good):
-            self.appLogger(message)
-            # TODO: here I do something
-            self.appLogger.debug("Parse")
-        else:   self.ending(good,message) # did not pass the parser reqs.
+        # checking existence of settings file
+        if (not os.path.exists(self.settingsFile)):
+            self.appLogger.warning("Settings file ({0}) does not exist. ".format(self.settingsFile))
+            self.appLogger.warning("Generating settings.txt file.")
+            tmpSettings=sp.Settings(self.settingsFile)
+            value=rnd.sample(range(0,4,1),1)
+            if (value==1):  tmpSettings.writeSettingsExample1ShortNames()
+            elif (value==2):  tmpSettings.writeSettingsExample2ShortNames()
+            elif (value==3):  tmpSettings.writeSettingsExample1LongNames()
+            else: tmpSettings.writeSettingsExample2LongNames()
+            self.ending(False,"Exiting. Please check settings file ({0}), and run again.".format(self.settingsFile))
+        else:
+            # settings file exist, go ahead and run
+            self.appLogger.debug("Starting process")
+            self.settings=sp.Settings(self.settingsFile)
+            good,message=self.settings.checkArgs()
+            if (good):
+                self.appLogger.info("allGood")
+                # TODO: here I do something
+            else:   self.ending(good,message) # did not pass the parser reqs.
 
     def log(self, level, message):
         if level==logging.DEBUG:    self.appLogger.debug(message)
@@ -80,7 +86,7 @@ class SimPhyNGSWrapper:
 
 
 
-def handlingParameters():
+def handlingCmdArguments():
     parser = argparse.ArgumentParser(\
         prog="{0} (v.{1}.{2}.{3})".format(PROGRAM_NAME,VERSION,MIN_VERSION,FIX_VERSION),\
         formatter_class=argparse.RawDescriptionHelpFormatter,\
@@ -117,6 +123,7 @@ to the wiki page https://gitlab.com/merlyescalona/simphy-ngs-wrapper/wikis/home
         help="Show this help message and exit")
     try:
         tmpArgs = parser.parse_args()
+        if (tmpArgs.help): parser.print_help()
     except:
         sys.stdout.write("\n----------------------------------------------------------------------\n")
         parser.print_help()
@@ -128,7 +135,7 @@ to the wiki page https://gitlab.com/merlyescalona/simphy-ngs-wrapper/wikis/home
 """
 if __name__=="__main__":
     try:
-        cmdArgs = handlingParameters()
+        cmdArgs = handlingCmdArguments()
         print(cmdArgs)
         prog = SimPhyNGSWrapper(cmdArgs)
         prog.run()
