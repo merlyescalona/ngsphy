@@ -13,8 +13,8 @@ class Settings:
     self.appLogger=logging.getLogger('sngsw')
     self.appLogger.debug("(class Settings) __init__()")
     # default settings can be established.
-    self.settings=cp.ConfigParser()
-    self.settings.read(self.path)
+    self.parser=cp.ConfigParser()
+    self.parser.read(self.path)
 
 
   def checkArgs(self):
@@ -22,22 +22,71 @@ class Settings:
     parserMessageCorrect="All parameters are correct."
     parserMessageWrong="Please verify the parameters in the settings file."
     # checking general parameters
-    # check if option simphy_folder exist in sections
-    # check if folder exist
+    if not (self.parser.has_option("general","data_prefix") or self.parser.has_option("general","dp")):
+        self.parser.set("general","data_prefix","data")
+        self.appLogger.info("Setting default data prefix due to lacking of entry in the settings file.")
 
-    # if (!os.path.exist(self.settings.get("secti")))
+    if not (self.parser.has_option("general","simphy_folder") or
+        self.parser.has_option("general","sf")):
+        # check if option simphy_folder exist in sections
+        allGood=False
+        parserMessageWrong+="\n\t<simphy_folder> field is missing."
+    else:
+        # parameter is set up, now check if folder exist
+        path=""
+        if (self.parser.has_option("general","simphy_folder")):
+            path=os.path.abspath(self.parser.get("general","simphy_folder"))
+        if (self.parser.has_option("general","sf")):
+            path=os.path.abspath(self.parser.get("general","sf"))
+            self.parser.set("general","simphy_folder",path)
+            self.parser.remove_option("mating","sf")
+
+        if (os.path.exists(path) and os.path.isdir(path)):
+            self.appLogger.debug("Correct SimPhy project folder")
+        else:
+            allGood=False
+            parserMessageWrong+="\n\tSimPhy project folder does not exist, or the given path does not belong to a directory."
+
+        # Checking mating parameters.
+        if not self.parser.has_section("mating"):
+            # can run
+            allGood=False
+            parserMessageWrong+="\n\tNo MATING section. Stopping run."
+        elif not (self.parser.has_option("mating","opi") or self.parser.has_option("mating","output-per-individual")):
+            # I have mating section but no option
+            self.parser.set("mating", "output-per-individual",1)
+        else:
+            # I have mating section and option
+            # check which option I have, make sure it is stored in the long_name option
+            # if short exist, remove, also, checking num_output_per_individual ranges
+            num_output_per_individual=1
+            if self.parser.has_option("mating","output-per-individual"):
+                num_output_per_individual=self.parser.getint("mating","output-per-individual")
+            if self.parser.has_option("mating","opi"):
+                num_output_per_individual=self.parser.getint("mating","opi")
+                if (num_output_per_individual > 3): num_output_per_individual=3
+                if (num_output_per_individual < 1): num_output_per_individual=1
+                self.parser.set("mating","output-per-individual",num_output_per_individual)
+                self.parser.remove_option("mating","opi")
+
+        # Checking art parameters.
+        if not self.parser.has_section("ngs-reads-art"):
+            # if no section, no run, if the section exist, I will leave it
+            # to art to complain if parameters are wrong
+            allGood=False
+            parserMessageWrong+="\n\tNo ART section. Stopping run."
 
     if (allGood):
         self.appLogger.info(self.formatSettingsMessage())
         return True, parserMessageCorrect
-    else: return False, parserMessageCorrect
+    else: return False, parserMessageWrong
 
   def formatSettingsMessage(self):
     message="Settings:\n"
-    sections=self.settings.sections()
+    sections=self.parser.sections()
     for sec in sections:
         message+="\t{0}\n".format(sec)
-        items=self.settings.items(sec)
+        items=self.parser.items(sec)
         for param in items:
             message+="\t\t{0}\t:\t{1}\n".format(param[0],param[1])
     return message
@@ -48,9 +97,11 @@ class Settings:
         self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
+    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
-    parser.set("general","simphy_folder","simphyfolder")
+    parser.set("general","simphy_folder","test")
     parser.set("general","data_prefix","data")
+    parser.set("mating","output-per-individual",1)
     parser.set("ngs-reads-art","amplicon","true")
     parser.set("ngs-reads-art","rcount ",100)
     parser.set("ngs-reads-art","id","iddefault")
@@ -72,9 +123,11 @@ class Settings:
       self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
+    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
-    parser.set("general","sf" ,"simphyfolder")
+    parser.set("general","sf" ,"test")
     parser.set("general","dp" ,"data")
+    parser.set("mating","opi",1)
     parser.set("ngs-reads-art","amp","true")
     parser.set("ngs-reads-art","c",100)
     parser.set("ngs-reads-art","d","iddefault")
@@ -96,9 +149,11 @@ class Settings:
         self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
+    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
-    parser.set("general","simphy_folder","simphyfolder")
+    parser.set("general","simphy_folder","test")
     parser.set("general","data_prefix","data")
+    parser.set("mating","output-per-individual",1)
     parser.set("ngs-reads-art","qprof1","profileR1.txt")
     parser.set("ngs-reads-art","qprof2","profileR2.txt")
     parser.set("ngs-reads-art","amplicon","true")
@@ -121,10 +176,11 @@ class Settings:
         self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
+    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
-
-    parser.set("general","sf","simphyfolder")
+    parser.set("general","sf","test")
     parser.set("general","dp","data")
+    parser.set("mating","opi",1)
     parser.set("ngs-reads-art","1","profileR1.txt")
     parser.set("ngs-reads-art","2","profileR2.txt")
     parser.set("ngs-reads-art","amp","true")

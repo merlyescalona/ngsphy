@@ -1,6 +1,9 @@
-[mating]
-simphy_folder = simphyfolder
+[general]
+simphy_folder = test
 data_prefix = data
+
+[mating]
+output-per-individual = 1
 
 [ngs-reads-art]
 qprof1 = profileR1.txt

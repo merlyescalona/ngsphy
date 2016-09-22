@@ -1,41 +1,16 @@
 #!/usr/bin/home/python
-################################################################################
-#
-#    Copyright (C) 2016  Merly Escalona  <merlyescalona@uvigo.es>
-#    simphy-ngs-wrapper is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    SimPhyMating is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this programa.  If not, see <http://www.gnu.org/licenses/>.
-#
-################################################################################
-LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
-CONFIG_LEVEL=45
-################################################################################
 import argparse,datetime,logging,os,sys
-from MEOutputFormatter import MEOutputFormatter as mof
-from MELoggingFormatter import MELoggingFormatter as mlf
 import numpy as np
 import random as rnd
+import Settings as sp
 from select import select
-################################################################################
 
+################################################################################
 class Mating:
-    """
-    Mating class
-    """
-    def __init__(self, args,logger):
-        """
-            :param self:
-            :param args: Arguments that come from the command line parser
-        """
+    def __init__(self, settings):
+        self.appLogger=logging.getLogger('sngsw')
+        self.appLogger.debug("(class Mating | __init())")
+
         # Number of species trees replicates/folder to work with
         self.numSpeciesTrees=0
         self.numSpeciesTreesDigits=0
@@ -45,39 +20,18 @@ class Mating:
         self.numFastaFiles=0
         self.numFastaFilesDigits=0
         # Checking the format of the inputted simphy directory
-        if (args.simphy_folder[-1]=="/"):
-            self.projectName=os.path.basename(args.simphy_folder[0:-1])
+        if (settings.parser.get("general", "simphy_folder")[-1]=="/"):
+            self.projectName=os.path.basename(settings.parser.get("general", "simphy_folder")[0:-1])
         else:
-            self.projectName=os.path.basename(args.simphy_folder)
-        self.path=os.path.abspath(args.simphy_folder)
+            self.projectName=os.path.basename(settings.parser.get("general", "simphy_folder"))
 
+        self.path=os.path.abspath(settings.parser.get("general", "simphy_folder"))
         # Prefix of the datafiles that contain the FASTA sequences for
         # its corresponding gene tree.
-        self.dataprefix=args.prefix
+        self.dataprefix=settings.parser.get("general","data_prefix")
         # Number of files to output per genetree
-        self.numOutput=args.number_files
-
+        self.numOutput=settings.parser.get("mating","output-per-individual")
         self.output=""
-        # ----------------------------------------------------------------------
-        # Logging
-        # ----------------------------------------------------------------------
-        self.appLogger=logging.getLogger('sngsw')
-        loggerFormatter=mlf(fmt="%(asctime)s - %(levelname)s:\t%(message)s",datefmt="%d/%m/%Y %I:%M:%S %p")
-
-        fileHandler=logging.FileHandler(filename="{0}/{1}.mating.log".format(self.path, self.projectName))
-        fileHandler.setFormatter(loggerFormatter)
-        fileHandler.setLevel(level=logging.DEBUG)
-        cmdHandler = logging.StreamHandler(sys.stdout)
-        cmdHandler.setFormatter(loggerFormatter)
-        cmdHandler.setLevel(self.getLogLevel(args.log))
-
-        self.appLogger.addHandler(fileHandler)
-        self.appLogger.addHandler(cmdHandler)
-
-        logging.addLevelName(CONFIG_LEVEL, "CONFIG")
-        self.appLogger.log(logging.INFO,"Starting")
-        self.startTime=datetime.datetime.now()
-        self.endTime=None
 
         # Output folder
         self.output="{0}/individuals".format(self.path)
@@ -90,23 +44,18 @@ class Mating:
         print(self.output)
 
 
-    """
-    ############################################################################
-    #                                  Mating                                  #
-    ############################################################################
-    Necessary for to check the existence of the simphy project folder.
-    Extract from the folder:
-        - Number of species trees available
-    """
     def checkArgs(self):
-        self.appLogger.log(CONFIG_LEVEL,"Checking arguments...")
+        self.appLogger.info("Checking SimPhy folder...")
+        matingArgsOk=True
+        matingArgsMessageCorrect="Settings are correct, Mating process can be run."
+        matingArgsMessageWrong="Something went wrong.\n"
         # Dir exists
         simphydir=os.path.exists(self.path)
         if simphydir:
-            self.appLogger.log(CONFIG_LEVEL,"SimPhy folder exists:\t{0}".format(simphydir))
+            self.appLogger.debug("SimPhy folder exists:\t{0}".format(simphydir))
         else:
-            self.ending(False, "SimPhy folder does not exist.")
-            # ENDING HERE
+            matingArgsOk=False
+            matingArgsMessageWrong+="\n\tSimPhy folder does not exist."
 
         # List all the things in the project directory
         fileList=os.listdir(os.path.abspath(self.path))
@@ -117,16 +66,17 @@ class Mating:
         params = os.path.join(self.path,"{0}.params".format(self.projectName))
         db = os.path.join(self.path,"{0}.db".format(self.projectName))
 
-        self.appLogger.log(CONFIG_LEVEL,"SimPhy files (command, params, db)")
-        self.appLogger.log(CONFIG_LEVEL,"{0}:\t{1}".format(os.path.basename(db),db in fileList))
-        self.appLogger.log(CONFIG_LEVEL,"{0}:\t{1}".format(os.path.basename(command),command in fileList))
-        self.appLogger.log(CONFIG_LEVEL,"{0}:\t{1}".format(os.path.basename(params),params in fileList))
+        self.appLogger.debug("SimPhy files (command, params, db)")
+        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(db),db in fileList))
+        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(command),command in fileList))
+        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(params),params in fileList))
 
         simphyfiles=((command in fileList) and (params in fileList) and(db in fileList))
 
         # check if  command, db, params files
         if not simphyfiles:
-            self.ending(False, "SimPhy files do not exist.")
+            matingArgsOk=False
+            matingArgsMessageWrong+="\n\tSimPhy files do not exist."
 
         # check how many of them are dirs
         for item in fileList:
@@ -138,7 +88,8 @@ class Mating:
         self.appLogger.debug("Num species trees:\t{0}".format(self.numFastaFiles))
 
         if not (self.numSpeciesTrees>0):
-            self.ending(False, "No specOutput folder: number (at least 1) of species trees replicate/folders:\t{0}".format(self.numSpeciesTrees>0))
+            matingArgsOk=False
+            matingArgsMessageWrong+="\n\tNo enough number (at least 1) of species trees replicate/folders:\t{0}".format(self.numSpeciesTrees>0)
 
         # Checking output path
         if not os.path.exists(self.output):
@@ -146,13 +97,17 @@ class Mating:
         else:
             self.appLogger.info("Output folder ({0}) exists. ".format(self.output))
 
+        if matingArgsOk:
+            return True, matingArgsMessageCorrect
+        else:
+            return False, matingArgsMessageWrong
     """
     ############################################################################
     #                          Printing Configuration                          #
     ############################################################################
     """
     def print_configuration(self):
-        self.appLogger.log(CONFIG_LEVEL,\
+        self.appLogger.debug(\
             "\n\t{0}Configuration...{1}\n\tSimPhy project name:\t{2}\n\tSimPhy path:\t{3}\n\tOutput folder:\t{4}\n\tDataset prefix(es) (INDELible):\t{5}\n\tNumber of species trees replicates/folders:\t{6}".format(\
                 mof.BOLD,mof.END,\
                 self.projectName,\
@@ -160,7 +115,8 @@ class Mating:
                 self.output,\
                 self.dataprefix,\
                 self.numSpeciesTrees\
-        ))
+            )
+        )
 
     """
     ############################################################################
@@ -168,6 +124,8 @@ class Mating:
     ############################################################################
     """
     def iteratingOverST(self):
+        self.appLogger.debug("(class Mating | iteratingOverST() )")
+        sys.exit()
         # iterate over STs
         for indexST in range(1, self.numSpeciesTrees+1):
             curReplicatePath="{0}/{1:0{2}d}/".format(self.path,indexST, self.numSpeciesTreesDigits)
@@ -210,10 +168,10 @@ class Mating:
     ############################################################################
     """
     def mate(self, indexST,indexLOC):
-        self.appLogger.debug("mate(self, indexST,indexLOC)")
+        self.appLogger.debug("( class Mating | mate(self, indexST,indexLOC))")
         indexesDict=dict()
 
-        self.appLogger.info("Prefix:\t{0}".format(self.dataprefix))
+        self.appLogger.debug("Prefix:\t{0}".format(self.dataprefix))
         # 1. Reading the sequences of the file into a dictionary
         fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
             self.path,\
@@ -513,58 +471,7 @@ class Mating:
             0,0,0,0))
         indexFile.close()
 
-    """
-    #########################################################################
-    # Ending  (method to properly end the program)
-    #########################################################################
-    """
-    def ending(self, good, message):
-        # good: Whether there's a good ending or not (error)
-        if not good:
-            self.appLogger.error(message)
-        self.endTime=datetime.datetime.now()
-        self.appLogger.info("--------------------------------------------------------------------------------")
-        self.appLogger.info("Elapsed time:\t{0}".format(self.endTime-self.startTime))
-        self.appLogger.info("Ending at:\t{0}".format(self.endTime.strftime("%a, %b %d %Y. %I:%M:%S %p")))
-        sys.exit()
-
-    """
-    #########################################################################
-
-    #########################################################################
-    """
-    def log(self, level, message):
-        if level==logging.DEBUG:
-            self.appLogger.debug(message)
-        if level==logging.INFO:
-            self.appLogger.info(message)
-        if level==logging.WARNING:
-            self.appLogger.warning(message)
-        if level==logging.ERROR:
-            self.appLogger.error(message)
-        return None
-
-    def getLogLevel(self,level):
-        if level==LOG_LEVEL_CHOICES[0]:
-            loggingLevel=logging.DEBUG
-        elif level==LOG_LEVEL_CHOICES[1]:
-            # show info
-            loggingLevel=logging.INFO
-        elif level==LOG_LEVEL_CHOICES[2]:
-            # show info, warnings
-            loggingLevel=logging.WARNING
-        else:
-            loggingLevel=logging.ERROR
-        # every line goes into a file
-        return loggingLevel
-
-    """
-    #########################################################################
-
-    #########################################################################
-    """
-    def run(self):
-        self.checkArgs()
-        self.print_configuration()
-        self.iteratingOverST()
-        self.ending(True,"Mating finished")
+    # def run(self):
+    #     self.checkArgs()
+    #     self.print_configuration()
+    #     self.iteratingOverST()

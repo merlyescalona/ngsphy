@@ -1,7 +1,7 @@
 import argparse,datetime,logging,os,sys
 import numpy as np
 import random as rnd
-import MELoggingFormatter as mlf
+import Mating as mat
 import Settings as sp
 from select import select
 
@@ -12,6 +12,7 @@ MIN_VERSION=1
 FIX_VERSION=0
 PROGRAM_NAME="simphy.ngs.wrapper.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
+LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 ################################################################################
 
 class SimPhyNGSWrapper:
@@ -55,11 +56,16 @@ class SimPhyNGSWrapper:
             # settings file exist, go ahead and run
             self.appLogger.debug("Starting process")
             self.settings=sp.Settings(self.settingsFile)
-            good,message=self.settings.checkArgs()
-            if (good):
-                self.appLogger.info("allGood")
-                # TODO: here I do something
-            else:   self.ending(good,message) # did not pass the parser reqs.
+            settingsOk,settingsMessage=self.settings.checkArgs()
+            if (settingsOk):
+                self.mating=mat.Mating(self.settings)
+                matingOk,matingMessage=self.mating.checkArgs()
+                if (matingOk):
+                    self.mating.iteratingOverST()
+                else:
+                    self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+            else:
+                self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
 
     def log(self, level, message):
         if level==logging.DEBUG:    self.appLogger.debug(message)
@@ -69,9 +75,9 @@ class SimPhyNGSWrapper:
         return None
 
     def getLogLevel(self,level):
-        if level==mlf.LOG_LEVEL_CHOICES[0]: loggingLevel=logging.DEBUG
-        elif level==mlf.LOG_LEVEL_CHOICES[1]:   loggingLevel=logging.INFO
-        elif level==mlf.LOG_LEVEL_CHOICES[2]:   loggingLevel=logging.WARNING
+        if level==LOG_LEVEL_CHOICES[0]: loggingLevel=logging.DEBUG
+        elif level==LOG_LEVEL_CHOICES[1]:   loggingLevel=logging.INFO
+        elif level==LOG_LEVEL_CHOICES[2]:   loggingLevel=logging.WARNING
         else:   loggingLevel=logging.ERROR
         return loggingLevel
 
@@ -111,8 +117,8 @@ to the wiki page https://gitlab.com/merlyescalona/simphy-ngs-wrapper/wikis/home
     optionalGroup.add_argument('-s','--settings',metavar='<settings_file_path>', type=str,\
     help='Path to the settings file.')
     optionalGroup.add_argument('-l','--log',metavar='<log_level>', type=str,\
-        choices=mlf.LOG_LEVEL_CHOICES, default="INFO",\
-        help='Specified level of log that will be shown through the standard output. Entire log will be stored in a separate file. Values:{0}. Default: {1}. '.format(mlf.LOG_LEVEL_CHOICES,mlf.LOG_LEVEL_CHOICES[1]))
+        choices=LOG_LEVEL_CHOICES, default="INFO",\
+        help='Specified level of log that will be shown through the standard output. Entire log will be stored in a separate file. Values:{0}. Default: {1}. '.format(LOG_LEVEL_CHOICES,LOG_LEVEL_CHOICES[1]))
     informationGroup= parser.add_argument_group('Information arguments')
     informationGroup.add_argument('-v', '--version',\
         action='version',\
