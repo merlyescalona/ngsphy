@@ -5,3 +5,5 @@
 *.[Ll][Oo][Gg]
 test/
 test/*
+test_wrapper/
+test_wrapper/*
