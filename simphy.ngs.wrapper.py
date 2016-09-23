@@ -31,7 +31,7 @@ class SimPhyNGSWrapper:
         ch = logging.StreamHandler()
         ch.setFormatter(logging.Formatter(fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
             datefmt="%d/%m/%Y %I:%M:%S %p"))
-        ch.setLevel(args.log)
+        ch.setLevel(args.log.upper())
         self.appLogger.addHandler(ch)
         self.appLogger.info("Starting")
         self.settingsFile=""
@@ -75,9 +75,9 @@ class SimPhyNGSWrapper:
         return None
 
     def getLogLevel(self,level):
-        if level==LOG_LEVEL_CHOICES[0]: loggingLevel=logging.DEBUG
-        elif level==LOG_LEVEL_CHOICES[1]:   loggingLevel=logging.INFO
-        elif level==LOG_LEVEL_CHOICES[2]:   loggingLevel=logging.WARNING
+        if level.upper()==LOG_LEVEL_CHOICES[0]: loggingLevel=logging.DEBUG
+        elif level.upper()==LOG_LEVEL_CHOICES[1]:   loggingLevel=logging.INFO
+        elif level.upper()==LOG_LEVEL_CHOICES[2]:   loggingLevel=logging.WARNING
         else:   loggingLevel=logging.ERROR
         return loggingLevel
 

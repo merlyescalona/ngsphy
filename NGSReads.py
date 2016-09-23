@@ -2,7 +2,7 @@ import argparse,datetime,logging,os,sys
 import numpy as np
 import random as rnd
 import Settings as sp
-from select import select
+from subprocess import call
 
 """
 art_illumina -sam   -1 $profilePath/csNGSProfile_hiseq2500_1.txt
@@ -13,3 +13,8 @@ art_illumina -sam   -1 $profilePath/csNGSProfile_hiseq2500_1.txt
 class NGSReads:
     def __init__(self,program,params,,logger):
         self.appLogger=logging.getLogger('sngsw')
+
+
+class NGSReadsART(NGSReads):
+    def __init__(self,parent):
+        call(artparam, stdout=open('{}/art_log'.format(self.outd), 'w'))

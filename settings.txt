@@ -1,13 +1,11 @@
 [general]
-simphy_folder = test
+simphy_folder = test_wrapper
 data_prefix = data
 
 [mating]
 output-per-individual = 1
 
 [ngs-reads-art]
-qprof1 = profileR1.txt
-qprof2 = profileR2.txt
 amplicon = true
 rcount  = 100
 id = iddefault
@@ -20,4 +18,4 @@ paired = true
 quiet = true
 sdev = 50
 samout = true
-
+seqSys = HS25

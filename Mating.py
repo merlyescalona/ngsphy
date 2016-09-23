@@ -1,5 +1,5 @@
 #!/usr/bin/home/python
-import argparse,datetime,logging,os,sys
+import argparse,datetime,logging,os,sys, sqlite3
 import numpy as np
 import random as rnd
 import Settings as sp
@@ -30,7 +30,8 @@ class Mating:
         # its corresponding gene tree.
         self.dataprefix=settings.parser.get("general","data_prefix")
         # Number of files to output per genetree
-        self.numOutput=settings.parser.get("mating","output-per-individual")
+        self.numOutput=settings.parser.getint("mating","output-per-individual")
+        self.appLogger.debug("Numer of output files: {0}".format(self.numOutput))
         self.output=""
 
         # Output folder
@@ -62,14 +63,14 @@ class Mating:
         for index in range(0,len(fileList)):
             fileList[index]=os.path.abspath(os.path.join(self.path,fileList[index]))
 
-        command = os.path.join(self.path,"{0}.command".format(self.projectName))
-        params = os.path.join(self.path,"{0}.params".format(self.projectName))
-        db = os.path.join(self.path,"{0}.db".format(self.projectName))
+        self.command = os.path.join(self.path,"{0}.command".format(self.projectName))
+        self.params = os.path.join(self.path,"{0}.params".format(self.projectName))
+        self.db = os.path.join(self.path,"{0}.db".format(self.projectName))
 
         self.appLogger.debug("SimPhy files (command, params, db)")
-        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(db),db in fileList))
-        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(command),command in fileList))
-        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(params),params in fileList))
+        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.db),self.db in fileList))
+        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.command),self.command in fileList))
+        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.params),self.params in fileList))
 
         simphyfiles=((command in fileList) and (params in fileList) and(db in fileList))
 
@@ -81,12 +82,13 @@ class Mating:
         # check how many of them are dirs
         for item in fileList:
             baseitem=os.path.basename(item)
+            self.appLogger.debug("ITEM:\t{0}\nBasename:\t{1}".format(item,baseitem))
             if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):
                 self.numSpeciesTrees=self.numSpeciesTrees+1
         self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
         # check if at least one
-        self.appLogger.debug("Num species trees:\t{0}".format(self.numFastaFiles))
 
+        self.appLogger.debug("Num species trees:\t{0}".format(self.numSpeciesTrees))
         if not (self.numSpeciesTrees>0):
             matingArgsOk=False
             matingArgsMessageWrong+="\n\tNo enough number (at least 1) of species trees replicate/folders:\t{0}".format(self.numSpeciesTrees>0)
@@ -118,6 +120,14 @@ class Mating:
             )
         )
 
+    def stWithEvenNumberIndsPerSpecies(self):
+        query="select SID from Species_Trees WHERE Ind_per_sp % 2 = 0"
+        con = sqlite3.connect(filedb)
+        res=con.execute(query).fetchall()
+        con.close()
+        res=[item for sublist in res for item in sublist]
+        return res
+
     """
     ############################################################################
     #                       Iterationg over STs                                #
@@ -125,9 +135,9 @@ class Mating:
     """
     def iteratingOverST(self):
         self.appLogger.debug("(class Mating | iteratingOverST() )")
-        sys.exit()
+        filteredSts=self.stWithEvenNumberIndsPerSpecies()
         # iterate over STs
-        for indexST in range(1, self.numSpeciesTrees+1):
+        for indexST in filteredSts:
             curReplicatePath="{0}/{1:0{2}d}/".format(self.path,indexST, self.numSpeciesTreesDigits)
             self.appLogger.info("Replicate {0}/{2} ({1})".format(indexST, curReplicatePath,self.numSpeciesTrees))
             fasta=0;geneTrees=0
@@ -278,6 +288,7 @@ class Mating:
             indexST,self.numSpeciesTreesDigits,\
             indexLOC,self.numFastaFilesDigits\
         )
+        self.appLogger.debug("Output folder:".format(outputFolder))
 
         """
         ####################################################################
@@ -361,7 +372,7 @@ class Mating:
                     # Extracting info from the dictionary
                     currentInd=pair[0];pair1=pair[1]; pair2=pair[2];
                     # Organizing strings
-                    logging.debug("{0}|{1}".format(pair, key))
+                    self.appLogger.debug("{0}|{1}".format(pair, key))
                     seq1=seqDict[key][pair1]["sequence"]
                     seq2=seqDict[key][pair2]["sequence"]
                     shortDesc1=seqDict[key][pair1]["description"][1:len(seqDict[key][pair1]["description"])]
@@ -382,6 +393,7 @@ class Mating:
                             self.dataprefix,currentInd,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
+                        self.appLogger.debug("indFilename={0}".format(indFilename))
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
                         indFile.close()
@@ -392,6 +404,7 @@ class Mating:
                             self.dataprefix,currentInd, shortDesc1,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
+                        self.appLogger.debug("indFilename={0}".format(indFilename))
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n".format(des1,seq1))
                         indFile.close()
@@ -401,6 +414,7 @@ class Mating:
                             self.dataprefix,currentInd, shortDesc2,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
+                        self.appLogger.debug("indFilename={0}".format(indFilename))
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n".format(des2,seq2))
                         indFile.close()
@@ -411,6 +425,8 @@ class Mating:
                             self.dataprefix,currentInd,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
+                        self.appLogger.debug("indFilename={0}".format(indFilename))
+
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
                         indFile.close()
@@ -420,6 +436,8 @@ class Mating:
                             self.dataprefix,currentInd, shortDesc1,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
+                        self.appLogger.debug("indFilename={0}".format(indFilename))
+
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n".format(des1,seq1))
                         indFile.close()
@@ -429,6 +447,8 @@ class Mating:
                             self.dataprefix,currentInd, shortDesc2,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
+                        self.appLogger.debug("indFilename={0}".format(indFilename))
+
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n".format(des2,seq2))
                         indFile.close()

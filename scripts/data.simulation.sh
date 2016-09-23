@@ -33,3 +33,6 @@ for replicate in $(seq 1 $stReplicates); do
   cd $simphy_folder/$st/
   indelible
 done
+
+# have a profile
+python simphy.ngs.wrapper -l DEBUG
