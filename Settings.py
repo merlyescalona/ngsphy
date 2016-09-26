@@ -75,6 +75,12 @@ class Settings:
             # to art to complain if parameters are wrong
             allGood=False
             parserMessageWrong+="\n\tNo ART section. Stopping run."
+        else:
+            if self.parser.has_option("o"):self.parser.remove_option("ngs-reads-art","o")
+            if self.parser.has_option("out"):self.parser.remove_option("ngs-reads-art","out")
+            if self.parser.has_option("i"):self.parser.remove_option("ngs-reads-art","i")
+            if self.parser.has_option("in"):self.parser.remove_option("ngs-reads-art","in")
+            self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
 
     if (allGood):
         self.appLogger.info(self.formatSettingsMessage())
@@ -106,10 +112,8 @@ class Settings:
     parser.set("ngs-reads-art","rcount ",100)
     parser.set("ngs-reads-art","id","iddefault")
     parser.set("ngs-reads-art","errfree","false")
-    parser.set("ngs-reads-art","in","input.fq")
     parser.set("ngs-reads-art","len",150)
     parser.set("ngs-reads-art","mflen",250)
-    parser.set("ngs-reads-art","out","output")
     parser.set("ngs-reads-art","paired","true")
     parser.set("ngs-reads-art","quiet","true")
     parser.set("ngs-reads-art","sdev",50)
@@ -132,10 +136,8 @@ class Settings:
     parser.set("ngs-reads-art","c",100)
     parser.set("ngs-reads-art","d","iddefault")
     parser.set("ngs-reads-art","ef" ,"false")
-    parser.set("ngs-reads-art","i","input.fq")
     parser.set("ngs-reads-art","l",150)
     parser.set("ngs-reads-art","m",250)
-    parser.set("ngs-reads-art","o","output")
     parser.set("ngs-reads-art","p","true")
     parser.set("ngs-reads-art","q","true")
     parser.set("ngs-reads-art","s",50)
@@ -160,10 +162,8 @@ class Settings:
     parser.set("ngs-reads-art","rcount ",100)
     parser.set("ngs-reads-art","id","iddefault")
     parser.set("ngs-reads-art","errfree","false")
-    parser.set("ngs-reads-art","in","input.fq")
     parser.set("ngs-reads-art","len",150)
     parser.set("ngs-reads-art","mflen",250)
-    parser.set("ngs-reads-art","out","output")
     parser.set("ngs-reads-art","paired","true")
     parser.set("ngs-reads-art","quiet","true")
     parser.set("ngs-reads-art","sdev",50)
@@ -187,10 +187,8 @@ class Settings:
     parser.set("ngs-reads-art","c",100)
     parser.set("ngs-reads-art","d","iddefault")
     parser.set("ngs-reads-art","ef","false")
-    parser.set("ngs-reads-art","i","input.fq")
     parser.set("ngs-reads-art","l",150)
     parser.set("ngs-reads-art","m",250)
-    parser.set("ngs-reads-art","o","output")
     parser.set("ngs-reads-art","p","true")
     parser.set("ngs-reads-art","q","true")
     parser.set("ngs-reads-art","s",50)

@@ -9,7 +9,7 @@ from select import select
 class Mating:
     def __init__(self, settings):
         self.appLogger=logging.getLogger('sngsw')
-        self.appLogger.debug("(class Mating | __init())")
+        self.appLogger.debug("(class Mating | __init__())")
 
         # Number of species trees replicates/folder to work with
         self.numSpeciesTrees=0
@@ -20,12 +20,13 @@ class Mating:
         self.numFastaFiles=0
         self.numFastaFilesDigits=0
         # Checking the format of the inputted simphy directory
+
+        self.path=os.path.abspath(settings.parser.get("general", "simphy_folder"))
         if (settings.parser.get("general", "simphy_folder")[-1]=="/"):
             self.projectName=os.path.basename(settings.parser.get("general", "simphy_folder")[0:-1])
         else:
             self.projectName=os.path.basename(settings.parser.get("general", "simphy_folder"))
 
-        self.path=os.path.abspath(settings.parser.get("general", "simphy_folder"))
         # Prefix of the datafiles that contain the FASTA sequences for
         # its corresponding gene tree.
         self.dataprefix=settings.parser.get("general","data_prefix")
@@ -91,13 +92,21 @@ class Mating:
         self.appLogger.debug("Num species trees:\t{0}".format(self.numSpeciesTrees))
         if not (self.numSpeciesTrees>0):
             matingArgsOk=False
-            matingArgsMessageWrong+="\n\tNo enough number (at least 1) of species trees replicate/folders:\t{0}".format(self.numSpeciesTrees>0)
+            matingArgsMessageWrong+="\n\tNot enough number of species tree replicates (at least 1):\t{0}".format(self.numSpeciesTrees>0)
 
         # Checking output path
         if not os.path.exists(self.output):
             self.appLogger.info("Output folder does not exist. Creating: {0} ".format(self.output))
         else:
             self.appLogger.info("Output folder ({0}) exists. ".format(self.output))
+
+        # Adjusting range of number of possible output files
+        if self.numOutput > 2:
+            self.numOutput=2
+            self.appLogger.warning("Number of output files out of range. Adjusted to maximum number: ".format(self.outputFile))
+        if self.numOutput < 1:
+            self.numOutput=1
+            self.appLogger.warning("Number of output files out of range. Adjusted to minimum number".format(self.outputFile))
 
         if matingArgsOk:
             return True, matingArgsMessageCorrect
@@ -318,25 +327,6 @@ class Mating:
                     indFile.write("{0}_S1\n{1}\n{2}_S2\n{3}\n".format(des1,seq1,des1,seq1))
                     indFile.close()
                 if (self.numOutput == 2):
-                    # Strand 1 -----------------------------------------
-                    indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S1.fasta".format(\
-                        outputFolder,self.projectName,indexST,indexLOC,\
-                        self.dataprefix,0,shortDesc,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    indFile=open(indFilename, "w")
-                    indFile.write("{0}_S1\n{1}\n".format(des1,seq1))
-                    indFile.close()
-                    # Strand 2 -----------------------------------------
-                    indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S2.fasta".format(\
-                        outputFolder,self.projectName,indexST,indexLOC,\
-                        self.dataprefix,0,shortDesc,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    indFile=open(indFilename, "w")
-                    indFile.write("{0}_S2\n{1}\n".format(des1,seq1))
-                    indFile.close()
-                if (self.numOutput == 3):
                     # General file -------------------------------------
                     indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
                         outputFolder,self.projectName,indexST,indexLOC,\
@@ -398,27 +388,6 @@ class Mating:
                         indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
                         indFile.close()
                     if (self.numOutput == 2):
-                        # Strand 1 -----------------------------------------
-                        indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S1.fasta".format(\
-                            outputFolder,self.projectName,indexST,indexLOC,\
-                            self.dataprefix,currentInd, shortDesc1,\
-                            self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                        )
-                        self.appLogger.debug("indFilename={0}".format(indFilename))
-                        indFile=open(indFilename, "w")
-                        indFile.write("{0}\n{1}\n".format(des1,seq1))
-                        indFile.close()
-                        # Strand 2 -----------------------------------------
-                        indFilename="{0}/{1}_{2:0{7}d}_{3:0{7}d}_{4}_{5}_{6}_S2.fasta".format(\
-                            outputFolder,self.projectName,indexST,indexLOC,\
-                            self.dataprefix,currentInd, shortDesc2,\
-                            self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                        )
-                        self.appLogger.debug("indFilename={0}".format(indFilename))
-                        indFile=open(indFilename, "w")
-                        indFile.write("{0}\n{1}\n".format(des2,seq2))
-                        indFile.close()
-                    if (self.numOutput == 3):
                         # General file -------------------------------------
                         indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
                             outputFolder,self.projectName,indexST,indexLOC,\

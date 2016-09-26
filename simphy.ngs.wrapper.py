@@ -3,6 +3,7 @@ import numpy as np
 import random as rnd
 import Mating as mat
 import Settings as sp
+import NGSReads as ngs
 from select import select
 
 ################################################################################
@@ -58,12 +59,21 @@ class SimPhyNGSWrapper:
             self.settings=sp.Settings(self.settingsFile)
             settingsOk,settingsMessage=self.settings.checkArgs()
             if (settingsOk):
-                self.mating=mat.Mating(self.settings)
-                matingOk,matingMessage=self.mating.checkArgs()
-                if (matingOk):
-                    self.mating.iteratingOverST()
+                # Doing Mating
+                # self.mating=mat.Mating(self.settings)
+                # matingOk,matingMessage=self.mating.checkArgs()
+                # if (matingOk):
+                #     self.mating.iteratingOverST()
+                # else:
+                #     self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+
+                # Doing NGS
+                self.ngs=ngs.NGSReadsART(self.settings)
+                ngsOk,ngsMessage=self.ngs.run()
+                if (ngsOk):
+                    self.appLogger.info("NGS running: {0}".format(ngsMessage))
                 else:
-                    self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+                    self.ending(ngsOk,ngsMessage)
             else:
                 self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
 
