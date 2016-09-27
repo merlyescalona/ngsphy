@@ -76,10 +76,10 @@ class Settings:
             allGood=False
             parserMessageWrong+="\n\tNo ART section. Stopping run."
         else:
-            if self.parser.has_option("o"):self.parser.remove_option("ngs-reads-art","o")
-            if self.parser.has_option("out"):self.parser.remove_option("ngs-reads-art","out")
-            if self.parser.has_option("i"):self.parser.remove_option("ngs-reads-art","i")
-            if self.parser.has_option("in"):self.parser.remove_option("ngs-reads-art","in")
+            if self.parser.has_option("ngs-reads-art","o"):self.parser.remove_option("ngs-reads-art","o")
+            if self.parser.has_option("ngs-reads-art","out"):self.parser.remove_option("ngs-reads-art","out")
+            if self.parser.has_option("ngs-reads-art","i"):self.parser.remove_option("ngs-reads-art","i")
+            if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
             self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
 
     if (allGood):

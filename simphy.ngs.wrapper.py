@@ -1,4 +1,4 @@
-import argparse,datetime,logging,os,sys
+import argparse,datetime,logging,os,subprocess,sys
 import numpy as np
 import random as rnd
 import Mating as mat
@@ -42,7 +42,16 @@ class SimPhyNGSWrapper:
             self.settingsFile=os.path.basename("./settings.txt")
 
     def run(self):
+        # checking program dependencies
+        stream = os.popen('which art_illumina').read()[0:-1]
+        self.appLogger.info("Checking dependencies...")
+        if stream:
+            self.appLogger.info("art_illumina - Found running in: {}".format(stream))
+        else:
+            self.ending(False,"Exiting. art_illumina not found. Program either not installed or out off the your current path. Please verify its installation, since it is necessarty to run this wrapper. ")
+
         # checking existence of settings file
+        self.appLogger.info("Checking settings...")
         if (not os.path.exists(self.settingsFile)):
             self.appLogger.warning("Settings file ({0}) does not exist. ".format(self.settingsFile))
             self.appLogger.warning("Generating settings.txt file.")
@@ -59,14 +68,14 @@ class SimPhyNGSWrapper:
             self.settings=sp.Settings(self.settingsFile)
             settingsOk,settingsMessage=self.settings.checkArgs()
             if (settingsOk):
+                print("commented")
                 # Doing Mating
-                # self.mating=mat.Mating(self.settings)
-                # matingOk,matingMessage=self.mating.checkArgs()
-                # if (matingOk):
-                #     self.mating.iteratingOverST()
-                # else:
-                #     self.ending(matingOk,matingMessage) # did not pass the parser reqs.
-
+                self.mating=mat.Mating(self.settings)
+                matingOk,matingMessage=self.mating.checkArgs()
+                if (matingOk):
+                    self.mating.iteratingOverST()
+                else:
+                    self.ending(matingOk,matingMessage) # did not pass the parser reqs.
                 # Doing NGS
                 self.ngs=ngs.NGSReadsART(self.settings)
                 ngsOk,ngsMessage=self.ngs.run()

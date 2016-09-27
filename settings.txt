@@ -6,9 +6,7 @@ data_prefix = data
 output-per-individual = 1
 
 [ngs-reads-art]
-amplicon = true
-rcount  = 100
-id = iddefault
+f  = 100
 errfree = false
 in = input.fq
 len = 150

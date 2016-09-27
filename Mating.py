@@ -73,7 +73,7 @@ class Mating:
         self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.command),self.command in fileList))
         self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.params),self.params in fileList))
 
-        simphyfiles=((command in fileList) and (params in fileList) and(db in fileList))
+        simphyfiles=((self.command in fileList) and (self.params in fileList) and(self.db in fileList))
 
         # check if  command, db, params files
         if not simphyfiles:
@@ -131,7 +131,7 @@ class Mating:
 
     def stWithEvenNumberIndsPerSpecies(self):
         query="select SID from Species_Trees WHERE Ind_per_sp % 2 = 0"
-        con = sqlite3.connect(filedb)
+        con = sqlite3.connect(self.db)
         res=con.execute(query).fetchall()
         con.close()
         res=[item for sublist in res for item in sublist]
