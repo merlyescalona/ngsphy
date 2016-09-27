@@ -68,7 +68,6 @@ class SimPhyNGSWrapper:
             self.settings=sp.Settings(self.settingsFile)
             settingsOk,settingsMessage=self.settings.checkArgs()
             if (settingsOk):
-                print("commented")
                 # Doing Mating
                 self.mating=mat.Mating(self.settings)
                 matingOk,matingMessage=self.mating.checkArgs()
@@ -80,7 +79,7 @@ class SimPhyNGSWrapper:
                 self.ngs=ngs.NGSReadsART(self.settings)
                 ngsOk,ngsMessage=self.ngs.run()
                 if (ngsOk):
-                    self.appLogger.info("NGS running: {0}".format(ngsMessage))
+                    self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
                 else:
                     self.ending(ngsOk,ngsMessage)
             else:
@@ -166,5 +165,5 @@ if __name__=="__main__":
         prog.run()
         prog.ending(True,"Run has finished correctly.")
     except KeyboardInterrupt:
-        sys.stdout.write("{0}{1}\nInterrupted!{2}\nPlease run again for the expected outcome.\n".format(mof.BOLD,mof.DARKCYAN, mof.END))
+        sys.stdout.write("{0}{1}\nInterrupted!{2}\nPlease run again for the expected outcome.\n".format("\033[91m","\033[1m","\033[0m"))
         sys.exit()

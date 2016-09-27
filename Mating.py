@@ -9,7 +9,7 @@ from select import select
 class Mating:
     def __init__(self, settings):
         self.appLogger=logging.getLogger('sngsw')
-        self.appLogger.debug("(class Mating | __init__())")
+        self.appLogger.info("Mating: Run started")
 
         # Number of species trees replicates/folder to work with
         self.numSpeciesTrees=0
@@ -42,9 +42,7 @@ class Mating:
            os.mkdir(self.output)
            self.output=os.path.abspath(self.output)
         except:
-           self.appLogger.info("Output folder ({0}) exists. ".format(self.output))
-        print(self.output)
-
+           self.appLogger.debug("Output folder ({0}) exists. ".format(self.output))
 
     def checkArgs(self):
         self.appLogger.info("Checking SimPhy folder...")
@@ -83,7 +81,6 @@ class Mating:
         # check how many of them are dirs
         for item in fileList:
             baseitem=os.path.basename(item)
-            self.appLogger.debug("ITEM:\t{0}\nBasename:\t{1}".format(item,baseitem))
             if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):
                 self.numSpeciesTrees=self.numSpeciesTrees+1
         self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
@@ -177,7 +174,7 @@ class Mating:
                     try:
                         os.makedirs(newFolder)
                     except:
-                        self.appLogger.info("Folder {0} exists.".format(newFolder))
+                        self.appLogger.debug("Folder {0} exists.".format(newFolder))
                     self.mate(indexST,indexLOC)
 
 
@@ -245,7 +242,7 @@ class Mating:
             # If here, I'm in the first prefix, so I need to generate the
             # indexes
             test=[]; subset=set()
-            self.appLogger.info("Generating indexes...")
+            self.appLogger.info("Generating indexes ({0}/{1})...".format(indexST,indexLOC))
             indId=1
             for key in species:
                 self.appLogger.debug("Species {0}".format(key))
@@ -292,7 +289,7 @@ class Mating:
 
         numInds=np.trunc(numSeqs/2)+1
         currentInd=1
-        self.appLogger.info("Writing {1} individuals from {0} number of sequences.".format(numSeqs,numInds))
+        self.appLogger.debug("Writing {1} individuals from {0} number of sequences.".format(numSeqs,numInds))
         outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.output,\
             indexST,self.numSpeciesTreesDigits,\
             indexLOC,self.numFastaFilesDigits\
@@ -383,7 +380,6 @@ class Mating:
                             self.dataprefix,currentInd,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
-                        self.appLogger.debug("indFilename={0}".format(indFilename))
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
                         indFile.close()
@@ -394,7 +390,6 @@ class Mating:
                             self.dataprefix,currentInd,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
-                        self.appLogger.debug("indFilename={0}".format(indFilename))
 
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
@@ -405,7 +400,6 @@ class Mating:
                             self.dataprefix,currentInd, shortDesc1,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
-                        self.appLogger.debug("indFilename={0}".format(indFilename))
 
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n".format(des1,seq1))
@@ -416,7 +410,6 @@ class Mating:
                             self.dataprefix,currentInd, shortDesc2,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
-                        self.appLogger.debug("indFilename={0}".format(indFilename))
 
                         indFile=open(indFilename, "w")
                         indFile.write("{0}\n{1}\n".format(des2,seq2))
@@ -439,7 +432,7 @@ class Mating:
     #########################################################################
     """
     def writeIndexesDictionary(self, indexST,indexLOC, indexDict):
-        self.appLogger.info("Writing indexes into file...")
+        self.appLogger.debug("Writing indexes into file...")
         indexFilename="{0}/{1}.mating".format(self.path,self.projectName)
         if not os.path.isfile(indexFilename):
             indexFile=open(indexFilename,"w")
