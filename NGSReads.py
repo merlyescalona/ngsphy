@@ -1,4 +1,4 @@
-66import argparse,csv,datetime,logging,os,subprocess,sys
+import argparse,csv,datetime,logging,os,subprocess,sys
 import numpy as np
 import random as rnd
 import Settings as sp
@@ -122,7 +122,7 @@ class NGSReadsARTIllumina:
                 # self.params+=["--in ",inputFile,"--out",outputFile]
                 self.appLogger.debug(" ".join(callParams))
 
-                
+
                 proc=""
                 try:
                     proc = subprocess.check_output(callParams,stderr=subprocess.STDOUT)

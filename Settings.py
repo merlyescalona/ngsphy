@@ -16,8 +16,6 @@ class Settings:
     self.parser=cp.ConfigParser()
     self.parser.read(self.path)
 
-
-
   def checkArgs(self):
     allGood=True
     parserMessageCorrect="All parameters are correct."

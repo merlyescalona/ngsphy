@@ -80,7 +80,7 @@ class SimPhyNGSWrapper:
                 else:
                     self.ending(matingOk,matingMessage) # did not pass the parser reqs.
                 # Doing NGS
-                print "Not doing NGS"
+                print("Not doing NGS")
                 self.ngs=ngs.NGSReadsARTIllumina(self.settings)
                 ngsOk,ngsMessage=self.ngs.run()
                 if (ngsOk):
