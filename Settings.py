@@ -17,6 +17,7 @@ class Settings:
     self.parser.read(self.path)
 
 
+
   def checkArgs(self):
     allGood=True
     parserMessageCorrect="All parameters are correct."
@@ -29,8 +30,8 @@ class Settings:
     if not (self.parser.has_option("general","simphy_folder") or
         self.parser.has_option("general","sf")):
         # check if option simphy_folder exist in sections
-        allGood=False
         parserMessageWrong+="\n\t<simphy_folder> field is missing."
+        return False, parserMessageWrong
     else:
         # parameter is set up, now check if folder exist
         path=""
@@ -39,19 +40,41 @@ class Settings:
         if (self.parser.has_option("general","sf")):
             path=os.path.abspath(self.parser.get("general","sf"))
             self.parser.set("general","simphy_folder",path)
-            self.parser.remove_option("mating","sf")
+            self.parser.remove_option("general","sf")
 
         if (os.path.exists(path) and os.path.isdir(path)):
             self.appLogger.debug("Correct SimPhy project folder")
         else:
-            allGood=False
             parserMessageWrong+="\n\tSimPhy project folder does not exist, or the given path does not belong to a directory."
+            return False, parserMessageWrong
+
+        # Checking output folder information
+        currentRun=""
+        if(self.parser.has_option("general","output_folder")):
+            currentRun=self.parser.get("general","output_folder")
+        elif (self.parser.has_option("general","of")):
+            currentRun=self.parser.get("general","output_folder")
+            self.parser.set("general","output_folder",currentRun)
+            self.parser.remove_option("general","of")
+        else:
+            currentRun="output"
+
+        if os.path.exists("{0}/{1}".format(path,currentRun)):
+            listdir=os.listdir(path)
+            counter=0
+            for item in listdir:
+                if currentRun in item:
+                    counter+=1
+            if not counter == 0:
+                currentRun="output_{0}".format(counter+1)
+
+        self.parser.set("general","output_folder","{0}/{1}".format(path,currentRun))
 
         # Checking mating parameters.
         if not self.parser.has_section("mating"):
             # can run
-            allGood=False
             parserMessageWrong+="\n\tNo MATING section. Stopping run."
+            return False, parserMessageWrong
         elif not (self.parser.has_option("mating","opi") or self.parser.has_option("mating","output-per-individual")):
             # I have mating section but no option
             self.parser.set("mating", "output-per-individual",1)
@@ -73,8 +96,8 @@ class Settings:
         if not self.parser.has_section("ngs-reads-art"):
             # if no section, no run, if the section exist, I will leave it
             # to art to complain if parameters are wrong
-            allGood=False
             parserMessageWrong+="\n\tNo ART section. Stopping run."
+            return False, parserMessageWrong
         else:
             if self.parser.has_option("ngs-reads-art","o"):self.parser.remove_option("ngs-reads-art","o")
             if self.parser.has_option("ngs-reads-art","out"):self.parser.remove_option("ngs-reads-art","out")
@@ -82,10 +105,8 @@ class Settings:
             if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
             self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
 
-    if (allGood):
-        self.appLogger.info(self.formatSettingsMessage())
-        return True, parserMessageCorrect
-    else: return False, parserMessageWrong
+    self.appLogger.info(self.formatSettingsMessage())
+    return True, parserMessageCorrect
 
   def formatSettingsMessage(self):
     message="Settings:\n"

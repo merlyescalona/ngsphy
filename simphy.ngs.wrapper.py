@@ -4,6 +4,7 @@ import random as rnd
 import Mating as mat
 import Settings as sp
 import NGSReads as ngs
+from MELoggingFormatter import MELoggingFormatter as mlf
 from select import select
 
 ################################################################################
@@ -30,8 +31,10 @@ class SimPhyNGSWrapper:
             filemode='a',\
             level=logging.DEBUG)
         ch = logging.StreamHandler()
-        ch.setFormatter(logging.Formatter(fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
-            datefmt="%d/%m/%Y %I:%M:%S %p"))
+        # ch.setFormatter(logging.Formatter(fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
+            # datefmt="%d/%m/%Y %I:%M:%S %p"))
+        loggerFormatter=mlf(fmt="%(asctime)s - %(levelname)s:\t%(message)s",datefmt="%d/%m/%Y %I:%M:%S %p")
+        ch.setFormatter(loggerFormatter)
         ch.setLevel(args.log.upper())
         self.appLogger.addHandler(ch)
         self.appLogger.info("Starting")
@@ -41,6 +44,7 @@ class SimPhyNGSWrapper:
         else:
             self.settingsFile=os.path.basename("./settings.txt")
 
+
     def run(self):
         # checking program dependencies
         stream = os.popen('which art_illumina').read()[0:-1]
@@ -48,7 +52,7 @@ class SimPhyNGSWrapper:
         if stream:
             self.appLogger.info("art_illumina - Found running in: {}".format(stream))
         else:
-            self.ending(False,"Exiting. art_illumina not found. Program either not installed or out off the your current path. Please verify its installation, since it is necessarty to run this wrapper. ")
+            self.ending(False,"Exiting. art_illumina not found. Program either not installed or out off the your current path. Please verify the installation, since it is necessarty to run this wrapper. ")
 
         # checking existence of settings file
         self.appLogger.info("Checking settings...")
@@ -76,7 +80,8 @@ class SimPhyNGSWrapper:
                 else:
                     self.ending(matingOk,matingMessage) # did not pass the parser reqs.
                 # Doing NGS
-                self.ngs=ngs.NGSReadsART(self.settings)
+                print "Not doing NGS"
+                self.ngs=ngs.NGSReadsARTIllumina(self.settings)
                 ngsOk,ngsMessage=self.ngs.run()
                 if (ngsOk):
                     self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
