@@ -1,19 +1,6 @@
 [general]
 simphy_folder = test_wrapper
 data_prefix = data
-
+outgroup=true
 [mating]
 output-per-individual = 1
-
-[ngs-reads-art]
-f  = 100
-errfree = false
-in = input.fq
-len = 150
-mflen = 250
-out = output
-paired = true
-quiet = true
-sdev = 50
-samout = true
-seqSys = HS25

@@ -46,14 +46,6 @@ class SimPhyNGSWrapper:
 
 
     def run(self):
-        # checking program dependencies
-        stream = os.popen('which art_illumina').read()[0:-1]
-        self.appLogger.info("Checking dependencies...")
-        if stream:
-            self.appLogger.info("art_illumina - Found running in: {}".format(stream))
-        else:
-            self.ending(False,"Exiting. art_illumina not found. Program either not installed or out off the your current path. Please verify the installation, since it is necessarty to run this wrapper. ")
-
         # checking existence of settings file
         self.appLogger.info("Checking settings...")
         if (not os.path.exists(self.settingsFile)):

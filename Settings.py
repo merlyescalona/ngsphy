@@ -67,11 +67,17 @@ class Settings:
                 currentRun="output_{0}".format(counter+1)
 
         self.parser.set("general","output_folder","{0}/{1}".format(path,currentRun))
+        # if there is no outgroup info no problem, mating will be done accordingly
+        if self.parser.has_option("general", "og"):
+            value=self.parser.getboolean("general","og")
+            self.parser.set("general","outgroup")
+            self.parser.remove_option("general","og",value)
+
 
         # Checking mating parameters.
         if not self.parser.has_section("mating"):
             # can run
-            parserMessageWrong+="\n\tNo MATING section. Stopping run."
+            parserMessageWrong+="\n\tNo MATING section. Exiting."
             return False, parserMessageWrong
         elif not (self.parser.has_option("mating","opi") or self.parser.has_option("mating","output-per-individual")):
             # I have mating section but no option
@@ -97,11 +103,20 @@ class Settings:
             parserMessageWrong+="\n\tNo ART section. Stopping run."
             return False, parserMessageWrong
         else:
-            if self.parser.has_option("ngs-reads-art","o"):self.parser.remove_option("ngs-reads-art","o")
-            if self.parser.has_option("ngs-reads-art","out"):self.parser.remove_option("ngs-reads-art","out")
-            if self.parser.has_option("ngs-reads-art","i"):self.parser.remove_option("ngs-reads-art","i")
-            if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
-            self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
+            # checking program dependencies
+            stream = os.popen('which art_illumina').read()[0:-1]
+            self.appLogger.info("Checking dependencies...")
+            if stream:
+                self.appLogger.info("art_illumina - Found running in: {}".format(stream))
+                if self.parser.has_option("ngs-reads-art","o"):self.parser.remove_option("ngs-reads-art","o")
+                if self.parser.has_option("ngs-reads-art","out"):self.parser.remove_option("ngs-reads-art","out")
+                if self.parser.has_option("ngs-reads-art","i"):self.parser.remove_option("ngs-reads-art","i")
+                if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
+                self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
+            else:
+                parserMessageWrong+="Exiting. art_illumina not found. Program either not installed or out off the your current path. Please verify the installation, since it is necessarty to run this wrapper. "
+                return False, parserMessageWrong
+
 
     self.appLogger.info(self.formatSettingsMessage())
     return True, parserMessageCorrect
@@ -126,6 +141,7 @@ class Settings:
     parser.add_section("ngs-reads-art")
     parser.set("general","simphy_folder","test")
     parser.set("general","data_prefix","data")
+    parser.set("general","outgroup","true")
     parser.set("mating","output-per-individual",1)
     parser.set("ngs-reads-art","amplicon","true")
     parser.set("ngs-reads-art","rcount ",100)
@@ -149,12 +165,13 @@ class Settings:
     parser.add_section("mating")
     parser.add_section("ngs-reads-art")
     parser.set("general","sf" ,"test")
+    parser.set("general","og","true")
     parser.set("general","dp" ,"data")
     parser.set("mating","opi",1)
     parser.set("ngs-reads-art","amp","true")
     parser.set("ngs-reads-art","c",100)
     parser.set("ngs-reads-art","d","iddefault")
-    parser.set("ngs-reads-art","ef" ,"false")
+    parser.set("ngs-reads-art","ef")
     parser.set("ngs-reads-art","l",150)
     parser.set("ngs-reads-art","m",250)
     parser.set("ngs-reads-art","p","true")
@@ -174,6 +191,7 @@ class Settings:
     parser.add_section("ngs-reads-art")
     parser.set("general","simphy_folder","test")
     parser.set("general","data_prefix","data")
+    parser.set("general","outgroup","true")
     parser.set("mating","output-per-individual",1)
     parser.set("ngs-reads-art","qprof1","profileR1.txt")
     parser.set("ngs-reads-art","qprof2","profileR2.txt")

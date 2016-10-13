@@ -24,8 +24,6 @@ class Mating:
         else:
             self.projectName=os.path.basename(self.settings.parser.get("general", "simphy_folder"))
 
-        # outgroup
-        self.outgroup=self.settings.parser.getboolean("general","outgroup")
         # Prefix of the datafiles that contain the FASTA sequences for
         # its corresponding gene tree.
         self.dataprefix=self.settings.parser.get("general","data_prefix")
@@ -177,8 +175,6 @@ class Mating:
                 self.appLogger.debug("Working directly with FASTA files")
                 self.appLogger.info("Mating...")
 
-                matingTable=self.generateMatingTable(indexST)
-                self.writeMatingTable(matingTable)
                 for indexLOC in range(1,self.numFastaFiles+1):
                     self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
                     newFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.output,\
@@ -189,68 +185,22 @@ class Mating:
                         os.makedirs(newFolder)
                     except:
                         self.appLogger.debug("Folder {0} exists.".format(newFolder))
-                    seqDict=self.parseMSAFile(indexST,indexLOC)
-                    self.mate(matingTable,seqDict)
+
+                randomLoc=randomLoc=np.random.randint(1,self.numFastaFiles+1,1)
+
+                seqDict, indexesDict=self.getMatingTable(indexST,int(randomLoc))
+                self.mateAll(indexST,seqDict,indexesDict)
 
 
-
-    def generateMatingTable(self,indexST):
-        # missing outgroup
-        self.appLogger.info("Connecting to the db...")
-        con = sqlite3.connect(self.db)
-        query="select SID, Leaves, Ind_per_sp from Species_Trees WHERE SID={0}".format(indexST)
-        res=con.execute(query).fetchone()
-        con.close()
-        indexST=res[0];leaves=res[1];nIndsPerSp=res[2]
-        # by default there are no outgroups, if there are, this
-        # value will change
-        nInds=leaves/2
-        if self.outgroup:
-            mates+=[(indexST,0,0,0)]
-            nInds=(leaves-1)/2
-        inds=range(0,nIndsPerSp)
-        species=range(1,leaves)
-        mates=[]
-        self.appLogger.debug("indexST: {0} / inds:{1} ".format(indexST,inds))
-        # I'm always assuming there's an outgroup
-        for sp in species:
-            t=copy.deepcopy(inds)
-            while not t==[]:
-                p1=0;p2=0
-                try:
-                    p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
-                    p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
-                except Exception as e:
-                    break
-                pair=(indexST,sp,p1,p2)
-                mates+=[pair]
-                self.appLogger.debug("Pair generated: {0}".format(pair))
-        return mates
-
-    def writeMatingTable(self,matingTable):
-        # mating table
-        # indexST,SP,ind-tip1,ind-tip2
-        # If i have outgroups mate info should be in the table already
-        self.appLogger.debug("Writing indexes into file...")
-        indexFilename="{0}/{1}.{2:0{3}d}.mating".format(self.outputmating,self.projectName, indexST, self.numSpeciesTreesDigits)
-        if not os.path.isfile(indexFilename):
-            indexFile=open(indexFilename,"w")
-            indexFile.write("indexST,indID,speciesID,mateID1,mateID2\n")
-            indexFile.close()
-
-        indexFile=open(indexFilename,"a")
-        for indexRow in range(0,len(matingTable)):
-            indexST=row[0]
-            indID=indexRow
-            speciesID=row[1]
-            mateID1=row[2]
-            mateID2=row[3]
-            indexFile.write("{0:0{1}d},{2},{3},{4},{5}\n".format(\
-            indexST,self.numSpeciesTreesDigits,
-                indID,speciesID,mateID1,mateID2))
-        indexFile.close()
-
-    def parseMSAFile(self, indexST, indexLOC):
+    """
+    ############################################################################
+    #                                  Mating                                  #
+    ############################################################################
+    """
+    def getMatingTable(self, indexST,indexLOC):
+        self.appLogger.debug("( class Mating | mate(self, indexST,indexLOC))")
+        self.appLogger.debug("Prefix:\t{0}".format(self.dataprefix))
+        # 1. Reading the sequences of the file into a dictionary
         fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
             self.path,\
             indexST,\
@@ -283,160 +233,231 @@ class Mating:
                             'description':description,\
                             'sequence':seq\
                         }})
+
                     seq=None
                     description=None
                     tmp=None
                 else:
                     description=line[0:-1].strip()
                     tmp=description[1:len(description)].split("_")
-        return seqDict
+                count=count+1
 
-    def mateAll(self,matingTable,sequenceDictionary):
+        species=seqDict.keys()
+        pair=();subkeys=()
+        # 2. Generating the indexes for the current gene tree if not existent
+        #    For all the prefixes inputted.
+        indexesDict=dict()
+        # If here, I'm in the first prefix, so I need to generate the
+        # indexes
+        test=[]; subset=set()
+        self.appLogger.info("Generating indexes ({0}/{1})...".format(indexST,indexLOC))
+        indId=1
+        for key in species:
+            self.appLogger.debug("Species {0}".format(key))
+            subkeys=seqDict[key].keys()
+            if not key=="0":
+                while not subkeys==[]:
+                    try:
+                        test=indexesDict[key]
+                        self.appLogger.debug("Indexes dictionary is NOT empty")
+                        for item in test:
+                            subset.add(item[0])
+                            subset.add(item[1])
+                    except KeyError:
+                        self.appLogger.debug("Indexes dictionary IS empty")
+                        indexesDict[key]=[]
+
+                    newSubkeys=set(subkeys)-set(indexesDict[key])
+                    self.appLogger.debug("{0} | {1}".format(subkeys,test))
+                    try:
+                        pairs=rnd.sample(newSubkeys,2)
+                        logging.debug("Pairs 1: {0}\t2:{1}".format(pairs[0],pairs[0]))
+                        indexesDict[key]+=[(indId, pairs[0], pairs[1])]
+                        subkeys.pop(subkeys.index(pairs[0]))
+                        subkeys.pop(subkeys.index(pairs[1]))
+                        indId+=1
+                    except:
+                        subkeys.pop()
+            else:
+                subkeys=[]
+
+        self.writeIndexesDictionary(indexST,indexesDict)
+        return seqDict,indexesDict
+
+    def mateAll(self,indexST,seqDict, indexesDict):
         # Proper mating
-        originalDict=copy.deepcopy(sequenceDictionary)
-        species=originalDict.keys()
+        originalDict=copy.deepcopy(seqDict)
+        originalIndexes=copy.deepcopy(indexesDict)
+        species=seqDict.keys()
         numSeqs=0
         for key in species:
-            subspecies=originalDict[key].keys()
+            subspecies=seqDict[key].keys()
             for subkey in subspecies:
-                numSeqs+=len(originalDict[key][subkey])
+                numSeqs+=len(seqDict[key][subkey])
 
         numInds=np.trunc(numSeqs/2)+1
         currentInd=1
         self.appLogger.debug("Writing {1} individuals from {0} number of sequences.".format(numSeqs,numInds))
 
-        outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.output,\
-            indexST,self.numSpeciesTreesDigits,\
-            indexLOC,self.numFastaFilesDigits\
-        )
-        self.appLogger.debug("Output folder:".format(outputFolder))
+        for indexLOC in range(1,self.numFastaFiles+1):
+            outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.output,\
+                indexST,self.numSpeciesTreesDigits,\
+                indexLOC,self.numFastaFilesDigits\
+            )
+            self.appLogger.debug("Output folder:".format(outputFolder))
 
-        """
-        ####################################################################
-        # Writing individuals into separate files
-        ####################################################################
-        """
-        for key in species:
-            seqDict=copy.deepcopy(originalDict)
-            seq1="";des1="";seq2="";des2="";
-            if key == "0":
-                # For the outgroup
-                shortDesc=seqDict[key]["0"]["description"][1:len(seqDict[key]["0"]["description"])]
-                des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}".format(self.projectName,\
-                    indexST,indexLOC,self.dataprefix,0,shortDesc,\
-                    self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                seq1=seqDict[key]["0"]["sequence"]
+            """
+            ####################################################################
+            # Writing individuals into separate files
+            ####################################################################
+            """
+            for key in species:
+                seq1="";des1="";seq2="";des2="";
+                if key == "0":
+                    # For the outgroup
+                    shortDesc=seqDict[key]["0"]["description"][1:len(seqDict[key]["0"]["description"])]
+                    des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}".format(self.projectName,\
+                        indexST,indexLOC,self.dataprefix,0,shortDesc,\
+                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                        )
+                    seq1=seqDict[key]["0"]["sequence"]
 
-                # Writing the outgroup -----------------------------------------
-                if (self.numOutput == 1):
-                    indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
-                        outputFolder,self.projectName,indexST,indexLOC,\
-                        self.dataprefix,0,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    indFile=open(indFilename, "w")
-                    indFile.write("{0}_S1\n{1}\n{2}_S2\n{3}\n".format(des1,seq1,des1,seq1))
-                    indFile.close()
-                if (self.numOutput == 2):
-                    # General file -------------------------------------
-                    indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
-                        outputFolder,self.projectName,indexST,indexLOC,\
-                        self.dataprefix,0,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    indFile=open(indFilename, "w")
-                    indFile.write("{0}_S1\n{1}\n{2}_S2\n{3}\n".format(des1,seq1,des1,seq1))
-                    indFile.close()
-                    # Strand 1 -----------------------------------------
-                    indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S1.fasta".format(\
-                        outputFolder,self.projectName,indexST,indexLOC,\
-                        self.dataprefix,0, shortDesc,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    indFile=open(indFilename, "w")
-                    indFile.write("{0}_S1\n{1}\n".format(des1,seq1))
-                    indFile.close()
-                    # Strand 2 -----------------------------------------
-                    indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S2.fasta".format(\
-                        outputFolder,self.projectName,indexST,indexLOC,\
-                        self.dataprefix,0, shortDesc,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    indFile=open(indFilename, "w")
-                    indFile.write("{0}_S2\n{1}\n".format(des1,seq1))
-                    indFile.close()
-
-                del seqDict["0"]
-            else:
-                # for all species except the outgroup
-                pairs=indexesDict[key]
-                for pair in pairs:
-                    # Extracting info from the dictionary
-                    currentInd=pair[0];pair1=pair[1]; pair2=pair[2];
-                    # Organizing strings
-                    self.appLogger.debug("{0}|{1}".format(pair, key))
-                    seq1=seqDict[key][pair1]["sequence"]
-                    seq2=seqDict[key][pair2]["sequence"]
-                    shortDesc1=seqDict[key][pair1]["description"][1:len(seqDict[key][pair1]["description"])]
-                    des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S1".format(self.projectName,\
-                        indexST,indexLOC,self.dataprefix,currentInd,shortDesc1,\
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-                    shortDesc2=seqDict[key][pair2]["description"][1:len(seqDict[key][pair2]["description"])]
-                    des2=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S2".format(\
-                        self.projectName,indexST,indexLOC,self.dataprefix,\
-                        currentInd,shortDesc2,
-                        self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                    )
-
+                    # Writing the outgroup -----------------------------------------
                     if (self.numOutput == 1):
                         indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
                             outputFolder,self.projectName,indexST,indexLOC,\
-                            self.dataprefix,currentInd,\
+                            self.dataprefix,0,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
                         indFile=open(indFilename, "w")
-                        indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
+                        indFile.write("{0}_S1\n{1}\n{2}_S2\n{3}\n".format(des1,seq1,des1,seq1))
                         indFile.close()
                     if (self.numOutput == 2):
                         # General file -------------------------------------
                         indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
                             outputFolder,self.projectName,indexST,indexLOC,\
-                            self.dataprefix,currentInd,\
+                            self.dataprefix,0,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
-
                         indFile=open(indFilename, "w")
-                        indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
+                        indFile.write("{0}_S1\n{1}\n{2}_S2\n{3}\n".format(des1,seq1,des1,seq1))
                         indFile.close()
                         # Strand 1 -----------------------------------------
                         indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S1.fasta".format(\
                             outputFolder,self.projectName,indexST,indexLOC,\
-                            self.dataprefix,currentInd, shortDesc1,\
+                            self.dataprefix,0, shortDesc,\
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
-
                         indFile=open(indFilename, "w")
-                        indFile.write("{0}\n{1}\n".format(des1,seq1))
+                        indFile.write("{0}_S1\n{1}\n".format(des1,seq1))
                         indFile.close()
                         # Strand 2 -----------------------------------------
                         indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S2.fasta".format(\
                             outputFolder,self.projectName,indexST,indexLOC,\
-                            self.dataprefix,currentInd, shortDesc2,\
+                            self.dataprefix,0, shortDesc,\
+                            self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                        )
+                        indFile=open(indFilename, "w")
+                        indFile.write("{0}_S2\n{1}\n".format(des1,seq1))
+                        indFile.close()
+
+                else:
+                    # for all species except the outgroup
+                    indexesDict=copy.deepcopy(originalIndexes)
+                    seqDict=copy.deepcopy(originalDict)
+                    pairs=indexesDict[key]
+                    for pair in pairs:
+                        # Extracting info from the dictionary
+                        currentInd=pair[0];pair1=pair[1]; pair2=pair[2];
+                        # Organizing strings
+                        self.appLogger.debug("{0}|{1}".format(pair, key))
+                        seq1=seqDict[key][pair1]["sequence"]
+                        seq2=seqDict[key][pair2]["sequence"]
+                        shortDesc1=seqDict[key][pair1]["description"][1:len(seqDict[key][pair1]["description"])]
+                        des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S1".format(self.projectName,\
+                            indexST,indexLOC,self.dataprefix,currentInd,shortDesc1,\
+                            self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                        )
+                        shortDesc2=seqDict[key][pair2]["description"][1:len(seqDict[key][pair2]["description"])]
+                        des2=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S2".format(\
+                            self.projectName,indexST,indexLOC,self.dataprefix,\
+                            currentInd,shortDesc2,
                             self.numSpeciesTreesDigits,self.numFastaFilesDigits\
                         )
 
-                        indFile=open(indFilename, "w")
-                        indFile.write("{0}\n{1}\n".format(des2,seq2))
-                        indFile.close()
+                        if (self.numOutput == 1):
+                            indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
+                                outputFolder,self.projectName,indexST,indexLOC,\
+                                self.dataprefix,currentInd,\
+                                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                            )
+                            indFile=open(indFilename, "w")
+                            indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
+                            indFile.close()
+                        if (self.numOutput == 2):
+                            # General file -------------------------------------
+                            indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
+                                outputFolder,self.projectName,indexST,indexLOC,\
+                                self.dataprefix,currentInd,\
+                                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                            )
 
-                    del seqDict[key][pair1]
-                    del seqDict[key][pair2]
-                if not seqDict[key]=={}:
-                    self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
-                    self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format( seqDict[key].keys(), key))
-                    for item in seqDict[key].keys():
-                        del seqDict[key][item]
+                            indFile=open(indFilename, "w")
+                            indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
+                            indFile.close()
+                            # Strand 1 -----------------------------------------
+                            indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S1.fasta".format(\
+                                outputFolder,self.projectName,indexST,indexLOC,\
+                                self.dataprefix,currentInd, shortDesc1,\
+                                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                            )
+
+                            indFile=open(indFilename, "w")
+                            indFile.write("{0}\n{1}\n".format(des1,seq1))
+                            indFile.close()
+                            # Strand 2 -----------------------------------------
+                            indFilename="{0}/{1}_{2:0{7}d}_{3:0{8}d}_{4}_{5}_{6}_S2.fasta".format(\
+                                outputFolder,self.projectName,indexST,indexLOC,\
+                                self.dataprefix,currentInd, shortDesc2,\
+                                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+                            )
+
+                            indFile=open(indFilename, "w")
+                            indFile.write("{0}\n{1}\n".format(des2,seq2))
+                            indFile.close()
+
+                        del seqDict[key][pair1]
+                        del seqDict[key][pair2]
+                    if not seqDict[key]=={}:
+                        self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
+                        self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format( seqDict[key].keys(), key))
+                        for item in seqDict[key].keys():
+                            del seqDict[key][item]
 
         return None
+
+
+    """
+    #########################################################################
+    # writeIndexesDictionary
+    #########################################################################
+    """
+    def writeIndexesDictionary(self, indexST, indexDict):
+        self.appLogger.debug("Writing indexes into file...")
+        indexFilename="{0}/{1}.{2:0{3}d}.mating".format(self.outputmating,self.projectName, indexST, self.numSpeciesTreesDigits)
+        if not os.path.isfile(indexFilename):
+            indexFile=open(indexFilename,"w")
+            indexFile.write("indexST,indID,speciesID,mateID1,mateID2\n")
+            indexFile.close()
+
+        indexFile=open(indexFilename,"a")
+        for speciesID in indexDict.keys():
+            for item in indexDict[speciesID]:
+                indexFile.write("{0:0{1}d},{2},{3},{4},{5}\n".format(\
+                indexST,self.numSpeciesTreesDigits,
+                    item[0],speciesID,item[1],item[2]))
+
+        indexFile.write("{0:0{1}d},{2},{3},{4},{5}\n".format(\
+            indexST,self.numSpeciesTreesDigits,
+            0,0,0,0))
+        indexFile.close()

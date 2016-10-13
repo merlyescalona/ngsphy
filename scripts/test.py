@@ -35,7 +35,6 @@ for triplet in res:
             try:
                 p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
                 p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
-                # print "p2",p2," | t,", t
             except Exception as e:
                 break
             pair=(indexST,sp,p1,p2)

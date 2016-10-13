@@ -50,7 +50,7 @@ class NGSReadsARTIllumina:
                 self.params+=["{0}{1}".format(dash,par[0]),par[1]]
 
         try:
-            os.mkdirs("{0}/reads".format(self.output)
+            os.mkdirs("{0}/reads".format(self.output))
             self.appLogger.info("Generating output folder ({0})".fomat(self.output))
         except:
             self.appLogger.debug("Output folder exists ({0})".fomat(self.output))
@@ -139,6 +139,6 @@ class NGSReadsARTIllumina:
                 simType = [line for line in proc.split('\n') if "simulation" in line][0].lstrip()
                 cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
                 seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
-                print simType,cpuTime,seed
+                #print simType,cpuTime,seed
 
         return True,ngsMessageCorrect
