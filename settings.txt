@@ -2,5 +2,3 @@
 simphy_folder = test_wrapper
 data_prefix = data
 outgroup=true
-[mating]
-output-per-individual = 1

@@ -31,8 +31,6 @@ class SimPhyNGSWrapper:
             filemode='a',\
             level=logging.DEBUG)
         ch = logging.StreamHandler()
-        # ch.setFormatter(logging.Formatter(fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
-            # datefmt="%d/%m/%Y %I:%M:%S %p"))
         loggerFormatter=mlf(fmt="%(asctime)s - %(levelname)s:\t%(message)s",datefmt="%d/%m/%Y %I:%M:%S %p")
         ch.setFormatter(loggerFormatter)
         ch.setLevel(args.log.upper())
@@ -64,21 +62,26 @@ class SimPhyNGSWrapper:
             self.settings=sp.Settings(self.settingsFile)
             settingsOk,settingsMessage=self.settings.checkArgs()
             if (settingsOk):
-                # Doing Mating
-                self.mating=mat.Mating(self.settings)
-                matingOk,matingMessage=self.mating.checkArgs()
-                if (matingOk):
-                    self.mating.iteratingOverST()
-                else:
-                    self.ending(matingOk,matingMessage) # did not pass the parser reqs.
-                # Doing NGS
-                print("Not doing NGS")
-                self.ngs=ngs.NGSReadsARTIllumina(self.settings)
-                ngsOk,ngsMessage=self.ngs.run()
-                if (ngsOk):
-                    self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
-                else:
-                    self.ending(ngsOk,ngsMessage)
+                # If i'm here, I have the Mating
+                # have to check before running
+                if self.settings.mating:
+                    self.mating=mat.Mating(self.settings)
+                    matingOk,matingMessage=self.mating.checkArgs()
+                    if (matingOk):
+                        self.mating.iteratingOverST()
+                    else:
+                        self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+                    if self.settings.ngsart:
+                        # Doing NGS
+                        self.ngs=ngs.NGSReadsARTIllumina(self.settings)
+                        self.ngs.writeBashFile()
+                        ngsOk,ngsMessage=self.ngs.run()
+                        if (ngsOk):
+                            self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
+                        else:
+                            self.ending(ngsOk,ngsMessage)
+                    else:
+                        self.appLogger.info("NGS read simulation is not being done.")
             else:
                 self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
 

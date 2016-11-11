@@ -41,17 +41,17 @@ class Settings:
             self.parser.remove_option("general","sf")
 
         if (os.path.exists(path) and os.path.isdir(path)):
-            self.appLogger.debug("Correct SimPhy project folder")
+            self.appLogger.debug("SimPhy project folder exists")
         else:
             parserMessageWrong+="\n\tSimPhy project folder does not exist, or the given path does not belong to a directory."
             return False, parserMessageWrong
 
         # Checking output folder information
         currentRun=""
-        if(self.parser.has_option("general","output_folder")):
-            currentRun=self.parser.get("general","output_folder")
-        elif (self.parser.has_option("general","of")):
-            currentRun=self.parser.get("general","output_folder")
+        if(self.parser.has_option("general","output_folder_name")):
+            currentRun=self.parser.get("general","output_folder_name")
+        elif (self.parser.has_option("general","ofn")):
+            currentRun=self.parser.get("general","output_folder_name")
             self.parser.set("general","output_folder",currentRun)
             self.parser.remove_option("general","of")
         else:
@@ -66,7 +66,7 @@ class Settings:
             if not counter == 0:
                 currentRun="output_{0}".format(counter+1)
 
-        self.parser.set("general","output_folder","{0}/{1}".format(path,currentRun))
+        self.parser.set("general","output_folder_name","{0}/{1}".format(path,currentRun))
         # if there is no outgroup info no problem, mating will be done accordingly
         if self.parser.has_option("general", "og"):
             value=self.parser.getboolean("general","og")
@@ -74,35 +74,18 @@ class Settings:
             self.parser.remove_option("general","og",value)
 
 
-        # Checking mating parameters.
-        if not self.parser.has_section("mating"):
-            # can run
-            parserMessageWrong+="\n\tNo MATING section. Exiting."
-            return False, parserMessageWrong
-        elif not (self.parser.has_option("mating","opi") or self.parser.has_option("mating","output-per-individual")):
-            # I have mating section but no option
-            self.parser.set("mating", "output-per-individual",1)
-        else:
-            # I have mating section and option
-            # check which option I have, make sure it is stored in the long_name option
-            # if short exist, remove, also, checking num_output_per_individual ranges
-            num_output_per_individual=1
-            if self.parser.has_option("mating","output-per-individual"):
-                num_output_per_individual=self.parser.getint("mating","output-per-individual")
-            if self.parser.has_option("mating","opi"):
-                num_output_per_individual=self.parser.getint("mating","opi")
-                if (num_output_per_individual > 3): num_output_per_individual=3
-                if (num_output_per_individual < 1): num_output_per_individual=1
-                self.parser.set("mating","output-per-individual",num_output_per_individual)
-                self.parser.remove_option("mating","opi")
-
         # Checking art parameters.
         if not self.parser.has_section("ngs-reads-art"):
-            # if no section, no run, if the section exist, I will leave it
-            # to art to complain if parameters are wrong
-            parserMessageWrong+="\n\tNo ART section. Stopping run."
-            return False, parserMessageWrong
+            self.ngsart=False
+            # I can have or not the section. If exist check, "else"
+            # otherwise, i have to check if I have something to do, that being,
+            # having the mating section, if not I'm just exiting the program
+            self.appLogger.info("No NGS generation section available")
+            if not self.mating:
+                parserMessageWrong+="\n\tNo mating, nor NGS generation section. Exiting."
+                return False, parserMessageWrong
         else:
+            self.ngsart=True
             # checking program dependencies
             stream = os.popen('which art_illumina').read()[0:-1]
             self.appLogger.info("Checking dependencies...")
@@ -114,7 +97,7 @@ class Settings:
                 if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
                 self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
             else:
-                parserMessageWrong+="Exiting. art_illumina not found. Program either not installed or out off the your current path. Please verify the installation, since it is necessarty to run this wrapper. "
+                parserMessageWrong+="Exiting. art_illumina not found. Program either not installed or not in your current path. Please verify the installation. Exiting. "
                 return False, parserMessageWrong
 
 
@@ -137,12 +120,10 @@ class Settings:
         self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
-    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
     parser.set("general","simphy_folder","test")
     parser.set("general","data_prefix","data")
     parser.set("general","outgroup","true")
-    parser.set("mating","output-per-individual",1)
     parser.set("ngs-reads-art","amplicon","true")
     parser.set("ngs-reads-art","rcount ",100)
     parser.set("ngs-reads-art","id","iddefault")
@@ -162,12 +143,10 @@ class Settings:
       self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
-    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
     parser.set("general","sf" ,"test")
     parser.set("general","og","true")
     parser.set("general","dp" ,"data")
-    parser.set("mating","opi",1)
     parser.set("ngs-reads-art","amp","true")
     parser.set("ngs-reads-art","c",100)
     parser.set("ngs-reads-art","d","iddefault")
@@ -187,12 +166,10 @@ class Settings:
         self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
-    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
     parser.set("general","simphy_folder","test")
     parser.set("general","data_prefix","data")
     parser.set("general","outgroup","true")
-    parser.set("mating","output-per-individual",1)
     parser.set("ngs-reads-art","qprof1","profileR1.txt")
     parser.set("ngs-reads-art","qprof2","profileR2.txt")
     parser.set("ngs-reads-art","amplicon","true")
@@ -213,11 +190,9 @@ class Settings:
         self.path))
     parser=cp.RawConfigParser()
     parser.add_section("general")
-    parser.add_section("mating")
     parser.add_section("ngs-reads-art")
     parser.set("general","sf","test")
     parser.set("general","dp","data")
-    parser.set("mating","opi",1)
     parser.set("ngs-reads-art","1","profileR1.txt")
     parser.set("ngs-reads-art","2","profileR2.txt")
     parser.set("ngs-reads-art","amp","true")

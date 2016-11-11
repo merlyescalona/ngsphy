@@ -51,31 +51,80 @@ class NGSReadsARTIllumina:
 
         try:
             os.mkdirs("{0}/reads".format(self.output))
-            self.appLogger.info("Generating output folder ({0})".fomat(self.output))
+            self.appLogger.info("Generating output folder ({0}/reads)".fomat(self.output))
         except:
-            self.appLogger.debug("Output folder exists ({0})".fomat(self.output))
+            self.appLogger.debug("Output folder exists ({0}/reads)".fomat(self.output))
 
 
-    def getNumGTPerST(self, IDST):
-        query="select N_loci from Species_Trees WHERE SID=={0}".format(IDST)
-        con = sqlite3.connect(self.db)
-        res=con.execute(query).fetchone()
-        con.close()
-        return int(res[0])
+    def writeBashFile(self):
+        try:
+            os.mkdirs("{0}/run".format(self.output))
+            self.appLogger.info("Generating output folder ({0}/run)".fomat(self.output))
+        except:
+            self.appLogger.debug("Output folder exists ({0}/run)".fomat(self.output))
+
+        bashfile=open("{0}/run/{1}.sh".format(\
+            self.output,\
+            self.projectName
+        ))
+        for indexST in self.filteredST:
+            csvfile=open("{0}/{1}.{2:0{3}d}.mating.csv".format(\
+                self.output,\
+                self.projectName,\
+                indexST,\
+                numberSTDigits
+            ))
+            # Generation of folder structure
+            d = csv.DictReader(csvfile)
+            self.matingDict = [row for row in d]
+            csvfile.close()
+            self.appLogger.info("Generating folder structure")
+            for row in self.matingDict:
+                # indexST,indexLOC,indID,speciesID,mateID1,mateID2
+                folder="{0}/reads/{1}/{2}/".format(\
+                    self.output,\
+                    row['indexST'],\
+                    row['indexLOC']\
+                )
+                try:
+                    os.makedirs(folder)
+                except:
+                    self.appLogger.debug("Folder ({0}) exists.".format(folder))
+
+            for row in self.matingDict:
+                # indexST,indexLOC,indID,speciesID,mateID1,mateID2
+                inputFile="{0}/individuals/{1}/{2}/{3}_{1}_{2}_{4}_{5}.fasta".format(\
+                    self.output,\
+                    row['indexST'],\
+                    row['indexLOC'],\
+                    self.projectName,\
+                    self.prefix,\
+                    row['indID']\
+                )
+                # This means, from a multiple (2) sequence fasta file.
+                outputFile="{0}/reads/{1}/{2}/{3}_{1}_{2}_{4}_{5}_R".format(\
+                    self.output,\
+                    row['indexST'],\
+                    row['indexLOC'],\
+                    self.projectName,\
+                    self.prefix,\
+                    row['indID']\
+                )
+                # Call to ART
+                callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
+                # self.params+=["--in ",inputFile,"--out",outputFile]
+                bashfile.write(" ".join(callParams))
+                bashfile.write("\n")
+        bashfile.close()
+        self.appLogger.info("Bash script written...")
 
     def run(self):
         ngsMessageCorrect="ART Finished succesfully"
         ngsMessageWrong="Ops! Something went wrong.\n\t"
-         # need to add the INPUT parameter
-         # need to add the OUTPUT parameter
-        # know number of cores to send processes to
-        numProcessors= open('/proc/cpuinfo').read().count('processor\t:')
-
-
         # I have to iterate over the sts, now that i have more than on
         numberSTDigits=len(str(np.max(selffilteredST)))
         for indexST in self.filteredST:
-            csvfile=open("{0}/{1}.{2:0{3}d}.mating".format(\
+            csvfile=open("{0}/{1}.{2:0{3}d}.mating.csv".format(\
                 self.output,\
                 self.projectName,\
                 indexST,\
@@ -122,7 +171,6 @@ class NGSReadsARTIllumina:
                 # self.params+=["--in ",inputFile,"--out",outputFile]
                 self.appLogger.debug(" ".join(callParams))
 
-
                 proc=""
                 try:
                     proc = subprocess.check_output(callParams,stderr=subprocess.STDOUT)
@@ -136,7 +184,6 @@ class NGSReadsARTIllumina:
                     "{}\n\n".format(" ".join(callParams))
                     return False, matingArgsMessageWrong
 
-                simType = [line for line in proc.split('\n') if "simulation" in line][0].lstrip()
                 cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
                 seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
                 #print simType,cpuTime,seed
