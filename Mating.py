@@ -24,14 +24,6 @@ class Mating:
         else:
             self.projectName=os.path.basename(self.settings.parser.get("general", "simphy_folder"))
 
-        # outgroup
-        self.outgroup=False
-        if (self.settings.parser.has_option("general","og")):
-            self.outgroup=self.settings.parser.getboolean("general","og")
-        if (self.settings.parser.has_option("general","outgroup")):
-            self.outgroup=self.settings.parser.getboolean("general","outgroup")
-
-
         # Prefix of the datafiles that contain the FASTA sequences for
         # its corresponding gene tree.
         self.dataprefix=self.settings.parser.get("general","data_prefix")
@@ -91,7 +83,6 @@ class Mating:
         # Checking output path
         self.appLogger.info("Checking output folder...")
         # Checking output path
-        self.outputinds="{0}/individuals".format(self.output)
         try:
             self.appLogger.info("Creating output folder: {0} ".format(self.output))
             self.output=os.path.abspath(self.output)
@@ -99,15 +90,10 @@ class Mating:
         except:
            self.appLogger.debug("Output folder ({0}) exists. ".format(self.output))
 
+        self.outputinds="{0}/individuals".format(self.output)
         try:
             self.appLogger.info("Generated individuals/")
-            os.mkdir("{0}/individuals".format(self.output))
-        except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.output))
-
-        try:
-            self.appLogger.info("Generated reads/")
-            os.mkdir("{0}/reads".format(self.output))
+            os.mkdir("{0}".format(self.outputinds))
         except:
             self.appLogger.debug("Output folder exists ({0})".format(self.output))
 
@@ -124,6 +110,8 @@ class Mating:
             return gtperstOK,message
         self.settings.parser.set("general","filtered_ST",self.filteredSts)
         matingArgsMessageCorrect+="\n{0}".format(message)
+        # outgroup
+        self.outgroup=self.outgroupExists()
         return True, matingArgsMessageCorrect
 
 
@@ -148,6 +136,11 @@ class Mating:
         res=[item for sublist in res for item in sublist]
         return res
 
+    def outgroupExists(self):
+        self.outgroup=False
+        for line in open(self.command,"r"):
+            if "-so" in line or "-SO" in line:
+                self.outgroup=True
 
     def getNumGTST(self):
         self.numFASTAperST=np.repeat(0,self.numSpeciesTrees)
@@ -312,23 +305,28 @@ class Mating:
         numInds=np.trunc(numSeqs/2)+1
 
         self.appLogger.debug("Writing {1} individuals from {0} number of sequences.".format(numSeqs,numInds))
-
-        for indexLOC in range(1,self.numFastaFiles):
+        indexLOC=1
+        for indexLOC in range(1,self.numFastaFiles+1):
+            print("{0}/{1} - {2}".format(indexLOC,self.numFastaFiles,self.numFastaFilesDigits))
             outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
                 indexST,self.numSpeciesTreesDigits,\
                 indexLOC,self.numFastaFilesDigits\
             )
             self.appLogger.debug("Output folder:".format(outputFolder))
+            try:
+                os.mkdir(outputFolder)
+                self.appLogger.error("Creating {0}".outputFolder)
+            except:
+                self.appLogger.debug("Output folder ({0}) exists. ".format(outputFolder))
+
             """
             ####################################################################
             # Writing individuals into separate files
             ####################################################################
             """
-            self.appLogger.error(species)
             seqDict=copy.deepcopy(originalDict)
             seq1="";des1="";seq2="";des2="";
             # for all species except the outgroup
-            self.appLogger.error(outputFolder)
             for currentInd in range(0,len(matingTable)):
                 # Extracting info from the dictionary
                 st=str(matingTable[currentInd][0])
@@ -370,4 +368,4 @@ class Mating:
                 for item in seqDict[sp].keys():
                     del seqDict[sp][item]
 
-            return None
+        return None

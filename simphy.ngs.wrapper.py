@@ -64,24 +64,22 @@ class SimPhyNGSWrapper:
             if (settingsOk):
                 # If i'm here, I have the Mating
                 # have to check before running
-                if self.settings.mating:
-                    self.mating=mat.Mating(self.settings)
-                    matingOk,matingMessage=self.mating.checkArgs()
-                    if (matingOk):
-                        self.mating.iteratingOverST()
+                self.mating=mat.Mating(self.settings)
+                matingOk,matingMessage=self.mating.checkArgs()
+                if (matingOk):
+                    self.mating.iteratingOverST()
+                else:
+                    self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+                if self.settings.ngsart:
+                    # Doing NGS
+                    self.ngs=ngs.NGSReadsARTIllumina(self.settings)
+                    ngsOk,ngsMessage=self.ngs.run()
+                    if (ngsOk):
+                        self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
                     else:
-                        self.ending(matingOk,matingMessage) # did not pass the parser reqs.
-                    if self.settings.ngsart:
-                        # Doing NGS
-                        self.ngs=ngs.NGSReadsARTIllumina(self.settings)
-                        self.ngs.writeBashFile()
-                        ngsOk,ngsMessage=self.ngs.run()
-                        if (ngsOk):
-                            self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
-                        else:
-                            self.ending(ngsOk,ngsMessage)
-                    else:
-                        self.appLogger.info("NGS read simulation is not being done.")
+                        self.ending(ngsOk,ngsMessage)
+                else:
+                    self.appLogger.info("NGS read simulation is not being done.")
             else:
                 self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
 

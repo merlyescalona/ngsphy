@@ -22,8 +22,8 @@ class Settings:
     parserMessageWrong="Please verify the parameters in the settings file."
     # checking general parameters
     if not (self.parser.has_option("general","data_prefix") or self.parser.has_option("general","dp")):
-        self.parser.set("general","data_prefix","data")
-        self.appLogger.info("Setting default data prefix due to lacking of entry in the settings file.")
+        parserMessageWrong+="\n\t<data_prefix|dp> field is missing. This prefix correponds to the name of the sequences that are going to be manipulated. Exiting."
+        return False, parserMessageWrong
 
     if not (self.parser.has_option("general","simphy_folder") or
         self.parser.has_option("general","sf")):
@@ -43,7 +43,7 @@ class Settings:
         if (os.path.exists(path) and os.path.isdir(path)):
             self.appLogger.debug("SimPhy project folder exists")
         else:
-            parserMessageWrong+="\n\tSimPhy project folder does not exist, or the given path does not belong to a directory."
+            parserMessageWrong+="\n\tSimPhy project folder does not exist, or the given path does not belong to a directory. Exiting."
             return False, parserMessageWrong
 
         # Checking output folder information
@@ -73,17 +73,10 @@ class Settings:
             self.parser.set("general","outgroup")
             self.parser.remove_option("general","og",value)
 
-
         # Checking art parameters.
         if not self.parser.has_section("ngs-reads-art"):
             self.ngsart=False
-            # I can have or not the section. If exist check, "else"
-            # otherwise, i have to check if I have something to do, that being,
-            # having the mating section, if not I'm just exiting the program
             self.appLogger.info("No NGS generation section available")
-            if not self.mating:
-                parserMessageWrong+="\n\tNo mating, nor NGS generation section. Exiting."
-                return False, parserMessageWrong
         else:
             self.ngsart=True
             # checking program dependencies
@@ -99,6 +92,37 @@ class Settings:
             else:
                 parserMessageWrong+="Exiting. art_illumina not found. Program either not installed or not in your current path. Please verify the installation. Exiting. "
                 return False, parserMessageWrong
+
+        # Execution parameters
+        if not self.parser.has_section("execution"):
+            self.parser.add_section("execution")
+            self.parser.set("execution", "environment","bash")
+            self.parser.set("execution", "run",0)
+        else:
+            if (self.parser.has_option("execution","env")):
+                # got the short name
+                value=self.parser.get("execution","env")
+                self.parser.set("execution","environment",value.lower())
+                self.parser.remove_option("execution","environment")
+            elif (self.parser.has_option("execution","environment")):
+                # got the long name, make sure it is lowercase and within the options
+                value=self.parser.get("execution","environment")
+                if (value in ["sge","slurm","bash"]):
+                    self.parser.set("execution","environment",value.lower())
+                    if (value in ["sge","slurm"]):
+                        self.parser.set("execution", "run",0)
+                else:
+                    self.parser.set("execution","environment","bash")
+                    self.parser.set("execution", "run",0)
+            else:
+                # got no environment
+                self.parser.set("execution", "environment","bash")
+
+            if (self.parser.has_option("execution","run")):
+                try:
+                    value=self.parser.getboolean("execution","run")
+                except ValueError:
+                    self.parser.set("execution","run",0)
 
 
     self.appLogger.info(self.formatSettingsMessage())
