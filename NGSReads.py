@@ -19,48 +19,61 @@ class NGSReadsARTIllumina:
     def __init__(self,settings):
         self.appLogger=logging.getLogger('sngsw')
         self.appLogger.info('NGS read simulation: ART run started.')
-        simphy=os.path.abspath(settings.parser.get("general", "simphy_folder"))
+        self.settings=settings
+        simphy=os.path.abspath(self.settings.parser.get("general", "simphy_folder"))
         self.output=os.path.abspath(\
             os.path.join(\
                 simphy,\
-                settings.parser.get("general", "output_folder_name")\
-            )\
-        )
-        self.filteredST=settings.parser.get("general", "filtered_ST")
-        sys.exit()
+                self.settings.parser.get("general", "output_folder_name")))
+        self.filteredST=self.settings.parser.get("general", "filtered_ST")
+        self.filteredST=[ int(numST) for numST in self.filteredST.split(",")]
+        numSTs=self.settings.parser.getint("general","number_ST")
+        self.numberSTDigits=len(str(numSTs))
+        self.numLociPerST=[int(numST) for numST in self.settings.parser.get("general","numLociPerST").split(",")]
+        self.indexLOCDigits=len(str(max(self.numLociPerST)))
+        self.projectName=os.path.basename(simphy)
         if (simphy[-1]=="/"):
             self.projectName=os.path.basename(simphy)[0:-1]
-        else:
-            self.projectName=os.path.basename(simphy)
-
-        self.prefix=settings.parser.get("general","data_prefix")
+        self.prefix=self.settings.parser.get("general","data_prefix")
         self.params=[];
         dash=""; par=[]
-        settingsParams=settings.parser.items("ngs-reads-art")
+        settingsParams=self.settings.parser.items("ngs-reads-art")
         for p in settingsParams:
             if (p[0] in self.dSHORT_NAMES.keys()): dash="-"
             if (p[0] in self.dLONG_NAMES.keys()): dash="--"
             # to be sure that i am getting the right parameter names
-            if (dash=="-"): par=[self.dSHORT_NAMES[p[0]]]
-            if (dash=="--"):    par=[self.dLONG_NAMES[p[0]]];
+            if (dash=="-"):
+                if (p[0]=="m"): print p[0]
+                par=[self.dSHORT_NAMES[p[0]]]
+                if (p[0]=="m"): print(par, self.dSHORT_NAMES[p[0]])
+            if (dash=="--"):
+                if (p[0]=="m"): print p[0]
+                par=[self.dLONG_NAMES[p[0]]]
+                if (p[0]=="m"): print(par, self.dLONG_NAMES[p[0]])
+
             par+=[p[1]]
-            if(par[1].lower() in ["true","false"]):
+
+            if(par[1].lower() in ["true","false","on","off",1,0]):
                 self.params+=["{0}{1}".format(dash,par[0])]
             else:
-                self.params+=["{0}{1}".format(dash,par[0]),par[1]]
+                self.params+=["{0}{1!s}".format(dash,par[0]),par[1]]
+                if (p[0]=="m"): print("i'm an m: {}".format(self.params))
 
+        self.ploidyName="individuals"
+        if not (self.settings.ploidy==1):
+            self.ploidyName="mating"
         self.numFiles=0
         try:
-            os.mkdirs("{0}/reads".format(self.output))
-            self.appLogger.info("Generating output folder ({0}/reads)".fomat(self.output))
+            os.makedirs("{0}/reads".format(self.output))
+            self.appLogger.info("Generating output folder ({0}/reads)".format(self.output))
         except:
-            self.appLogger.debug("Output folder exists ({0}/reads)".fomat(self.output))
+            self.appLogger.debug("Output folder exists ({0}/reads)".format(self.output))
 
         try:
-            os.mkdirs("{0}/scripts".format(self.output))
-            self.appLogger.info("Generating output folder ({0}/scripts)".fomat(self.output))
+            os.makedirs("{0}/scripts".format(self.output))
+            self.appLogger.info("Generating output folder ({0}/scripts)".format(self.output))
         except:
-            self.appLogger.debug("Output folder exists ({0}/scripts)".fomat(self.output))
+            self.appLogger.debug("Output folder exists ({0}/scripts)".format(self.output))
 
     def writeSeedFile(self):
         seedfile=open("{0}/scripts/{1}.seedfile.txt".format(\
@@ -68,53 +81,52 @@ class NGSReadsARTIllumina:
             self.projectName
         ))
         for indexST in self.filteredST:
-            csvfile=open("{0}/{1}.{2:0{3}d}.mating.csv".format(\
-                self.output,\
-                self.projectName,\
-                indexST,\
-                numberSTDigits
-            ))
-            # Generation of folder structure
-            d = csv.DictReader(csvfile)
-            self.matingDict = [row for row in d]
-            csvfile.close()
-            for row in self.matingDict:
-                # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                folder="{0}/reads/{1}/{2}/".format(\
+            for indexST in self.filteredST:
+                csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
                     self.output,\
-                    row['indexST'],\
-                    row['indexLOC']\
-                )
+                    self.projectName,\
+                    indexST,\
+                    self.numberSTDigits,\
+                    self.ploidyName
+                ))
+                # Generation of folder structure
+                d = csv.DictReader(csvfile)
+                self.matingDict = [row for row in d]
+                csvfile.close()
 
-            for row in self.matingDict:
-                # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                inputFile="{0}/individuals/{1}/{2}/{3}_{1}_{2}_{4}_{5}.fasta".format(\
-                    self.output,\
-                    row['indexST'],\
-                    row['indexLOC'],\
-                    self.projectName,\
-                    self.prefix,\
-                    row['indID']\
-                )
-                # This means, from a multiple (2) sequence fasta file.
-                outputFile="{0}/reads/{1}/{2}/{3}_{1}_{2}_{4}_{5}_R".format(\
-                    self.output,\
-                    row['indexST'],\
-                    row['indexLOC'],\
-                    self.projectName,\
-                    self.prefix,\
-                    row['indID']\
-                )
-                seedfile.write("{0}\t{1}\n".format(inputFile,outputFile))
+                for indexLOC in range(1,self.numLociPerST[indexST]+1):
+                    for row in self.matingDict:
+                        # indexST,indexLOC,indID,speciesID,mateID1,mateID2
+                        inputFile="{0}/individuals/{1}/{2:0{3}d}/{4}_{1}_{2}_{5}_{6}.fasta".format(\
+                            self.output,\
+                            row['indexST'],\
+                            indexLOC,\
+                            indexLOCDigits,
+                            self.projectName,\
+                            self.prefix,\
+                            row['indID']\
+                        )
+                        # This means, from a multiple (2) sequence fasta file.
+                        outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2}_{5}_{6}_R".format(\
+                            self.output,\
+                            row['indexST'],\
+                            indexLOC,\
+                            indexLOCDigits,
+                            self.projectName,\
+                            self.prefix,\
+                            row['indID']\
+                        )
+                        seedfile.write("{0}\t{1}\n".format(inputFile,outputFile))
                 self.numFiles+=1
         seedfile.close()
         self.appLogger.info("Seed file written...")
 
     def writeSGEScript(self):
-        jobfile=open("{0}/scripts/{1}.job.sge.sh".format(\
+        jobfile="{0}/scripts/{1}.job.sge.sh".format(\
             self.output,\
             self.projectName
-        ))
+        )
+        j=open(jobfile,"w")
         seedfile="{0}/scripts/{1}.seedfile.txt".format(\
             self.output,\
             self.projectName
@@ -130,21 +142,21 @@ class NGSReadsARTIllumina:
 #$ -t 1-{0}              # Number of jobs/files that will be treated
 #$ -N art.sims           # A name for the job
 
-inputfile=$(awk 'NR==$SGE_TASK_ID{print $1}' {1})
-outputfile=$(awk 'NR==$SGE_TASK_ID{print $2}' {1})
-        """.format(self.numFiles,seedfile)
+inputfile=$(awk 'NR==$SGE_TASK_ID{{print $1}}' {1})
+outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,seedfile)
+        j.write(header)
+        j.write(" ".join(callParams))
         footer="".format()
-        jobfile.write(header)
-        jobfile.write(" ".join(callParams))
-        jobfile.write(footer)
-        jobfile.close()
+        j.write(footer)
+        j.close()
         self.appLogger.info("SGE Job file written ({0})...".format(jobfile))
 
     def writeSLURMScript(self):
-        jobfile=open("{0}/scripts/{1}.job.slurm.sh".format(\
+        jobfile="{0}/scripts/{1}.job.slurm.sh".format(\
             self.output,\
             self.projectName
-        ))
+        )
+        j=open(jobfile,"w")
         seedfile="{0}/scripts/{1}.seedfile.txt".format(\
             self.output,\
             self.projectName
@@ -160,8 +172,8 @@ outputfile=$(awk 'NR==$SGE_TASK_ID{print $2}' {1})
 #SBATCH --mem 4G
 #SBATCH --array=1-{0}
 
-inputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{print $1}' {1})
-outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{print $2}' {1})
+inputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $1}}' {1})
+outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 
 """.format(self.numFiles, seedfile)
         footer="".format()
@@ -173,134 +185,140 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{print $2}' {1})
 
 
     def writeBashScript(self):
-        bashfile=open("{0}/scripts/{1}.sh".format(\
+        bashfile="{0}/scripts/{1}.sh".format(\
             self.output,\
             self.projectName
-        ))
+        )
+        j=open(bashfile,"w")
         for indexST in self.filteredST:
-            csvfile=open("{0}/{1}.{2:0{3}d}.mating.csv".format(\
+            csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
                 self.output,\
                 self.projectName,\
                 indexST,\
-                numberSTDigits
+                self.numberSTDigits,\
+                self.ploidyName
             ))
             # Generation of folder structure
             d = csv.DictReader(csvfile)
             self.matingDict = [row for row in d]
             csvfile.close()
-            for row in self.matingDict:
-                # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                folder="{0}/reads/{1}/{2}/".format(\
-                    self.output,\
-                    row['indexST'],\
-                    row['indexLOC']\
-                )
-
-            for row in self.matingDict:
-                # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                inputFile="{0}/individuals/{1}/{2}/{3}_{1}_{2}_{4}_{5}.fasta".format(\
-                    self.output,\
-                    row['indexST'],\
-                    row['indexLOC'],\
-                    self.projectName,\
-                    self.prefix,\
-                    row['indID']\
-                )
-                # This means, from a multiple (2) sequence fasta file.
-                outputFile="{0}/reads/{1}/{2}/{3}_{1}_{2}_{4}_{5}_R".format(\
-                    self.output,\
-                    row['indexST'],\
-                    row['indexLOC'],\
-                    self.projectName,\
-                    self.prefix,\
-                    row['indID']\
-                )
-                # Call to ART
-                callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
-                # self.params+=["--in ",inputFile,"--out",outputFile]
-                bashfile.write(" ".join(callParams))
-                bashfile.write("\n")
-        bashfile.close()
+            for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
+                for row in self.matingDict:
+                    # indexST,indexLOC,indID,speciesID,mateID1,mateID2
+                    inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}.fasta".format(\
+                        self.output,\
+                        int(row['indexST']),\
+                        self.numberSTDigits,\
+                        indexLOC,\
+                        self.indexLOCDigits,
+                        self.projectName,\
+                        self.prefix,\
+                        int(row['indID']))
+                    # This means, from a multiple (2) sequence fasta file.
+                    outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}_R".format(\
+                        self.output,\
+                        int(row['indexST']),\
+                        self.numberSTDigits,\
+                        indexLOC,\
+                        self.indexLOCDigits,
+                        self.projectName,\
+                        self.prefix,\
+                        int(row['indID'])\
+                    )
+                    # Call to ART
+                    callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
+                    # self.params+=["--in ",inputFile,"--out",outputFile]
+                    j.write(" ".join(callParams))
+                    j.write("\n")
+        j.close()
         self.appLogger.info("Bash script written...")
 
     def run(self):
         ngsMessageCorrect="ART Finished succesfully"
         ngsMessageWrong="Ops! Something went wrong.\n\t"
-
-        run=self.parser.getboolean("execution","run")
-        if (run):
-            # I have to iterate over the sts, now that i have more than on
-            numberSTDigits=len(str(np.max(selffilteredST)))
-            for indexST in self.filteredST:
-                csvfile=open("{0}/{1}.{2:0{3}d}.mating.csv".format(\
-                    self.output,\
-                    self.projectName,\
-                    indexST,\
-                    numberSTDigits
-                ))
-                # Generation of folder structure
-                d = csv.DictReader(csvfile)
-                self.matingDict = [row for row in d]
-                csvfile.close()
-                self.appLogger.info("Generating folder structure")
-                for row in self.matingDict:
-                    # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                    folder="{0}/reads/{1}/{2}/".format(\
+        environment=self.settings.parser.get("execution","environment")
+        if (environment=="sge"):
+            self.appLogger.info("Environment SGE. Writing scripts")
+            self.writeSGEScript()
+        elif (environment=="slurm"):
+            self.appLogger.info("Environment SLURM. Writing scripts")
+            self.writeSLURMScript()
+        else:
+            self.appLogger.info("Environment BASH. Writing scripts")
+            self.writeBashScript()
+            run=self.settings.parser.getboolean("execution","run")
+            if (run):
+                # I have to iterate over the sts, now that i have more than on
+                for indexST in self.filteredST:
+                    csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
                         self.output,\
-                        row['indexST'],\
-                        row['indexLOC']\
-                    )
-                    try:
-                        os.makedirs(folder)
-                    except:
-                        self.appLogger.debug("Folder ({0}) exists.".format(folder))
-
-                for row in self.matingDict:
-                    # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                    inputFile="{0}/individuals/{1}/{2}/{3}_{1}_{2}_{4}_{5}.fasta".format(\
-                        self.output,\
-                        row['indexST'],\
-                        row['indexLOC'],\
                         self.projectName,\
-                        self.prefix,\
-                        row['indID']\
-                    )
-                    # This means, from a multiple (2) sequence fasta file.
-                    outputFile="{0}/reads/{1}/{2}/{3}_{1}_{2}_{4}_{5}_R".format(\
-                        self.output,\
-                        row['indexST'],\
-                        row['indexLOC'],\
-                        self.projectName,\
-                        self.prefix,\
-                        row['indID']\
-                    )
-                    # Call to ART
-                    callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
-                    # self.params+=["--in ",inputFile,"--out",outputFile]
-                    self.appLogger.debug(" ".join(callParams))
+                        indexST,\
+                        self.numberSTDigits,\
+                        self.ploidyName
+                    ))
+                    # Generation of folder structure
+                    d = csv.DictReader(csvfile)
+                    self.matingDict = [row for row in d]
+                    csvfile.close()
+                    self.appLogger.info("Generating folder structure")
+                    for indexLOC in range(1,self.numLociPerST[indexST]+1):
+                            # indexST,indexLOC,indID,speciesID,mateID1,mateID2
+                        folder="{0}/reads/{1:0{2}d}/{3:0{4}d}/".format(\
+                            self.output,\
+                            int(row['indexST']),\
+                            self.numberSTDigits,\
+                            indexLOC,\
+                            self.indexLOCDigits
+                        )
+                        try:
+                            self.appLogger.debug("Generating folder ST:{0}/GT:{1}".format(row['indexST'],indexLOC))
+                            os.makedirs(folder)
+                        except:
+                            self.appLogger.debug("Folder ({0}) exists.".format(folder))
 
-                    proc=""
-                    try:
-                        proc = subprocess.check_output(callParams,stderr=subprocess.STDOUT)
-                    except subprocess.CalledProcessError as error:
-                        ngsMessageWrong+="\n------------------------------------------------------------------------\n\n"+\
-                        "{}".format(error.output)+\
-                        "\n\n------------------------------------------------------------------------"+\
-                        "\n\nFor more information about this error please check the log file.\n"+\
-                        "You can also run the 'art' command separately.\n\n"+\
-                        "art_illumina command used:\n==========================\n"+\
-                        "{}\n\n".format(" ".join(callParams))
-                        return False, matingArgsMessageWrong
+                        for row in self.matingDict:
+                            # indexST,indexLOC,indID,speciesID,mateID1,mateID2
+                            inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}.fasta".format(\
+                                self.output,\
+                                int(row['indexST']),\
+                                self.numberSTDigits,\
+                                indexLOC,\
+                                self.indexLOCDigits,
+                                self.projectName,\
+                                self.prefix,\
+                                int(row['indID'])\
+                            )
+                            # This means, from a multiple (2) sequence fasta file.
+                            outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}_R".format(\
+                                self.output,\
+                                int(row['indexST']),\
+                                self.numberSTDigits,\
+                                indexLOC,\
+                                self.indexLOCDigits,
+                                self.projectName,\
+                                self.prefix,\
+                                int(row['indID'])\
+                            )
+                            # Call to ART
+                            callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
+                            # self.params+=["--in ",inputFile,"--out",outputFile]
+                            self.appLogger.debug(" ".join(callParams))
 
-                    cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
-                    seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
-                    #print simType,cpuTime,seed
-            else:
-                environment=self.parser.get("execution","environment")
-                if (environment=="sge"):
-                    self.writeSGEScript()
-                if (environment=="slurm"):
-                    self.writeSLURMScript()
-                else:
-                    self.writeBashScript()
+                            proc=""
+                            try:
+                                proc = subprocess.check_output(callParams,stderr=subprocess.STDOUT)
+                            except subprocess.CalledProcessError as error:
+                                ngsMessageWrong+="\n------------------------------------------------------------------------\n\n"+\
+                                "{}".format(error.output)+\
+                                "\n\n------------------------------------------------------------------------"+\
+                                "\n\nFor more information about this error please check the log file.\n"+\
+                                "You can also run the 'art' command separately.\n\n"+\
+                                "art_illumina command used:\n==========================\n"+\
+                                "{}\n\n".format(" ".join(callParams))
+                                return False, ngsMessageWrong
+
+                            cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
+                            seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
+                            print simType,cpuTime,seed
         return True,ngsMessageCorrect

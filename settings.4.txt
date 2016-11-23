@@ -15,5 +15,5 @@ q=true
 s=50
 sam=true
 [execution]
-environment=sge
+environment=bash
 run=false

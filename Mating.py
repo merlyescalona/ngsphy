@@ -1,4 +1,4 @@
-#!/usr/bin/home/python
+ #!/usr/bin/home/python
 import argparse,copy,datetime,logging,os,sys, sqlite3
 import numpy as np
 import random as rnd
@@ -30,8 +30,8 @@ class Mating:
         self.output=""
 
         self.output=os.path.abspath(self.settings.parser.get("general","output_folder_name"))
-        self.appLogger.info("Generating output folder ({0}) and subfolders (individuals,mating,reads)".format(self.output))
-        self.outputmating=os.path.abspath("{0}/mating".format(self.settings.parser.get("general","output_folder_name")))
+        self.appLogger.info("Generating output folder ({0}) and subfolders (individuals,tables,reads)".format(self.output))
+        self.outputtables=os.path.abspath("{0}/tables".format(self.settings.parser.get("general","output_folder_name")))
 
 
     def checkArgs(self):
@@ -80,43 +80,45 @@ class Mating:
             matingArgsMessageWrong+="\n\tNot enough number of species tree replicates (at least 1):\t{0}".format(self.numSpeciesTrees>0)
             return False, matingArgsMessageWrong
 
-        # Checking output path
-        self.appLogger.info("Checking output folder...")
-        # Checking output path
-        try:
-            self.appLogger.info("Creating output folder: {0} ".format(self.output))
-            self.output=os.path.abspath(self.output)
-            os.mkdir(self.output)
-        except:
-           self.appLogger.debug("Output folder ({0}) exists. ".format(self.output))
+        self.generateFolderStructure()
 
-        self.outputinds="{0}/individuals".format(self.output)
-        try:
-            self.appLogger.info("Generated individuals/")
-            os.mkdir("{0}".format(self.outputinds))
-        except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.output))
-
-        try:
-            self.appLogger.info("Generated mating/")
-            os.mkdir("{0}/mating".format(self.output))
-        except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.output))
-
-
-        self.filteredSts=self.stWithEvenNumberIndsPerSpecies()
+        self.filteredSts=self.filterSTMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
         gtperstOK,message=self.getNumGTST()
         if (not gtperstOK):
             return gtperstOK,message
-        self.settings.parser.set("general","filtered_ST",self.filteredSts)
+        self.settings.parser.set("general","filtered_ST",",".join([str(a) for a in self.filteredSts]))
+        self.settings.parser.set("general","number_ST",str(self.numSpeciesTrees))
+        self.settings.parser.set("general","numLociPerST",",".join([str(a) for a in self.getNumLociPerST()]))
+
         matingArgsMessageCorrect+="\n{0}".format(message)
         # outgroup
         self.outgroup=self.outgroupExists()
         return True, matingArgsMessageCorrect
 
 
+    def generateFolderStructure(self):
+        # Checking output path
+        self.appLogger.info("Creating folder structure...")
+        # Checking output path
+        try:
+            self.appLogger.info("Creating output folder: {0} ".format(self.output))
+            self.output=os.path.abspath(self.output)
+            os.makedirs(self.output)
+        except:
+            self.appLogger.debug("Output folder ({0}) exists. ".format(self.output))
+        self.outputinds="{0}/individuals".format(self.output)
+        try:
+            self.appLogger.info("Generated individuals/")
+            os.makedirs("{0}".format(self.outputinds))
+        except:
+            self.appLogger.debug("Output folder exists ({0})".format(self.output))
+        try:
+            self.appLogger.info("Generated tables/")
+            os.makedirs("{0}/tables".format(self.output))
+        except:
+            self.appLogger.debug("Output folder exists ({0})".format(self.output))
 
-    def print_configuration(self):
+    def printConfiguration(self):
         self.appLogger.debug(\
             "\n\t{0}Configuration...{1}\n\tSimPhy project name:\t{2}\n\tSimPhy path:\t{3}\n\tOutput folder:\t{4}\n\tDataset prefix(es) (INDELible):\t{5}\n\tNumber of species trees replicates/folders:\t{6}".format(\
                 mof.BOLD,mof.END,\
@@ -128,8 +130,20 @@ class Mating:
             )
         )
 
-    def stWithEvenNumberIndsPerSpecies(self):
-        query="select SID from Species_Trees WHERE Ind_per_sp % 2 = 0"
+    def getNumLociPerST(self):
+        query="select N_Loci from Species_Trees"
+        con = sqlite3.connect(self.db)
+        res=con.execute(query).fetchall()
+        con.close()
+        res=[item for sublist in res for item in sublist]
+        return res
+
+
+
+    def filterSTMatchingIndPerSpeciesAndPloidy(self, ploidy):
+        query="select SID from Species_Trees"
+        if not (ploidy == 1):
+            query="select SID from Species_Trees WHERE Ind_per_sp % {0} = 0".format(ploidy)
         con = sqlite3.connect(self.db)
         res=con.execute(query).fetchall()
         con.close()
@@ -170,30 +184,148 @@ class Mating:
     ############################################################################
     """
     def iteratingOverST(self):
-        self.appLogger.debug("(class Mating | iteratingOverST() )")
-        # iterate over STs
+        self.appLogger.debug("Ploidy: {0}".format(self.settings.ploidy))
+        if (self.settings.ploidy==1):
+            self.iterationHaploid()
+        else:
+            self.iterationPolyploid()
+
+    def iterationPolyploid(self):
         for indexST in self.filteredSts:
             curReplicatePath="{0}/{1:0{2}d}/".format(self.outputinds,indexST, self.numSpeciesTreesDigits)
             self.appLogger.info("Replicate {0}/{2} ({1})".format(indexST, curReplicatePath,self.numSpeciesTrees))
-            self.appLogger.info("Mating...")
-            # generating and writing mating table
-            matingTable=self.generateMatingTable(indexST)
-            self.writeMatingTable(indexST,matingTable)
             # iterating over the number of gts per st
-            for indexLOC in range(0,self.numFASTAperST[indexST-1]):
-                self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC+1))
-                newFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
-                    indexST, self.numSpeciesTreesDigits,\
-                    indexLOC+1,self.numFastaFilesDigits\
-                )
-                # creating folder belonging to specific GT
-                try:
-                    os.makedirs(newFolder)
-                except:
-                    self.appLogger.debug("Folder {0} exists.".format(newFolder))
+            self.appLogger.info("Generating individuals...")
+            matingTable=self.generateMatingTable(indexST, self.settings.ploidy)
+            self.writeMatingTable(indexST,matingTable,self.settings.ploidy)
+
+            for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
+                self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
                 # parsingMSA file
-                seqDict=self.parseMSAFile(indexST,indexLOC+1)
-                self.mateAll(indexST,matingTable,seqDict)
+                seqDict=self.parseMSAFile(indexST,indexLOC)
+                outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
+                    indexST,self.numSpeciesTreesDigits,\
+                    indexLOC,self.numFastaFilesDigits\
+                )
+                try:
+                    self.appLogger.debug("Output folder: {0}".format(outputFolder))
+                    os.makedirs(outputFolder)
+                except OSError as err:
+                    print("OS error: {0}".format(err))
+                    self.appLogger.debug("Folder {0} exists.".format(outputFolder))
+                # generating and writing mating table
+                self.mate(indexST,indexLOC,matingTable,seqDict)
+
+
+    def iterationHaploid(self):
+        for indexST in self.filteredSts:
+            curReplicatePath="{0}/{1:0{2}d}/".format(self.outputinds,indexST, self.numSpeciesTreesDigits)
+            self.appLogger.info("Replicate {0}/{2} ({1})".format(indexST, curReplicatePath,self.numSpeciesTrees))
+            # iterating over the number of gts per st
+            self.appLogger.info("Generating individuals...")
+            individualTable=self.generateindividualTable(indexST)
+            self.writeIndividualTable(indexST,individualTable)
+            for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
+                self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
+                # parsingMSA file
+                seqDict=self.parseMSAFileWithDescriptions(indexST,indexLOC)
+                outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
+                    indexST,self.numSpeciesTreesDigits,\
+                    indexLOC,self.numFastaFilesDigits\
+                )
+                try:
+                    self.appLogger.debug("Output folder: {0}".format(outputFolder))
+                    os.makedirs(outputFolder)
+                except OSError as err:
+                    print("OS error: {0}".format(err))
+                    self.appLogger.debug("Folder {0} exists.".format(outputFolder))
+                # generating and writing mating table
+                self.generateIndividuals(indexST,indexLOC,individualTable,seqDict)
+
+    def generateindividualTable(self,indexST):
+        # get first gt of the st to get the descriptions
+        descriptions=self.parseMSAFileWithDescriptions(indexST,1).keys()
+        descriptions.sort()
+        table=[(item, descriptions[item]) for item in range(0,len(descriptions)) ]
+        return table
+
+    def parseMSAFileWithDescriptions(self,indexST, indexLOC):
+        self.appLogger.debug("Using ST={0}, LOC={1}".format(indexST,indexLOC))
+        fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+            self.path,\
+            indexST,\
+            self.numSpeciesTreesDigits,\
+            self.dataprefix,\
+            indexLOC,\
+            self.numFastaFilesDigits)
+        fastafile=open(fastapath, 'r')
+        lines=fastafile.readlines()
+        fastafile.close()
+        seqDict=dict()
+        description=""; seq=""; tmp="";count=1
+        for line in lines:
+            if not (line.strip()==''):
+                if (count%2==0):
+                    seq=line[0:-1].strip()
+                    seqDict[tmp]=seq
+                    seq=None
+                    description=None
+                    tmp=None
+                else:
+                    description=line[0:-1].strip()
+                    tmp=description[1:len(description)]
+            count+=1
+        return seqDict
+
+    def generateIndividuals(self,indexST,indexLOC,individualTable,seqDict):
+        self.appLogger.debug("{0}/{1} - {2}".format(indexLOC,self.numFastaFiles,self.numFastaFilesDigits))
+        outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
+            indexST,self.numSpeciesTreesDigits,\
+            indexLOC,self.numFastaFilesDigits\
+        )
+        for currentInd in range(0,len(individualTable)):
+            # Extracting info from the dictionary
+            indID=str(individualTable[currentInd][0])
+            description=str(individualTable[currentInd][1])
+            # Organizing strings
+            seq=seqDict[description]
+            des=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}".format(self.projectName,\
+                indexST,indexLOC,self.dataprefix,indID,description[1:len(description)],\
+                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+            )
+
+            indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
+                outputFolder,self.projectName,indexST,indexLOC,\
+                self.dataprefix,indID,\
+                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+            )
+            indFile=open(indFilename, "w")
+            indFile.write("{0}\n{1}\n".format(des,seq))
+            indFile.close()
+
+    def writeIndividualTable(self,indexST,individualTable):
+        # mating table
+        # indexST,SP,ind-tip1,ind-tip2
+        self.appLogger.debug("Writing indexes into file...")
+        indexFilename="{0}/{1}.{2:0{3}d}.individuals.csv".format(\
+            self.outputtables,\
+            self.projectName,\
+            indexST,\
+            self.numSpeciesTreesDigits)
+        if not os.path.isfile(indexFilename):
+            indexFile=open(indexFilename,"w")
+            indexFile.write("indexST,indID,seqDescription\n")
+            indexFile.close()
+        indexFile=open(indexFilename,"a")
+        for indexRow in range(0,len(individualTable)):
+            indID=individualTable[indexRow][0]
+            seqDescription=individualTable[indexRow][1]
+            indexFile.write("{0:0{1}d},{2},{3}\n".format(\
+                indexST,\
+                self.numSpeciesTreesDigits,\
+                indID,\
+                seqDescription))
+        indexFile.close()
 
     def generateMatingTable(self,indexST):
         # missing outgroup
@@ -233,22 +365,25 @@ class Mating:
         # indexST,SP,ind-tip1,ind-tip2
         # If i have outgroups mate info should be in the table already
         self.appLogger.debug("Writing indexes into file...")
-        indexFilename="{0}/{1}.{2:0{3}d}.mating.csv".format(self.outputmating,self.projectName, indexST, self.numSpeciesTreesDigits)
-        print(indexFilename)
+        indexFilename="{0}/{1}.{2:0{3}d}.mating.csv".format(self.outputtables,self.projectName, indexST, self.numSpeciesTreesDigits)
+        self.appLogger.debug(indexFilename)
         if not os.path.isfile(indexFilename):
             indexFile=open(indexFilename,"w")
             indexFile.write("indexST,indID,speciesID,mateID1,mateID2\n")
             indexFile.close()
         indexFile=open(indexFilename,"a")
         for indexRow in range(0,len(matingTable)):
-            indexST=indexST
             indID=indexRow
             speciesID=matingTable[indexRow][1]
             mateID1=matingTable[indexRow][2]
             mateID2=matingTable[indexRow][3]
             indexFile.write("{0:0{1}d},{2},{3},{4},{5}\n".format(\
-            indexST,self.numSpeciesTreesDigits,
-                indID,speciesID,mateID1,mateID2))
+                indexST,\
+                self.numSpeciesTreesDigits,\
+                indID,\
+                speciesID,\
+                mateID1,\
+                mateID2))
         indexFile.close()
 
     def parseMSAFile(self, indexST, indexLOC):
@@ -293,79 +428,64 @@ class Mating:
             count+=1
         return seqDict
 
-    def mateAll(self,indexST,matingTable,sequenceDictionary):
+    def mate(self,indexST,indexLOC,matingTable,sequenceDictionary):
         # Proper mating
-        originalDict=copy.deepcopy(sequenceDictionary)
-        species=originalDict.keys()
+        seqDict=copy.deepcopy(sequenceDictionary)
+        species=seqDict.keys()
         numSeqs=0
         for key in species:
-            subspecies=originalDict[key].keys()
+            subspecies=seqDict[key].keys()
             for subkey in subspecies:
-                numSeqs+=len(originalDict[key][subkey])
+                numSeqs+=len(seqDict[key][subkey])
         numInds=np.trunc(numSeqs/2)+1
-
         self.appLogger.debug("Writing {1} individuals from {0} number of sequences.".format(numSeqs,numInds))
-        indexLOC=1
-        for indexLOC in range(1,self.numFastaFiles+1):
-            print("{0}/{1} - {2}".format(indexLOC,self.numFastaFiles,self.numFastaFilesDigits))
-            outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
-                indexST,self.numSpeciesTreesDigits,\
-                indexLOC,self.numFastaFilesDigits\
+        self.appLogger.debug("{0}/{1} - {2}".format(indexLOC,self.numFastaFiles,self.numFastaFilesDigits))
+        outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
+            indexST,self.numSpeciesTreesDigits,\
+            indexLOC,self.numFastaFilesDigits\
+        )
+
+        seq1="";des1="";seq2="";des2="";
+        # for all species except the outgroup
+        for currentInd in range(0,len(matingTable)):
+            # Extracting info from the dictionary
+            st=str(matingTable[currentInd][0])
+            sp=str(matingTable[currentInd][1])
+            pair1=str(matingTable[currentInd][2])
+            pair2=str(matingTable[currentInd][3])
+            # Organizing strings
+            self.appLogger.debug("{0}|{1}-{2}".format(sp, pair1,pair2))
+            seq1=seqDict[sp][pair1]["sequence"]
+            seq2=seqDict[sp][pair2]["sequence"]
+            shortDesc1=seqDict[sp][pair1]["description"][1:len(seqDict[sp][pair1]["description"])]
+            des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S1".format(self.projectName,\
+                indexST,indexLOC,self.dataprefix,currentInd,shortDesc1,\
+                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
             )
-            self.appLogger.debug("Output folder:".format(outputFolder))
-            try:
-                os.mkdir(outputFolder)
-                self.appLogger.error("Creating {0}".outputFolder)
-            except:
-                self.appLogger.debug("Output folder ({0}) exists. ".format(outputFolder))
+            shortDesc2=seqDict[sp][pair2]["description"][1:len(seqDict[sp][pair2]["description"])]
+            des2=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S2".format(\
+                self.projectName,indexST,indexLOC,self.dataprefix,\
+                currentInd,shortDesc2,
+                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+            )
 
-            """
-            ####################################################################
-            # Writing individuals into separate files
-            ####################################################################
-            """
-            seqDict=copy.deepcopy(originalDict)
-            seq1="";des1="";seq2="";des2="";
-            # for all species except the outgroup
-            for currentInd in range(0,len(matingTable)):
-                # Extracting info from the dictionary
-                st=str(matingTable[currentInd][0])
-                sp=str(matingTable[currentInd][1])
-                pair1=str(matingTable[currentInd][2])
-                pair2=str(matingTable[currentInd][3])
-                # Organizing strings
-                self.appLogger.debug("{0}|{1}-{2}".format(sp, pair1,pair2))
-                seq1=seqDict[sp][pair1]["sequence"]
-                seq2=seqDict[sp][pair2]["sequence"]
-                shortDesc1=seqDict[sp][pair1]["description"][1:len(seqDict[sp][pair1]["description"])]
-                des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S1".format(self.projectName,\
-                    indexST,indexLOC,self.dataprefix,currentInd,shortDesc1,\
-                    self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                )
-                shortDesc2=seqDict[sp][pair2]["description"][1:len(seqDict[sp][pair2]["description"])]
-                des2=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S2".format(\
-                    self.projectName,indexST,indexLOC,self.dataprefix,\
-                    currentInd,shortDesc2,
-                    self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                )
-
-                indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
-                    outputFolder,self.projectName,indexST,indexLOC,\
-                    self.dataprefix,currentInd,\
-                    self.numSpeciesTreesDigits,self.numFastaFilesDigits\
-                )
-                indFile=open(indFilename, "w")
-                indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
-                indFile.close()
-                if not sp== "0":
-                    del seqDict[sp][pair1]
-                    del seqDict[sp][pair2]
-                else:
-                    del seqDict["0"]
-            if not seqDict[sp]=={}:
-                self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
-                self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format( seqDict[sp].keys(), sp))
-                for item in seqDict[sp].keys():
-                    del seqDict[sp][item]
+            indFilename="{0}/{1}_{2:0{6}d}_{3:0{7}d}_{4}_{5}.fasta".format(\
+                outputFolder,self.projectName,indexST,indexLOC,\
+                self.dataprefix,currentInd,\
+                self.numSpeciesTreesDigits,self.numFastaFilesDigits\
+            )
+            indFile=open(indFilename, "w")
+            indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
+            indFile.close()
+            if not sp== "0":
+                del seqDict[sp][pair1]
+                del seqDict[sp][pair2]
+            else:
+                del seqDict["0"]
+        if not seqDict[sp]=={}:
+            self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
+            self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format( seqDict[sp].keys(), sp))
+            for item in seqDict[sp].keys():
+                del seqDict[sp][item]
 
         return None

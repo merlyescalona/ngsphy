@@ -13,7 +13,7 @@ class Settings:
     self.appLogger=logging.getLogger('sngsw')
     self.appLogger.debug("(class Settings) __init__()")
     # default settings can be established.
-    self.parser=cp.ConfigParser()
+    self.parser=cp.SafeConfigParser()
     self.parser.read(self.path)
 
   def checkArgs(self):
@@ -45,6 +45,18 @@ class Settings:
         else:
             parserMessageWrong+="\n\tSimPhy project folder does not exist, or the given path does not belong to a directory. Exiting."
             return False, parserMessageWrong
+        # checking ploidy for the output data
+        if (not self.parser.has_option("general","ploidy")):
+            self.ploidy=1
+        else:
+            p=self.parser.getint("general","ploidy")
+            if (p>0 and p<=2):
+                self.ploidy=p
+            elif (p<0):
+                self.ploidy=1
+            else:
+                self.ploidy=2
+
 
         # Checking output folder information
         currentRun=""
@@ -65,13 +77,7 @@ class Settings:
                     counter+=1
             if not counter == 0:
                 currentRun="output_{0}".format(counter+1)
-
         self.parser.set("general","output_folder_name","{0}/{1}".format(path,currentRun))
-        # if there is no outgroup info no problem, mating will be done accordingly
-        if self.parser.has_option("general", "og"):
-            value=self.parser.getboolean("general","og")
-            self.parser.set("general","outgroup")
-            self.parser.remove_option("general","og",value)
 
         # Checking art parameters.
         if not self.parser.has_section("ngs-reads-art"):
@@ -97,7 +103,7 @@ class Settings:
         if not self.parser.has_section("execution"):
             self.parser.add_section("execution")
             self.parser.set("execution", "environment","bash")
-            self.parser.set("execution", "run",0)
+            self.parser.set("execution", "run","off")
         else:
             if (self.parser.has_option("execution","env")):
                 # got the short name
@@ -110,10 +116,10 @@ class Settings:
                 if (value in ["sge","slurm","bash"]):
                     self.parser.set("execution","environment",value.lower())
                     if (value in ["sge","slurm"]):
-                        self.parser.set("execution", "run",0)
+                        self.parser.set("execution", "run","off")
                 else:
                     self.parser.set("execution","environment","bash")
-                    self.parser.set("execution", "run",0)
+                    self.parser.set("execution", "run","off")
             else:
                 # got no environment
                 self.parser.set("execution", "environment","bash")
@@ -121,8 +127,9 @@ class Settings:
             if (self.parser.has_option("execution","run")):
                 try:
                     value=self.parser.getboolean("execution","run")
-                except ValueError:
-                    self.parser.set("execution","run",0)
+                except Exception as e:
+                    self.appLogger.debug("Exception: - {0}".format(e))
+                    self.parser.set("execution","run","off")
 
 
     self.appLogger.info(self.formatSettingsMessage())
@@ -138,96 +145,26 @@ class Settings:
             message+="\t\t{0}\t:\t{1}\n".format(param[0],param[1])
     return message
 
-
-  def writeSettingsExample1LongNames(self):
-    self.appLogger.info("Writing settings into file (Example1 - Long names): {0}".format(\
-        self.path))
-    parser=cp.RawConfigParser()
-    parser.add_section("general")
-    parser.add_section("ngs-reads-art")
-    parser.set("general","simphy_folder","test")
-    parser.set("general","data_prefix","data")
-    parser.set("general","outgroup","true")
-    parser.set("ngs-reads-art","amplicon","true")
-    parser.set("ngs-reads-art","rcount ",100)
-    parser.set("ngs-reads-art","id","iddefault")
-    parser.set("ngs-reads-art","errfree","false")
-    parser.set("ngs-reads-art","len",150)
-    parser.set("ngs-reads-art","mflen",250)
-    parser.set("ngs-reads-art","paired","true")
-    parser.set("ngs-reads-art","quiet","true")
-    parser.set("ngs-reads-art","sdev",50)
-    parser.set("ngs-reads-art","samout","true")
-    parser.set("ngs-reads-art","seqSys","HS25")
-    with open(self.path, 'wb') as configfile:
-        parser.write(configfile)
-
-  def writeSettingsExample1ShortNames(self):
-    self.appLogger.info("Writing settings into file (Example1 - Short names): {0}".format(\
-      self.path))
-    parser=cp.RawConfigParser()
-    parser.add_section("general")
-    parser.add_section("ngs-reads-art")
-    parser.set("general","sf" ,"test")
-    parser.set("general","og","true")
-    parser.set("general","dp" ,"data")
-    parser.set("ngs-reads-art","amp","true")
-    parser.set("ngs-reads-art","c",100)
-    parser.set("ngs-reads-art","d","iddefault")
-    parser.set("ngs-reads-art","ef")
-    parser.set("ngs-reads-art","l",150)
-    parser.set("ngs-reads-art","m",250)
-    parser.set("ngs-reads-art","p","true")
-    parser.set("ngs-reads-art","q","true")
-    parser.set("ngs-reads-art","s",50)
-    parser.set("ngs-reads-art","sam","true")
-    parser.set("ngs-reads-art","ss","HS25")
-    with open(self.path, 'wb') as configfile:
-        parser.write(configfile)
-
-  def writeSettingsExample2LongNames(self):
-    self.appLogger.info("Writing settings into file (Example2 - Long names): {0}".format(\
-        self.path))
-    parser=cp.RawConfigParser()
-    parser.add_section("general")
-    parser.add_section("ngs-reads-art")
-    parser.set("general","simphy_folder","test")
-    parser.set("general","data_prefix","data")
-    parser.set("general","outgroup","true")
-    parser.set("ngs-reads-art","qprof1","profileR1.txt")
-    parser.set("ngs-reads-art","qprof2","profileR2.txt")
-    parser.set("ngs-reads-art","amplicon","true")
-    parser.set("ngs-reads-art","rcount ",100)
-    parser.set("ngs-reads-art","id","iddefault")
-    parser.set("ngs-reads-art","errfree","false")
-    parser.set("ngs-reads-art","len",150)
-    parser.set("ngs-reads-art","mflen",250)
-    parser.set("ngs-reads-art","paired","true")
-    parser.set("ngs-reads-art","quiet","true")
-    parser.set("ngs-reads-art","sdev",50)
-    parser.set("ngs-reads-art","samout","true")
-    with open(self.path, 'wb') as configfile:
-        parser.write(configfile)
-
-  def writeSettingsExample2ShortNames(self):
-    self.appLogger.info("Writing settings into file (Example2 - Short names): {0}".format(\
-        self.path))
-    parser=cp.RawConfigParser()
-    parser.add_section("general")
-    parser.add_section("ngs-reads-art")
-    parser.set("general","sf","test")
-    parser.set("general","dp","data")
-    parser.set("ngs-reads-art","1","profileR1.txt")
-    parser.set("ngs-reads-art","2","profileR2.txt")
-    parser.set("ngs-reads-art","amp","true")
-    parser.set("ngs-reads-art","c",100)
-    parser.set("ngs-reads-art","d","iddefault")
-    parser.set("ngs-reads-art","ef","false")
-    parser.set("ngs-reads-art","l",150)
-    parser.set("ngs-reads-art","m",250)
-    parser.set("ngs-reads-art","p","true")
-    parser.set("ngs-reads-art","q","true")
-    parser.set("ngs-reads-art","s",50)
-    parser.set("ngs-reads-art","sam","true")
-    with open(self.path, 'wb') as configfile:
-        parser.write(configfile)
+  #
+  # def writeSettingsExample1LongNames(self):
+  #   self.appLogger.info("Writing settings into file (Example1 - Long names): {0}".format(\
+  #       self.path))
+  #   parser=cp.RawConfigParser()
+  #   parser.add_section("general")
+  #   parser.add_section("ngs-reads-art")
+  #   parser.set("general","simphy_folder","test")
+  #   parser.set("general","data_prefix","data")
+  #   parser.set("general","outgroup","true")
+  #   parser.set("ngs-reads-art","amplicon","true")
+  #   parser.set("ngs-reads-art","rcount ",100)
+  #   parser.set("ngs-reads-art","id","iddefault")
+  #   parser.set("ngs-reads-art","errfree","false")
+  #   parser.set("ngs-reads-art","len",150)
+  #   parser.set("ngs-reads-art","mflen",250)
+  #   parser.set("ngs-reads-art","paired","true")
+  #   parser.set("ngs-reads-art","quiet","true")
+  #   parser.set("ngs-reads-art","sdev",50)
+  #   parser.set("ngs-reads-art","samout","true")
+  #   parser.set("ngs-reads-art","seqSys","HS25")
+  #   with open(self.path, 'wb') as configfile:
+  #       parser.write(configfile)

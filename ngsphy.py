@@ -12,22 +12,22 @@ from select import select
 VERSION=1
 MIN_VERSION=1
 FIX_VERSION=0
-PROGRAM_NAME="simphy.ngs.wrapper.py"
+PROGRAM_NAME="ngsphy.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
 LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 ################################################################################
 
-class SimPhyNGSWrapper:
+class NGSphy:
     def __init__(self,args):
         self.path=os.getcwd()
         self.startTime=datetime.datetime.now()
         self.endTime=None
 
         self.appLogger=logging.getLogger('sngsw')
-        logging.basicConfig(format="%(asctime)s - %(levelname)s:\t%(message)s",\
+        logging.basicConfig(format="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s",\
             datefmt="%d/%m/%Y %I:%M:%S %p",\
-            filename="{0}/SimPhyNGSWrapper.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
-                self.path,self.startTime),\
+            filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
+                self.path,self.startTime,PROGRAM_NAME[0:-3]),\
             filemode='a',\
             level=logging.DEBUG)
         ch = logging.StreamHandler()
@@ -47,29 +47,23 @@ class SimPhyNGSWrapper:
         # checking existence of settings file
         self.appLogger.info("Checking settings...")
         if (not os.path.exists(self.settingsFile)):
-            self.appLogger.warning("Settings file ({0}) does not exist. ".format(self.settingsFile))
-            self.appLogger.warning("Generating settings.txt file.")
-            tmpSettings=sp.Settings(self.settingsFile)
-            value=rnd.sample(range(0,4,1),1)
-            if (value==1):  tmpSettings.writeSettingsExample1ShortNames()
-            elif (value==2):  tmpSettings.writeSettingsExample2ShortNames()
-            elif (value==3):  tmpSettings.writeSettingsExample1LongNames()
-            else: tmpSettings.writeSettingsExample2LongNames()
-            self.ending(False,"Exiting. Please check settings file ({0}), and run again.".format(self.settingsFile))
+            self.ending(False,"Settings file ({0}) does not exist. Exiting. ".format(self.settingsFile))
         else:
             # settings file exist, go ahead and run
             self.appLogger.debug("Starting process")
             self.settings=sp.Settings(self.settingsFile)
             settingsOk,settingsMessage=self.settings.checkArgs()
             if (settingsOk):
-                # If i'm here, I have the Mating
-                # have to check before running
+                # Settings exist and are ok.
+                # Generate Individuals (plody independency)
                 self.mating=mat.Mating(self.settings)
                 matingOk,matingMessage=self.mating.checkArgs()
                 if (matingOk):
                     self.mating.iteratingOverST()
                 else:
                     self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+
+                # After this I'll have generated the individuals and the folder structure
                 if self.settings.ngsart:
                     # Doing NGS
                     self.ngs=ngs.NGSReadsARTIllumina(self.settings)
@@ -114,15 +108,15 @@ def handlingCmdArguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,\
         description=\
             '''
-SimPhy NGS wrapper
+NGSphy
 ==================
-This is a plugin for  SimPhy (https://github.com/adamallo/SimPhy) A comprehensive simulator of gene family
-evolution. SimPhy NGS Wrapper generates diploid individuals from the sequences
-generated of a SimPhy project, and afterwards generates reads from such
-individuals with a next-generation sequencing simulator, ART.
+NGSphy is a tool designed specifically as an addendum to SimPhy (https://github.com/adamallo/SimPhy)
+- a phylogenomic simulator of gene, locus and species trees that considers incomplete lineage sorting,
+gene duplication and loss and horizontal gene transfer - which is able to use SimPhy's output in order
+to produce Illumina NGS data from haploid/diploid individuals.
 
 For more information about usage and installation please go to the README.md file or
-to the wiki page https://gitlab.com/merlyescalona/simphy-ngs-wrapper/wikis/home
+to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 
             ''',\
         epilog="Version {0}.{1}.{2} (Still under development)".format(VERSION,MIN_VERSION,FIX_VERSION),\
@@ -159,7 +153,7 @@ if __name__=="__main__":
     try:
         cmdArgs = handlingCmdArguments()
         print(cmdArgs)
-        prog = SimPhyNGSWrapper(cmdArgs)
+        prog = NGSphy(cmdArgs)
         prog.run()
         prog.ending(True,"Run has finished correctly.")
     except KeyboardInterrupt:
