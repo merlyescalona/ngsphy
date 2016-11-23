@@ -4,10 +4,10 @@ import random as rnd
 import Settings as sp
 
 class NGSReadsARTIllumina:
-    SHORT_NAMES=["sf" ,"dp" ,"1","2","amp","c","d","ef" ,"f","h","i",\
+    SHORT_NAMES=["sf" ,"dp","ploidy","ofn","1","2","amp","c","d","ef" ,"f","h","i",\
                 "ir","ir2","dr","dr2","k","l","m","mp","M","nf","na",\
                 "o","p","q","qU","qs","qL","qs2","rs","s","sam","sp","ss"]
-    LONG_NAMES=["simphy_folder","data_prefix","qprof1","qprof2",\
+    LONG_NAMES=["simphy_folder","data_prefix","output_folder_name","ploidy","qprof1","qprof2",\
                 "amplicon","rcount","id","errfree","fcov","help",\
                 "in","insRate","insRate2","delRate","delRate2","maxIndel",\
                 "len","mflen","matepair","cigarM","maskN","noALN","out",\
@@ -43,21 +43,22 @@ class NGSReadsARTIllumina:
             if (p[0] in self.dLONG_NAMES.keys()): dash="--"
             # to be sure that i am getting the right parameter names
             if (dash=="-"):
-                if (p[0]=="m"): print p[0]
-                par=[self.dSHORT_NAMES[p[0]]]
-                if (p[0]=="m"): print(par, self.dSHORT_NAMES[p[0]])
+                if (p[0]=="m" and ((par[1].lower() in ["true","false","on","off"]) or (par[1] in [0,1]))):
+                    par=["M"]
+                elif (p[0]=="m"):
+                    par=["m"]
+                else:
+                    par=[self.dSHORT_NAMES[p[0]]]
             if (dash=="--"):
-                if (p[0]=="m"): print p[0]
                 par=[self.dLONG_NAMES[p[0]]]
-                if (p[0]=="m"): print(par, self.dLONG_NAMES[p[0]])
 
             par+=[p[1]]
 
-            if(par[1].lower() in ["true","false","on","off",1,0]):
+            if((par[1].lower() in ["true","false","on","off"]) or (par[1] in [0,1])):
                 self.params+=["{0}{1}".format(dash,par[0])]
             else:
-                self.params+=["{0}{1!s}".format(dash,par[0]),par[1]]
-                if (p[0]=="m"): print("i'm an m: {}".format(self.params))
+                self.params+=["{0}{1}".format(dash,par[0]),par[1]]
+
 
         self.ploidyName="individuals"
         if not (self.settings.ploidy==1):
@@ -262,7 +263,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                     self.matingDict = [row for row in d]
                     csvfile.close()
                     self.appLogger.info("Generating folder structure")
-                    for indexLOC in range(1,self.numLociPerST[indexST]+1):
+                    for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
                             # indexST,indexLOC,indID,speciesID,mateID1,mateID2
                         folder="{0}/reads/{1:0{2}d}/{3:0{4}d}/".format(\
                             self.output,\
@@ -303,7 +304,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                             # Call to ART
                             callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
                             # self.params+=["--in ",inputFile,"--out",outputFile]
-                            self.appLogger.debug(" ".join(callParams))
+                            # self.appLogger.debug(" ".join(callParams))
 
                             proc=""
                             try:
@@ -318,7 +319,8 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                                 "{}\n\n".format(" ".join(callParams))
                                 return False, ngsMessageWrong
 
-                            cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
-                            seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
-                            print simType,cpuTime,seed
+                            print (proc)
+                            # cpuTime = [line for line in proc.split('\n') if "CPU" in line][0]#.split(":")[1]
+                            # seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
+                            # print simType,cpuTime,seed
         return True,ngsMessageCorrect

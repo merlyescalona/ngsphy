@@ -64,8 +64,8 @@ class Settings:
             currentRun=self.parser.get("general","output_folder_name")
         elif (self.parser.has_option("general","ofn")):
             currentRun=self.parser.get("general","output_folder_name")
-            self.parser.set("general","output_folder",currentRun)
-            self.parser.remove_option("general","of")
+            self.parser.set("general","output_folder_",currentRun)
+            self.parser.remove_option("general","ofn")
         else:
             currentRun="output"
 

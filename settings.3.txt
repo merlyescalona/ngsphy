@@ -6,7 +6,7 @@ amp=true
 c=100
 d=iddefault
 ef=false
-l=150
+l=100
 m=250
 p=true
 q=true
@@ -15,4 +15,4 @@ sam=true
 ss=HS20
 [execution]
 environment=bash
-run=off
+run=on
