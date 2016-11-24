@@ -98,7 +98,7 @@ class NGSReadsARTIllumina:
                 for indexLOC in range(1,self.numLociPerST[indexST]+1):
                     for row in self.matingDict:
                         # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                        inputFile="{0}/individuals/{1}/{2:0{3}d}/{4}_{1}_{2}_{5}_{6}.fasta".format(\
+                        inputFile="{0}/individuals/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}.fasta".format(\
                             self.output,\
                             row['indexST'],\
                             indexLOC,\
@@ -108,7 +108,7 @@ class NGSReadsARTIllumina:
                             row['indID']\
                         )
                         # This means, from a multiple (2) sequence fasta file.
-                        outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2}_{5}_{6}_R".format(\
+                        outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d_{5}_{6}_R".format(\
                             self.output,\
                             row['indexST'],\
                             indexLOC,\
@@ -206,7 +206,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
             for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
                 for row in self.matingDict:
                     # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                    inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}.fasta".format(\
+                    inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}.fasta".format(\
                         self.output,\
                         int(row['indexST']),\
                         self.numberSTDigits,\
@@ -216,7 +216,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                         self.prefix,\
                         int(row['indID']))
                     # This means, from a multiple (2) sequence fasta file.
-                    outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}_R".format(\
+                    outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}_R".format(\
                         self.output,\
                         int(row['indexST']),\
                         self.numberSTDigits,\
@@ -248,6 +248,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
             self.appLogger.info("Environment BASH. Writing scripts")
             self.writeBashScript()
             run=self.settings.parser.getboolean("execution","run")
+            runningInfo=[]
             if (run):
                 # I have to iterate over the sts, now that i have more than on
                 for indexST in self.filteredST:
@@ -280,7 +281,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 
                         for row in self.matingDict:
                             # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                            inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}.fasta".format(\
+                            inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}.fasta".format(\
                                 self.output,\
                                 int(row['indexST']),\
                                 self.numberSTDigits,\
@@ -291,7 +292,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                                 int(row['indID'])\
                             )
                             # This means, from a multiple (2) sequence fasta file.
-                            outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3}_{6}_{7}_R".format(\
+                            outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}_R".format(\
                                 self.output,\
                                 int(row['indexST']),\
                                 self.numberSTDigits,\
@@ -303,9 +304,6 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                             )
                             # Call to ART
                             callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
-                            # self.params+=["--in ",inputFile,"--out",outputFile]
-                            # self.appLogger.debug(" ".join(callParams))
-
                             proc=""
                             try:
                                 proc = subprocess.check_output(callParams,stderr=subprocess.STDOUT)
@@ -319,8 +317,23 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                                 "{}\n\n".format(" ".join(callParams))
                                 return False, ngsMessageWrong
 
-                            print (proc)
-                            # cpuTime = [line for line in proc.split('\n') if "CPU" in line][0]#.split(":")[1]
-                            # seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
-                            # print simType,cpuTime,seed
+
+                            cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
+                            seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
+                            runningInfo+=[(int(row['indexST']),indexLOC,int(row['indID']),inputFile,cpuTime,seed, outputFile)]
+                self.pringRunningInfo(runningInfo)
         return True,ngsMessageCorrect
+
+    def pringRunningInfo(self, runningInfo):
+        outputFile="{0}/{1}.info".format(
+            self.output,\
+            self.projectName
+        )
+        f=open(outputFile,"w")
+        f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
+        for item in runningInfo:
+            f.write("{0},{1},{2},{3},{4},{5},{6}\n".format(
+                item[0],item[1],item[2],item[3],item[4],item[5],item[6]
+            ))
+        f.close()
+        self.appLogger.info("File with timings of the ART run can be find on: {0}".format(outputFile))
