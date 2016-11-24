@@ -14,11 +14,11 @@ for reproducibility purposes, with the following files attached:
  - `<simphy_project_name>.command` file
 
 
-# Obtaining SimPhy NGS wrapper
+# Obtaining NGSphy
 
-You can get SimPhy NGS wrapper by cloning the following git repository:
+You can get NGSphy by cloning the following git repository:
 
-    `git@gitlab.com:merlyescalona/simphy-ngs-wrapper.git`
+    `git@gitlab.com:merlyescalona/ngsphy.git`
 
 
 # Requirements
