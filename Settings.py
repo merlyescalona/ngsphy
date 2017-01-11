@@ -57,7 +57,6 @@ class Settings:
             else:
                 self.ploidy=2
 
-
         # Checking output folder information
         currentRun=""
         if(self.parser.has_option("general","output_folder_name")):
@@ -82,7 +81,7 @@ class Settings:
         # Checking art parameters.
         if not self.parser.has_section("ngs-reads-art"):
             self.ngsart=False
-            self.appLogger.info("No NGS generation section available")
+            self.appLogger.info("Settings: No NGS generation section available")
         else:
             self.ngsart=True
             # checking program dependencies
@@ -96,15 +95,20 @@ class Settings:
                 if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
                 self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated from SimPhy and Mating parameters.")
             else:
-                parserMessageWrong+="Exiting. art_illumina not found. Program either not installed or not in your current path. Please verify the installation. Exiting. "
+                parserMessageWrong+="art_illumina not found. Program either not installed or not in your current path. Please verify the installation. Exiting."
                 return False, parserMessageWrong
-
-        # Execution parameters
+        ########################################################################
+        # BLOCK: Execution
+        ########################################################################
         if not self.parser.has_section("execution"):
+            self.appLogger.warning("Settings - Execution block: This block has been automatically generated.")
             self.parser.add_section("execution")
             self.parser.set("execution", "environment","bash")
             self.parser.set("execution", "run","off")
+            self.parser.set("execution", "threads","1")
         else:
+            ####################################################################
+            # OPTION: Environment
             if (self.parser.has_option("execution","env")):
                 # got the short name
                 value=self.parser.get("execution","env")
@@ -118,18 +122,35 @@ class Settings:
                     if (value in ["sge","slurm"]):
                         self.parser.set("execution", "run","off")
                 else:
-                    self.parser.set("execution","environment","bash")
-                    self.parser.set("execution", "run","off")
+                    message="Settings: Execution block | Evironment variable is incorrect or unavailable. Please check the settings file and rerun. Exiting."
+                    return False,message
             else:
                 # got no environment
                 self.parser.set("execution", "environment","bash")
-
+            ####################################################################
+            # OPTION: RUN
             if (self.parser.has_option("execution","run")):
                 try:
                     value=self.parser.getboolean("execution","run")
                 except Exception as e:
-                    self.appLogger.debug("Exception: - {0}".format(e))
+                    self.appLogger.warning("Settings - Execution block: Run automatically set up to OFF.")
                     self.parser.set("execution","run","off")
+            else:
+                self.appLogger.warning("Settings - Execution block: Run automatically set up to OFF.")
+                self.parser.set("execution","run","off")
+            ####################################################################
+            # OPTION: threads
+            if (self.parser.has_option("execution","threads")):
+                try:
+                    self.numThreads=self.parser.getboolean("execution","threads")
+                except Exception as e:
+                    self.appLogger.warning("Settings - Execution block: Threads automatically set up to 1.")
+                    self.parser.set("execution","threads","1")
+                    self.numThreads=1
+            else:
+                self.numThreads=1
+                self.appLogger.warning("Settings - Execution block: Threads automatically set up to 1.")
+                self.parser.set("execution","threads","1")
 
 
     self.appLogger.info(self.formatSettingsMessage())
@@ -144,27 +165,3 @@ class Settings:
         for param in items:
             message+="\t\t{0}\t:\t{1}\n".format(param[0],param[1])
     return message
-
-  #
-  # def writeSettingsExample1LongNames(self):
-  #   self.appLogger.info("Writing settings into file (Example1 - Long names): {0}".format(\
-  #       self.path))
-  #   parser=cp.RawConfigParser()
-  #   parser.add_section("general")
-  #   parser.add_section("ngs-reads-art")
-  #   parser.set("general","simphy_folder","test")
-  #   parser.set("general","data_prefix","data")
-  #   parser.set("general","outgroup","true")
-  #   parser.set("ngs-reads-art","amplicon","true")
-  #   parser.set("ngs-reads-art","rcount ",100)
-  #   parser.set("ngs-reads-art","id","iddefault")
-  #   parser.set("ngs-reads-art","errfree","false")
-  #   parser.set("ngs-reads-art","len",150)
-  #   parser.set("ngs-reads-art","mflen",250)
-  #   parser.set("ngs-reads-art","paired","true")
-  #   parser.set("ngs-reads-art","quiet","true")
-  #   parser.set("ngs-reads-art","sdev",50)
-  #   parser.set("ngs-reads-art","samout","true")
-  #   parser.set("ngs-reads-art","seqSys","HS25")
-  #   with open(self.path, 'wb') as configfile:
-  #       parser.write(configfile)

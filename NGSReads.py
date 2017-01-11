@@ -1,7 +1,22 @@
-import argparse,csv,datetime,logging,os,subprocess,sys
+import argparse,csv,datetime,logging,os,subprocess,sys,threading, time
 import numpy as np
 import random as rnd
 import Settings as sp
+
+class RunningInfo(object):
+    def __init__(self):
+        # self.appLogger=logging.getLogger('sngsw')
+        self.lock = threading.Lock()
+        self.value = []
+    def addLine(self, line):
+        # self.appLogger.debug('Waiting for lock')
+        self.lock.acquire()
+        try:
+            # self.appLogger.debug('Acquired lock')
+            self.value += [line]
+        finally:
+            # self.appLogger.debug('Released lock')
+            self.lock.release()
 
 class NGSReadsARTIllumina:
     SHORT_NAMES=["sf" ,"dp","ploidy","ofn","1","2","amp","c","d","ef" ,"f","h","i",\
@@ -76,11 +91,16 @@ class NGSReadsARTIllumina:
         except:
             self.appLogger.debug("Output folder exists ({0}/scripts)".format(self.output))
 
+        # Init of all the commands that will be generated
+        self.commands=[]
+        self.runningInfo=RunningInfo()
+
     def writeSeedFile(self):
-        seedfile=open("{0}/scripts/{1}.seedfile.txt".format(\
+        seedfile="{0}/scripts/{1}.seedfile.txt".format(\
             self.output,\
             self.projectName
-        ))
+        )
+        sf=open(seedfile,"w")
         for indexST in self.filteredST:
             for indexST in self.filteredST:
                 csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
@@ -94,32 +114,31 @@ class NGSReadsARTIllumina:
                 d = csv.DictReader(csvfile)
                 self.matingDict = [row for row in d]
                 csvfile.close()
-
-                for indexLOC in range(1,self.numLociPerST[indexST]+1):
+                for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
                     for row in self.matingDict:
                         # indexST,indexLOC,indID,speciesID,mateID1,mateID2
                         inputFile="{0}/individuals/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}.fasta".format(\
                             self.output,\
                             row['indexST'],\
                             indexLOC,\
-                            indexLOCDigits,
+                            self.indexLOCDigits,
                             self.projectName,\
                             self.prefix,\
                             row['indID']\
                         )
                         # This means, from a multiple (2) sequence fasta file.
-                        outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d_{5}_{6}_R".format(\
+                        outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}_R".format(\
                             self.output,\
                             row['indexST'],\
                             indexLOC,\
-                            indexLOCDigits,
+                            self.indexLOCDigits,
                             self.projectName,\
                             self.prefix,\
                             row['indID']\
                         )
-                        seedfile.write("{0}\t{1}\n".format(inputFile,outputFile))
+                        sf.write("{0}\t{1}\n".format(inputFile,outputFile))
                 self.numFiles+=1
-        seedfile.close()
+        sf.close()
         self.appLogger.info("Seed file written...")
 
     def writeSGEScript(self):
@@ -185,12 +204,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
         self.appLogger.info("SLURM Job file written ({0})...".format(jobfile))
 
 
-    def writeBashScript(self):
-        bashfile="{0}/scripts/{1}.sh".format(\
-            self.output,\
-            self.projectName
-        )
-        j=open(bashfile,"w")
+    def getCommands(self):
         for indexST in self.filteredST:
             csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
                 self.output,\
@@ -229,111 +243,106 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                     # Call to ART
                     callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
                     # self.params+=["--in ",inputFile,"--out",outputFile]
-                    j.write(" ".join(callParams))
-                    j.write("\n")
+                    # print(callParams)
+                    self.commands+=[[row['indexST'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
+
+        self.appLogger.info("Commands have been generated...")
+
+    def writeBashScript(self):
+        bashfile="{0}/scripts/{1}.sh".format(\
+            self.output,\
+            self.projectName
+        )
+        j=open(bashfile,"w")
+        for item in self.commands:
+            c=item[5:len(item)]
+            j.write(" ".join(c))
+            j.write("\n")
         j.close()
         self.appLogger.info("Bash script written...")
 
+    def commandLauncher(self, command):
+        ngsMessage="";proc=""
+        try:
+            proc = subprocess.check_output(command[5:],stderr=subprocess.STDOUT)
+            cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
+            seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
+            # line=[(command[0:3],cpuTime,seed, command[4])]
+            line=command[0:3]+[cpuTime,seed,command[4]]
+            # ngsMessage="Command: {0} - Finished succesfully.".format(" ".join(command[5:]))
+        except subprocess.CalledProcessError as error:
+            ngsMessage="\n------------------------------------------------------------------------\n\n"+\
+            "{}".format(error.output)+\
+            "\n\n------------------------------------------------------------------------"+\
+            "\n\nFor more information about this error please run the 'art' command separately.\n"+\
+            "art_illumina command used:\n==========================\n"+\
+            "{}\n\n".format(" ".join(command[5:]))
+            self.appLogger.warning(ngsMessage)
+            line=command[0:3]+["-","-",command[4]]
+        self.runningInfo.addLine(line)
+
+
     def run(self):
-        ngsMessageCorrect="ART Finished succesfully"
-        ngsMessageWrong="Ops! Something went wrong.\n\t"
         environment=self.settings.parser.get("execution","environment")
+        # Generating commands
+        self.getCommands()
         if (environment=="sge"):
             self.appLogger.info("Environment SGE. Writing scripts")
+            self.writeSeedFile()
             self.writeSGEScript()
         elif (environment=="slurm"):
             self.appLogger.info("Environment SLURM. Writing scripts")
+            self.writeSeedFile()
             self.writeSLURMScript()
         else:
             self.appLogger.info("Environment BASH. Writing scripts")
             self.writeBashScript()
             run=self.settings.parser.getboolean("execution","run")
-            runningInfo=[]
             if (run):
-                # I have to iterate over the sts, now that i have more than on
-                for indexST in self.filteredST:
-                    csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
-                        self.output,\
-                        self.projectName,\
-                        indexST,\
-                        self.numberSTDigits,\
-                        self.ploidyName
-                    ))
-                    # Generation of folder structure
-                    d = csv.DictReader(csvfile)
-                    self.matingDict = [row for row in d]
-                    csvfile.close()
-                    self.appLogger.info("Generating folder structure")
-                    for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
-                            # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                        folder="{0}/reads/{1:0{2}d}/{3:0{4}d}/".format(\
-                            self.output,\
-                            int(row['indexST']),\
-                            self.numberSTDigits,\
-                            indexLOC,\
-                            self.indexLOCDigits
-                        )
-                        try:
-                            self.appLogger.debug("Generating folder ST:{0}/GT:{1}".format(row['indexST'],indexLOC))
-                            os.makedirs(folder)
-                        except:
-                            self.appLogger.debug("Folder ({0}) exists.".format(folder))
+                # iterating over commands to create folders
+                folders=set([])
+                for command in self.commands:
+                    infile=os.path.dirname(command[4])
+                    folders.add(infile)
 
-                        for row in self.matingDict:
-                            # indexST,indexLOC,indID,speciesID,mateID1,mateID2
-                            inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}.fasta".format(\
-                                self.output,\
-                                int(row['indexST']),\
-                                self.numberSTDigits,\
-                                indexLOC,\
-                                self.indexLOCDigits,
-                                self.projectName,\
-                                self.prefix,\
-                                int(row['indID'])\
-                            )
-                            # This means, from a multiple (2) sequence fasta file.
-                            outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}_R".format(\
-                                self.output,\
-                                int(row['indexST']),\
-                                self.numberSTDigits,\
-                                indexLOC,\
-                                self.indexLOCDigits,
-                                self.projectName,\
-                                self.prefix,\
-                                int(row['indID'])\
-                            )
-                            # Call to ART
-                            callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
-                            proc=""
-                            try:
-                                proc = subprocess.check_output(callParams,stderr=subprocess.STDOUT)
-                            except subprocess.CalledProcessError as error:
-                                ngsMessageWrong+="\n------------------------------------------------------------------------\n\n"+\
-                                "{}".format(error.output)+\
-                                "\n\n------------------------------------------------------------------------"+\
-                                "\n\nFor more information about this error please check the log file.\n"+\
-                                "You can also run the 'art' command separately.\n\n"+\
-                                "art_illumina command used:\n==========================\n"+\
-                                "{}\n\n".format(" ".join(callParams))
-                                return False, ngsMessageWrong
+                for item in folders:
+                    try:
+                        os.makedirs(item)
+                    except:
+                        self.appLogger.debug("Output folder exists ({0})".format(item))
 
+                # command=self.commands[0]
+                curr=0
+                self.appLogger.info("Running...")
+                while (curr < len(self.commands)):
+                    prog=(curr*100)/len(self.commands)
+                    sys.stdout.write("Progress {0:02.1f} %\r".format(prog))
+                    sys.stdout.flush()
+                    # print("Progress {0:02.1f} %\r".format(prog))
+                    command=self.commands[curr]
+                    t = threading.Thread(target=self.commandLauncher(command))
+                    t.start()
+                    curr=curr+1
+                    while (threading.activeCount()-1)==self.settings.numThreads:
+                        time.sleep(0.1)
 
-                            cpuTime = [line for line in proc.split('\n') if "CPU" in line][0].split(":")[1]
-                            seed = [line for line in proc.split('\n') if "seed" in line][0].split(":")[1]
-                            runningInfo+=[(int(row['indexST']),indexLOC,int(row['indID']),inputFile,cpuTime,seed, outputFile)]
-                self.pringRunningInfo(runningInfo)
-        return True,ngsMessageCorrect
+            self.printRunningInfo()
 
-    def pringRunningInfo(self, runningInfo):
+    def printRunningInfo(self):
         outputFile="{0}/{1}.info".format(
             self.output,\
             self.projectName
         )
         f=open(outputFile,"w")
         f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
-        for item in runningInfo:
-            f.write("{0},{1},{2},{3},{4},{5},{6}\n".format(
-                item[0],item[1],item[2],item[3],item[4],item[5],item[6]
-            ))
+        for item in self.runningInfo.value:
+            f.write(
+                str(item[0])+","+\
+                str(item[1])+","+\
+                str(item[2])+","+\
+                str(item[3])+","+\
+                str(item[4])+","+\
+                item[5]+"\n"
+            )
         f.close()
         self.appLogger.info("File with timings of the ART run can be find on: {0}".format(outputFile))

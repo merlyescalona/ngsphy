@@ -1,5 +1,5 @@
 [general]
-simphy_folder = test_wrapper
+simphy_folder = test/test_wrapper
 data_prefix = data
 [ngs-reads-art]
 1=profileR1.txt
@@ -15,5 +15,5 @@ q=true
 s=50
 sam=true
 [execution]
-environment=bash
+environment=sge
 run=false

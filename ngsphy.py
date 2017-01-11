@@ -38,10 +38,9 @@ class NGSphy:
         self.appLogger.info("Starting")
         self.settingsFile=""
         if (args.settings):
-            self.settingsFile=os.path.basename(args.settings)
+            self.settingsFile=os.path.abspath(args.settings)
         else:
-            self.settingsFile=os.path.basename("./settings.txt")
-
+            self.settingsFile=os.path.abspath("./settings.txt")
 
     def run(self):
         # checking existence of settings file
@@ -67,11 +66,9 @@ class NGSphy:
                 if self.settings.ngsart:
                     # Doing NGS
                     self.ngs=ngs.NGSReadsARTIllumina(self.settings)
-                    ngsOk,ngsMessage=self.ngs.run()
-                    if (ngsOk):
-                        self.appLogger.info("NGS read simulation: {0}".format(ngsMessage))
-                    else:
-                        self.ending(ngsOk,ngsMessage)
+                    self.ngs.run()
+                    self.appLogger.info("NGS read simulation process finished. Check log fo status.")
+
                 else:
                     self.appLogger.info("NGS read simulation is not being done.")
             else:

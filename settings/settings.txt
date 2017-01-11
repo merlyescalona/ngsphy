@@ -1,9 +1,7 @@
 [general]
-simphy_folder = test_wrapper
+simphy_folder = test/test_wrapper
 data_prefix = data
 [ngs-reads-art]
-1=profileR1.txt
-2=profileR2.txt
 amp=true
 c=100
 d=iddefault
@@ -15,5 +13,6 @@ q=true
 s=50
 sam=true
 [execution]
-environment=sge
-run=false
+environment = bash
+run = on
+threads=2
