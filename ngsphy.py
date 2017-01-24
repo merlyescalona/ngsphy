@@ -68,9 +68,8 @@ class NGSphy:
                     self.ngs=ngs.NGSReadsARTIllumina(self.settings)
                     self.ngs.run()
                     self.appLogger.info("NGS read simulation process finished. Check log fo status.")
-
                 else:
-                    self.appLogger.info("NGS read simulation is not being done.")
+                    self.appLogger.info("NGS read simulation is not being made.")
             else:
                 self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
 
@@ -143,9 +142,7 @@ to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
         sys.exit()
     return tmpArgs
 
-"""
 ###############################   MAIN   #######################################
-"""
 if __name__=="__main__":
     try:
         cmdArgs = handlingCmdArguments()

@@ -22,7 +22,7 @@ class Settings:
     parserMessageWrong="Please verify the parameters in the settings file."
     # checking general parameters
     if not (self.parser.has_option("general","data_prefix") or self.parser.has_option("general","dp")):
-        parserMessageWrong+="\n\t<data_prefix|dp> field is missing. This prefix correponds to the name of the sequences that are going to be manipulated. Exiting."
+        parserMessageWrong+="\n\t<data_prefix|dp> field is missing. This prefix correponds to the name of the file sequences that are going to be processed. Exiting."
         return False, parserMessageWrong
 
     if not (self.parser.has_option("general","simphy_folder") or

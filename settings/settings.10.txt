@@ -15,4 +15,4 @@ sam=true
 [execution]
 environment = bash
 run = on
-threads=8
+threads=2

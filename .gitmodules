@@ -1,0 +1,3 @@
+[submodule "NGSphy.wiki"]
+	path = NGSphy.wiki
+	url = git://gitlab.com:merlyescalona/ngsphy.wiki
