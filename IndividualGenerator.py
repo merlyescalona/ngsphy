@@ -3,10 +3,11 @@ import argparse,copy,datetime,logging,os,sys, sqlite3
 import numpy as np
 import random as rnd
 import Settings as sp
+from MSATools import *
 from select import select
 
 ################################################################################
-class Mating:
+class IndividualGenerator:
     def __init__(self, settings):
         self.appLogger=logging.getLogger('sngsw')
         self.appLogger.info("Mating: Run started")
@@ -73,6 +74,7 @@ class Mating:
             if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):
                 self.numSpeciesTrees=self.numSpeciesTrees+1
         self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
+        self.settings.parser.set("general","numSpeciesTrees",str(self.numSpeciesTrees))
         # check if at least one
 
         self.appLogger.debug("Num species trees:\t{0}".format(self.numSpeciesTrees))
@@ -98,14 +100,7 @@ class Mating:
 
     def generateFolderStructure(self):
         # Checking output path
-        self.appLogger.info("Creating folder structure...")
-        # Checking output path
-        try:
-            self.appLogger.info("Creating output folder: {0} ".format(self.output))
-            self.output=os.path.abspath(self.output)
-            os.makedirs(self.output)
-        except:
-            self.appLogger.debug("Output folder ({0}) exists. ".format(self.output))
+        self.appLogger.info("Creating folder structure for individual generation...")
         self.outputinds="{0}/individuals".format(self.output)
         try:
             self.appLogger.info("Generated individuals/")
@@ -117,6 +112,7 @@ class Mating:
             os.makedirs("{0}/tables".format(self.output))
         except:
             self.appLogger.debug("Output folder exists ({0})".format(self.output))
+
 
     def printConfiguration(self):
         self.appLogger.debug(\
@@ -137,8 +133,6 @@ class Mating:
         con.close()
         res=[item for sublist in res for item in sublist]
         return res
-
-
 
     def filterSTMatchingIndPerSpeciesAndPloidy(self, ploidy):
         query="select SID from Species_Trees"
@@ -196,13 +190,20 @@ class Mating:
             self.appLogger.info("Replicate {0}/{2} ({1})".format(indexST, curReplicatePath,self.numSpeciesTrees))
             # iterating over the number of gts per st
             self.appLogger.info("Generating individuals...")
-            matingTable=self.generateMatingTable(indexST, self.settings.ploidy)
-            self.writeMatingTable(indexST,matingTable,self.settings.ploidy)
+            matingTable=self.generateMatingTable(indexST)
+            self.writeMatingTable(indexST,matingTable)
 
             for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
                 self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
                 # parsingMSA file
-                seqDict=self.parseMSAFile(indexST,indexLOC)
+                fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                    self.path,\
+                    indexST,\
+                    self.numSpeciesTreesDigits,\
+                    self.dataprefix,\
+                    indexLOC,\
+                    self.numFastaFilesDigits)
+                seqDict=parseMSAFile(fastapath)
                 outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
                     indexST,self.numSpeciesTreesDigits,\
                     indexLOC,self.numFastaFilesDigits\
@@ -228,7 +229,15 @@ class Mating:
             for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
                 self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
                 # parsingMSA file
-                seqDict=self.parseMSAFileWithDescriptions(indexST,indexLOC)
+                self.appLogger.debug("Using ST={0}, LOC={1}".format(indexST,indexLOC))
+                fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                    self.path,\
+                    indexST,\
+                    self.numSpeciesTreesDigits,\
+                    self.dataprefix,\
+                    indexLOC,\
+                    self.numFastaFilesDigits)
+                seqDict=parseMSAFileWithDescriptions(fastapath)
                 outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
                     indexST,self.numSpeciesTreesDigits,\
                     indexLOC,self.numFastaFilesDigits\
@@ -244,12 +253,7 @@ class Mating:
 
     def generateindividualTable(self,indexST):
         # get first gt of the st to get the descriptions
-        descriptions=self.parseMSAFileWithDescriptions(indexST,1).keys()
-        descriptions.sort()
-        table=[(item, descriptions[item]) for item in range(0,len(descriptions)) ]
-        return table
-
-    def parseMSAFileWithDescriptions(self,indexST, indexLOC):
+        indexLOC=1
         self.appLogger.debug("Using ST={0}, LOC={1}".format(indexST,indexLOC))
         fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
             self.path,\
@@ -258,29 +262,15 @@ class Mating:
             self.dataprefix,\
             indexLOC,\
             self.numFastaFilesDigits)
-        fastafile=open(fastapath, 'r')
-        lines=fastafile.readlines()
-        fastafile.close()
-        seqDict=dict()
-        description=""; seq=""; tmp="";count=1
-        for line in lines:
-            if not (line.strip()==''):
-                if (count%2==0):
-                    seq=line[0:-1].strip()
-                    seqDict[tmp]=seq
-                    seq=None
-                    description=None
-                    tmp=None
-                else:
-                    description=line[0:-1].strip()
-                    tmp=description[1:len(description)]
-            count+=1
-        return seqDict
+        descriptions=parseMSAFileWithDescriptions(fastapath).keys()
+        descriptions.sort()
+        table=[(item, descriptions[item]) for item in range(0,len(descriptions)) ]
+        return table
 
     def generateIndividuals(self,indexST,indexLOC,individualTable,seqDict):
         self.appLogger.debug("{0}/{1} - {2}".format(indexLOC,self.numFastaFiles,self.numFastaFilesDigits))
         outputFolder="{0}/{1:0{2}d}/{3:0{4}d}".format(self.outputinds,\
-            indexST,self.numSpeciesTreesDigits,\
+            indexST,self.numSpeciesTreesDigits,
             indexLOC,self.numFastaFilesDigits\
         )
         for currentInd in range(0,len(individualTable)):
@@ -288,6 +278,8 @@ class Mating:
             indID=str(individualTable[currentInd][0])
             description=str(individualTable[currentInd][1])
             # Organizing strings
+            # if description=="6_0_0":
+                # print indID,outputFolder
             seq=seqDict[description]
             des=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}".format(self.projectName,\
                 indexST,indexLOC,self.dataprefix,indID,description[1:len(description)],\
@@ -365,7 +357,7 @@ class Mating:
         # indexST,SP,ind-tip1,ind-tip2
         # If i have outgroups mate info should be in the table already
         self.appLogger.debug("Writing indexes into file...")
-        indexFilename="{0}/{1}.{2:0{3}d}.mating.csv".format(self.outputtables,self.projectName, indexST, self.numSpeciesTreesDigits)
+        indexFilename="{0}/{1}.{2:0{3}d}.individuals.csv".format(self.outputtables,self.projectName, indexST, self.numSpeciesTreesDigits)
         self.appLogger.debug(indexFilename)
         if not os.path.isfile(indexFilename):
             indexFile=open(indexFilename,"w")
@@ -385,48 +377,6 @@ class Mating:
                 mateID1,\
                 mateID2))
         indexFile.close()
-
-    def parseMSAFile(self, indexST, indexLOC):
-        fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
-            self.path,\
-            indexST,\
-            self.numSpeciesTreesDigits,\
-            self.dataprefix,\
-            indexLOC,\
-            self.numFastaFilesDigits)
-        fastafile=open(fastapath, 'r')
-        lines=fastafile.readlines()
-        fastafile.close()
-        seqDict=dict()
-        description=""; seq=""; tmp="";count=1
-        for line in lines:
-            if not (line.strip()==''):
-                if (count%2==0):
-                    seq=line[0:-1].strip()
-                    try:
-                        test=seqDict[tmp[0]]
-                    except:
-                        seqDict[tmp[0]]={}
-
-                    try:
-                        seqDict[tmp[0]].update({tmp[2]:{\
-                            'description':description,\
-                            'sequence':seq\
-                        }})
-                    except:
-                        seqDict[tmp[0]][tmp[2]]={}
-                        seqDict[tmp[0]].update({tmp[2]:{\
-                            'description':description,\
-                            'sequence':seq\
-                        }})
-                    seq=None
-                    description=None
-                    tmp=None
-                else:
-                    description=line[0:-1].strip()
-                    tmp=description[1:len(description)].split("_")
-            count+=1
-        return seqDict
 
     def mate(self,indexST,indexLOC,matingTable,sequenceDictionary):
         # Proper mating
@@ -489,3 +439,27 @@ class Mating:
                 del seqDict[sp][item]
 
         return None
+
+    def getReferencesSequences(self, indexSP,indexTip):
+        #print("getReferencesSequences: {0}.{1}".format(indexSP,indexTip))
+        for indexST in self.filteredSts:
+            self.appLogger.debug("indexST: {0}".format(indexST))
+            for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
+                #print("indexLOC: {0}".format(indexLOC))
+                fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                    self.path,\
+                    indexST,\
+                    self.numSpeciesTreesDigits,\
+                    self.dataprefix,\
+                    indexLOC,\
+                    self.numFastaFilesDigits)
+                msafileDict=parseMSAFile(fastapath)
+                #print(msafileDict[str(indexSP)][str(indexTip)]['description'])
+                #print(msafileDict[str(indexSP)][str(indexTip)]['sequence'])
+                f=open("{0}/references/REFS_ST_{1:0{2}d}.fasta".format(self.output,indexST,self.numSpeciesTreesDigits),'a')
+                f.write(">ST_{0:0{1}d}_LOC_{2:0{3}d}\n{4}\n".format(\
+                    indexST,\
+                    self.numSpeciesTreesDigits,\
+                    indexLOC,\
+                    self.numFastaFilesDigits,\
+                    msafileDict[str(indexSP)][str(indexTip)]['sequence']))

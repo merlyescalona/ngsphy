@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import argparse,datetime,logging,os,subprocess,sys
 import numpy as np
 import random as rnd
-import Mating as mat
+import IndividualGenerator as indgen
 import Settings as sp
 import NGSReads as ngs
+import ReadCount as rc
 from MELoggingFormatter import MELoggingFormatter as mlf
 from select import select
 
@@ -18,12 +21,14 @@ LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 ################################################################################
 
 class NGSphy:
+    endTime=None
+
     def __init__(self,args):
         self.path=os.getcwd()
         self.startTime=datetime.datetime.now()
         self.endTime=None
 
-        self.appLogger=logging.getLogger('sngsw')
+        self.appLogger=logging.getLogger('ngsphy')
         logging.basicConfig(format="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s",\
             datefmt="%d/%m/%Y %I:%M:%S %p",\
             filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
@@ -52,26 +57,51 @@ class NGSphy:
             self.appLogger.debug("Starting process")
             self.settings=sp.Settings(self.settingsFile)
             settingsOk,settingsMessage=self.settings.checkArgs()
+            # Generate BASIC folder structure
+            self.generateFolderStructure()
+
             if (settingsOk):
                 # Settings exist and are ok.
                 # Generate Individuals (plody independency)
-                self.mating=mat.Mating(self.settings)
-                matingOk,matingMessage=self.mating.checkArgs()
+                self.indGenerator=indgen.IndividualGenerator(self.settings)
+                matingOk,matingMessage=self.indGenerator.checkArgs()
                 if (matingOk):
-                    self.mating.iteratingOverST()
+                    self.indGenerator.iteratingOverST()
                 else:
-                    self.ending(matingOk,matingMessage) # did not pass the parser reqs.
+                    # did not pass the parser reqs.
+                    self.ending(matingOk,matingMessage)
 
-                # After this I'll have generated the individuals and the folder structure
+                # self.indGenerator.getReferencesSequences(1,1)
+                # After this I'll have generated the individuals and folder structure
                 if self.settings.ngsart:
                     # Doing NGS
                     self.ngs=ngs.NGSReadsARTIllumina(self.settings)
-                    self.ngs.run()
+                    status, message=self.ngs.run()
+                    if not status:
+                        self.ending(status,message)
                     self.appLogger.info("NGS read simulation process finished. Check log fo status.")
                 else:
-                    self.appLogger.info("NGS read simulation is not being made.")
+                    # self.appLogger.info("NGS read simulation is not being made.")
+                    if self.settings.readcount:
+                        # If i have read count folder structure must change - i need reference folder
+                        print("ngsphy.py - Read count")
+                        self.readcount=rc.ReadCount(self.settings)
+                        status, message=self.readcount.run()
+
+                    else:
+                        self.appLogger.info("Read count simulation is not being made.")
             else:
                 self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
+
+    def generateFolderStructure(self):
+        output=os.path.abspath(self.settings.parser.get("general","output_folder_name"))
+        self.appLogger.info("Creating basic folder structure.")
+        try:
+            self.appLogger.info("Creating output folder: {0} ".format(output))
+            os.makedirs(output)
+        except:
+            self.appLogger.debug("Output folder ({0}) exists. ".format(output))
+
 
     def log(self, level, message):
         if level==logging.DEBUG:    self.appLogger.debug(message)

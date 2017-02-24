@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-from scipy.stats import binom
-from scipy.stats import poisson
 import argparse,datetime,logging,os,subprocess,sys
 import numpy as np
 import random as rnd
@@ -24,6 +22,7 @@ class NGSReadsReadCount:
         q=str(unichr(-10*np.log10(self.errorRate)+33))
 
     def computeCoveragePoisson(self):
+        from scipy.stats import poisson
         mu = self.sequenceSize/2
         x = map(int,np.arange(poisson.ppf(0.1, mu),poisson.ppf(0.9, mu)))
         print x
@@ -40,7 +39,32 @@ class NGSReadsReadCount:
         ax.plot(range(1,self.sequenceSize+1),self.coverageTable, 'bo', ms=8, label='poisson pmf')
         plt.show()
 
-    def computeCoverageLogBinom(self):
+    def computeCoverageBinom(self):
+        from scipy.stats import binom
+        mu = self.sequenceSize/2
+        fig, ax = plt.subplots(1, 1)
+        n, p = 200, 0.5
+        x = map(np.arange(binom.ppf(0.001, n, p),binom.ppf(0.999, n, p)))
+        print x
+        covDistro=(binom.pmf(x, n, p)*self.expCoverage)/max(binom.pmf(x, n, p))
+        for index in range(0,len(x)):
+            self.coverageTable[x[index]]=covDistro[index]
+        for index in range(0,x[0]):
+            self.coverageTable[index]=covDistro[0]
+        for index in range(x[len(x)-1],self.sequenceSize):
+            self.coverageTable[index]=covDistro[len(x)-1]
+        fig, ax = plt.subplots(1, 1)
+        print self.coverageTable
+        print range(1,self.sequenceSize+1)
+        ax.plot(range(1,self.sequenceSize+1),self.coverageTable, 'bo', ms=8, label='poisson pmf')
+        plt.show()
+
+    def computeCoverageLogNormal(self):
+        from scipy.stats import lognorm
+        fig, ax = plt.subplots(1, 1)
+        s = 0.954
+        mean, var, skew, kurt = lognorm.stats(s, moments='mvsk')
+        x = np.linspace(lognorm.ppf(0.01, s),lognorm.ppf(0.99, s), 100)
         mu = self.sequenceSize/2
         fig, ax = plt.subplots(1, 1)
         n, p = 200, 0.5

@@ -1,0 +1,14 @@
+[general]
+simphy_folder = test/test_wrapper
+data_prefix = data
+output_folder_name= output_rc
+ploidy=1
+
+[read-count]
+reference=test/test.references.txt
+error=fixed
+
+[execution]
+environment = bash
+run = on
+threads=2

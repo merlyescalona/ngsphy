@@ -1,6 +1,6 @@
 [general]
-simphy_folder = test/test_wrapper
-data_prefix = data
+simphy_folder = /home/merly/git/sim-gene-editing/report/data/sge/
+data_prefix = AG_data
 [ngs-reads-art]
 1=profileR1.txt
 2=profileR2.txt
