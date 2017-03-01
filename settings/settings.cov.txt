@@ -1,9 +1,11 @@
 [general]
 simphy_folder = test/test_wrapper
 data_prefix = data
+ploidy=2
+[coverage]
+expCov=P:100
+indCov=f:expcov
 [ngs-reads-art]
-amp=true
-c=100
 d=iddefault
 ef=false
 l=150
@@ -11,8 +13,7 @@ m=250
 p=true
 q=true
 s=50
-sam=true
 [execution]
 environment = bash
-run = on
+run = off
 threads=2

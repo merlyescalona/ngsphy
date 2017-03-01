@@ -1,5 +1,9 @@
+Version 1.2
+    Threading added
+Version 1.1.2
+		Changed name repository to ngsphy
 Version 1.1.1
-		SimPhy NGS Wrapper fully functioning. Allows the simulation of diploid individuals and posterior
+	  Fully functioning. Allows the simulation of diploid individuals and posterior
 		NGS reads from a SimPhy Project folder. Also, log output (standard output) has some color on
 		for the different log call types.
 Version 1.1.0

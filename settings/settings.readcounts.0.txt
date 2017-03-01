@@ -1,17 +1,11 @@
 [general]
 simphy_folder = test/test_wrapper
 data_prefix = data
-[ngs-reads-art]
-amp=true
-c=100
-d=iddefault
-ef=false
-l=150
-m=250
-p=true
-q=true
-s=50
-sam=true
+ploidy=1
+[coverage]
+expCov=F:10
+[read-count]
+error=0.1
 [execution]
 environment = bash
 run = on
