@@ -55,7 +55,6 @@ class ReadCount:
     filteredST=[]
     numSts=0
 
-
     def __init__(self,settings):
         self.appLogger=logging.getLogger('ngsphy')
         self.appLogger.info('Read counts.')
@@ -878,7 +877,6 @@ class ReadCount:
             self.appLogger.info("Writing VCF file (true)")
         else:
             self.appLogger.info("Writing VCF file (sampled)")
-
         header="{0}\n{1}={2}\n{3}\n{4}={5}".format(\
             "##fileformat=VCFv4.0",\
             "##fileDate",\
@@ -913,7 +911,6 @@ class ReadCount:
             indexGT,
             numGeneTreeDigits,\
             ID) for ID in range(1, (nVariants+1))]
-
         # ALT
         ALT=[ ",".join(alt[str(pos)]) for pos in variableSitesPositionIndices ]
         # qual
@@ -924,7 +921,6 @@ class ReadCount:
         INFO=[u'\u00B7']*nVariants
         # format
         FORMAT=["GT:GL:AD:DP"]*nVariants
-
         # extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
         nLoci=self.numLociPerST[indexST-1]
         numGeneTreeDigits=len(str(nLoci))
@@ -1026,8 +1022,6 @@ class ReadCount:
             tmpInds+=[max([ len(elem) for elem in allVariants[str(item)]])]
         sizeInds=max(tmpInds)
         return [sizeChrom,sizePOS,sizeID,sizeREF,sizeALT,sizeQUAL,sizeFILTER,sizeINFO,sizeFORMAT,sizeInds]
-
-
 
     """
     @function:
