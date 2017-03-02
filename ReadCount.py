@@ -458,7 +458,7 @@ class ReadCount:
 
     """
     @function:
-        computeHaploid(indexST,indexGT,msa,individuals,referenceSeqFull,variableSites,DP)
+        computeHaploid(indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP)
     @description:
         compute the READ COUNT for the specic ploidy
     @intput:
@@ -555,8 +555,6 @@ class ReadCount:
             altInd,variableSitesPositionIndices,\
             HTGeneralSampled,HLGeneralSampled,\
             ADGeneralSampled,DP,False)
-        sys.exit()
-        pass
 
     """
     @function:
@@ -764,7 +762,7 @@ class ReadCount:
 
     """
     @function:
-        computeDiploid(indexST,indexGT,msa,individuals,referenceSeqFull,variableSites,DP)
+        id(indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP)
     @description:
         compute the READ COUNT for the specic ploidy
     @intput:
@@ -778,9 +776,195 @@ class ReadCount:
     @result:
         get a file written in the STreplicate folder (true/sampled)
     """
-    def computeDiploid(self,indexST,indexGT,msa,individuals,referenceSeqFull,variableSites,DP):
+    def computeDiploid(self,indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP):
         self.appLogger.debug("computeDiploid(self,indexST,indexGT,msa,individuals,referenceSeqFull,variableSites,DP)")
-        pass
+        nInds=len(individuals)
+        nVarSites=len(variableSites.keys())
+        # Getting the proper indices of the variable sites
+        variableSitesPositionIndices=np.sort([int(pos) for pos in variableSites.keys()])
+        alt=dict();  altInds=dict()
+        rcsTrue=dict();rcsSampled=dict()
+        GTGeneral=dict();GLGeneral=dict();ADGeneral=dict()
+        GTGeneralSampled=dict();GLGeneralSampled=dict();ADGeneralSampled=dict()
+        for pos in variableSites.keys():
+            alt[pos]=[]; altInds[pos]=[]
+        for pos in variableSitesPositionIndices:
+            alt[str(pos)]=list(set(variableSites[str(pos)])-set([referenceSeqFull[pos]]))
+        for index in range(0,nInds):
+            indexIND=str(index)
+            GTGeneral[indexIND]=[];GLGeneral[indexIND]=[];ADGeneral[indexIND]=[]
+            GTGeneralSampled[indexIND]=[];
+            GLGeneralSampled[indexIND]=[];ADGeneralSampled[indexIND]=[]
+            rcsTrue[indexIND]=[];rcsSampled[indexIND]=[]
+        ########################################################
+        # DIPLOID TRUE
+        ########################################################
+        # iterate over individuals
+        self.appLogger.debug("True")
+        altInd=copy.copy(alt)
+        for indIndex in range(0,nInds):
+            indexIND=str(indIndex)
+            self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
+            ind=individuals[indexIND]
+            individualSeq=self.getHaploidIndividualSequence(msa,ind)
+            # individualSeq[202]+="**"
+            # AD per individual different if true/sampledInd
+            ADTrue,ADSampled=self.getAllelicDepthPerDiploidIndividual(\
+                individualSeq,variableSitesPositionIndices,DP[indIndex])
+            rcTrue,rcSampled=self.getReadCountPerIndividual(\
+                ADTrue,ADSampled,variableSitesPositionIndices)
+            altInd=self.getAltUpdatedPerIndividual(\
+                referenceSeqFull,altInd,ADSampled)
+            GTTrue=self.gettingGenotype(\
+                referenceSeqFull,individualSeq,alt,variableSitesPositionIndices)
+            GLTrue=self.haplotypeLikehood(\
+                rcTrue,genotypetesPositionIndices,0)
+            rcsTrue[indexIND]=rcTrue
+            rcsSampled[indexIND]=rcSampled
+            ADGeneral[indexIND]=ADTrue
+            ADGeneralSampled[indexIND]=ADSampled
+            GTGeneral[indexIND]=GTTrue
+            GLGeneral[indexIND]=GLTrue
+
+        # here corresponds to the INDEXST that is going to be written
+        self.writeVCFFile(\
+            indexST,indexGT,\
+            referenceFilepath, referenceSeqFull,\
+            alt,variableSitesPositionIndices,\
+            GTGeneral,GLGeneral,\
+            ADGeneral,DP,True)
+
+        ########################################################
+        # DIPLOID SAMPLED
+        ########################################################
+        self.appLogger.debug("Sampled")
+        for indIndex in range(0,nInds):
+            indexIND=str(indIndex)
+            self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
+            ind=individuals[indexIND]
+            individualSeq=self.getAllelicDepthPerDiploidIndividual(msa,ind)
+            HTSampled=self.gettingGenotype(\
+                referenceSeqFull,individualSeq,\
+                altInd, variableSitesPositionIndices)
+            GLSampled=self.genotypeLikehood(\
+                rcsSampled[indexIND],\
+                variableSitesPositionIndices,\
+                self.seqerror)
+            HTGeneralSampled[indexIND]=HTSampled
+            GLGeneralSampled[indexIND]=GLSampled
+        self.writeVCFFile(
+            indexST,indexGT,\
+            referenceFilepath, referenceSeqFull,\
+            altInd,variableSitesPositionIndices,\
+            HTGeneralSampled,GLGeneralSampled,\
+            ADGeneralSampled,DP,False)
+
+    """
+    @function:
+        gettingGenotype(self,ref,seq,alt, variableSitesPositionIndices):
+    @description:
+        Generate genotype for the specific sequence instroduced
+    @intput:
+
+    @output:
+    """
+    def gettingGenotype(self,ref,seq,alt, variableSitesPositionIndices):
+        self.appLogger.debug("gettingGenotype(self,ref,seq,alt,variableSites)")
+        nVariants=len(variableSitesPositionIndices)
+        GT=dict()
+        print "Hey! (navi's talking): Compare genotype allele by allele!"
+        # init variantsRC
+        for pos in variableSitesPositionIndices:
+            GT[str(pos)]=[]
+        for indexVar in range(0,nVariants):
+            try:
+                var=variableSitesPositionIndices[indexVar]
+                refPos=ref[var]
+                A1=seq[0,var]
+                A2=seq[1,var]
+                altValues=alt[str(var)]
+                for index in range(0,len(altValues)):
+                    altToCompare=altValues[index]
+                    a1=0;a2=0
+                    if refPos==A1:
+                        a1=0
+                    else:
+                        if (index==0) and (altToCompare==A1): a1=1
+                        if (index==1) and (altToCompare==A1): a1=2
+                        if (index==2) and (altToCompare==A1): a1=3
+                    if refPos==A2:
+                        a2=0
+                    else:
+                        if (index==0) and (altToCompare==A2): a2=1
+                        if (index==1) and (altToCompare==A2): a2=2
+                        if (index==2) and (altToCompare==A2): a2=3
+
+                    print A1,A2, refPos, "|\t", a1,a2,"|\t", altToCompare
+                GT[str(indices[indexVar])]=[a1,a2]
+            except Exception as ex:
+                print "except: {}".format(ex)
+                pass
+        return GT
+
+
+    """
+    @function:
+        getAllelicDepthPerDiploidIndividual(self,fullInd,variableSites,DP)
+    @description:
+        Generate allelic depth per individual per site
+    @intput:
+        individualSequence: sequence of the individual
+        variableSitesPositionIndices: position of the variable sites
+        DP: coverage of the variable sites
+    @output:
+        ADTrue, ADSampled.
+    """
+    def getAllelicDepthPerDiploidIndividual(self,individualSeq,variableSitesPositionIndices,DP):
+        self.appLogger.debug("getAllelicDepthPerDiploidIndividual(self,fullInd,variableSitesPositionIndices,DP)")
+        nVariants=len(variableSitesPositionIndices)
+        ADTrue=np.zeros(shape=(4,nVariants), dtype=np.int)
+        ADSampled=np.zeros(shape=(4,nVariants), dtype=np.int)
+        self.appLogger.debug("Starting to iterate over the variants")
+        # There was a problem in this block related to low coverage, error
+        # and possible substitutions.
+        for indexVar in range(0,nVariants):
+            finalRC=[];indNucs=[]
+            # getting general coverage per position
+            posCoverage=DP[indexVar]
+            indexSeq=variableSitesPositionIndices[indexVar]
+            indNucStrand1=individualSeq[0,indexSeq]
+            indNucStrand2=individualSeq[1,indexSeq]
+            diploidDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,0.5))
+            diploidCoverage=diploidDistro.value()
+            finalRC=[indNucStrand1]*(diploidCoverage)
+            finalRC+=[indNucStrand2]*(posCoverage-diploidCoverage)
+            counter=Counter(finalRC)
+            # TRUE READ count
+            ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
+            ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
+            # SAMPLE READ COUNT - need to know error distribution
+            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror))
+            errorD=errorDistro.value()
+            errorPositions=[]
+            # need to know possible nucleotides to substitute my position with error
+            possibleNucs=list(set(self.__NUCLEOTIDES)-set([indNucs]))
+            # I have some positions (at least 1) that is an error
+            # errorD= array with coded error nucleotides that will be modified
+            if (errorD>0):
+                errorChoices=np.random.choice(possibleNucs, int(errorD), replace=True)
+                maxAvailablePositions=posCoverage
+                if not ((posCoverage % 2) == 0): maxAvailablePositions=posCoverage-1
+                if maxAvailablePositions == 0:  maxAvailablePositions=posCoverage
+
+                errorPositions=np.random.randint(maxAvailablePositions,size=int(errorD))
+                for item in range(0,len(errorPositions)):
+                    posToChange=errorPositions[item]
+                    finalRC[posToChange]=errorChoices[item]
+            counter=Counter(finalRC)
+            # if any of the nucleotides does not have a counter retrieving it will be 0
+            ADSampled[0,indexVar]=counter["A"];ADSampled[1,indexVar]=counter["C"]
+            ADSampled[2,indexVar]=counter["G"];ADSampled[3,indexVar]=counter["T"]
+        return ADTrue,ADSampled
 
 
     """
@@ -1046,14 +1230,14 @@ class ReadCount:
             indexST,\
             self.numSpeciesTreesDigits,\
             indexGT,\
-            len(str(self.numLociPerST[indexGT-1]))\
+            len(str(self.numLociPerST[(indexST-1)]))\
         )
         description=">REFERENCE:{0}:ST.{1:{2}}:GT.{3:{4}}:{5}_0_{6}".format(\
             self.dataprefix,\
             indexST,\
             self.numSpeciesTreesDigits,\
-            self.numLociPerST[indexGT-1],\
-            len(str(self.numLociPerST[indexGT-1])),\
+            self.numLociPerST[(indexST-1)],\
+            len(str(self.numLociPerST[(indexST-1)])),\
             referenceSpeciesID,\
             referenceTipID\
         )
@@ -1149,13 +1333,15 @@ class ReadCount:
                             msa,individuals,\
                             referenceFilepath,referenceSeqFull,\
                             variableSites,DP)
-                    if self.settings.ploidy==2:
-                        self.computeDiploid(\
-                            indexST,indexGT,\
-                            msa,individuals,\
-                            referenceFilepath,referenceSeqFull,\
-                            variableSites,DP)
-
+                    try:
+                        if self.settings.ploidy==2:
+                            self.computeDiploid(\
+                                indexST,indexGT,\
+                                msa,individuals,\
+                                referenceFilepath,referenceSeqFull,\
+                                variableSites,DP)
+                    except Exception as ex:
+                        print "OOOOPS!: ",ex
 
                     self.appLogger.debug("So far so good")
         except ValueError as ve:
