@@ -364,6 +364,7 @@ class ReadCount:
                     individuals[str(row["indID"])] = {\
                         "indexST":row["indexST"],\
                         "seqDescription":row["seqDescription"]}
+                    print " Hola!"
             if (self.settings.ploidy==2):
                 # indexST,indID,speciesID,mateID1,mateID2
                 for row in d:
@@ -626,16 +627,13 @@ class ReadCount:
             iv=str(indexVar)
             for index in range(0,len(altValues)):
                 altToCompare=altValues[index]
-                if refPos==seqPos:
-                    GT[iv]=0
-                else:
-                    if (index==0) and (altToCompare==seqPos):
-                        GT[iv]=1
-                    if (index==1) and (altToCompare==seqPos):
-                        GT[iv]=2
-                    if (index==2) and (altToCompare==seqPos):
-                        GT[iv]=3
-        return GT
+                if (index==0) and (altToCompare==seqPos):
+                    GT[iv]=1
+                if (index==1) and (altToCompare==seqPos):
+                    GT[iv]=2
+                if (index==2) and (altToCompare==seqPos):
+                    GT[iv]=3
+        return copy.copy(GT)
 
     """
     @function:
@@ -803,22 +801,29 @@ class ReadCount:
         self.appLogger.debug("True")
         altInd=copy.copy(alt)
         for indIndex in range(0,nInds):
+            GTTrue=dict()
             indexIND=str(indIndex)
             self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
-            individualSeq=self.getHaploidIndividualSequence(msa,ind)
-            # individualSeq[202]+="**"
-            # AD per individual different if true/sampledInd
+            individualSeq=self.getDiploidIndividualSequence(msa,ind)
             ADTrue,ADSampled=self.getAllelicDepthPerDiploidIndividual(\
                 individualSeq,variableSitesPositionIndices,DP[indIndex])
             rcTrue,rcSampled=self.getReadCountPerIndividual(\
                 ADTrue,ADSampled,variableSitesPositionIndices)
             altInd=self.getAltUpdatedPerIndividual(\
                 referenceSeqFull,altInd,ADSampled)
-            GTTrue=self.gettingGenotype(\
-                referenceSeqFull,individualSeq,alt,variableSitesPositionIndices)
-            GLTrue=self.haplotypeLikehood(\
-                rcTrue,genotypetesPositionIndices,0)
+            GTTrueS0=self.gettingHaplotype(
+                referenceSeqFull,individualSeq[0,:],\
+                alt, variableSitesPositionIndices
+            )
+            GTTrueS1=self.gettingHaplotype(
+                referenceSeqFull,individualSeq[1,:],\
+                alt, variableSitesPositionIndices
+            )
+            for item in variableSitesPositionIndices:
+                GTTrue[str(item)]=[GTTrueS0[str(item)],GTTrueS1[str(item)]]
+            GLTrue=self.genotypeLikehood(\
+                rcTrue,variableSitesPositionIndices,0)
             rcsTrue[indexIND]=rcTrue
             rcsSampled[indexIND]=rcSampled
             ADGeneral[indexIND]=ADTrue
@@ -839,72 +844,138 @@ class ReadCount:
         ########################################################
         self.appLogger.debug("Sampled")
         for indIndex in range(0,nInds):
+            GTSampled=dict()
             indexIND=str(indIndex)
             self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
-            individualSeq=self.getAllelicDepthPerDiploidIndividual(msa,ind)
-            HTSampled=self.gettingGenotype(\
-                referenceSeqFull,individualSeq,\
-                altInd, variableSitesPositionIndices)
+            individualSeq=self.getDiploidIndividualSequence(msa,ind)
+            GTSampledS0=self.gettingHaplotype(
+                referenceSeqFull,individualSeq[0,:],\
+                altInd, variableSitesPositionIndices
+            )
+            GTSampledS1=self.gettingHaplotype(
+                referenceSeqFull,individualSeq[1,:],\
+                altInd, variableSitesPositionIndices
+            )
+            for item in variableSitesPositionIndices:
+                GTSampled[str(item)]=[GTSampledS0[str(item)],GTSampledS1[str(item)]]
             GLSampled=self.genotypeLikehood(\
                 rcsSampled[indexIND],\
                 variableSitesPositionIndices,\
                 self.seqerror)
-            HTGeneralSampled[indexIND]=HTSampled
+            GTGeneralSampled[indexIND]=GTSampled
             GLGeneralSampled[indexIND]=GLSampled
         self.writeVCFFile(
             indexST,indexGT,\
             referenceFilepath, referenceSeqFull,\
             altInd,variableSitesPositionIndices,\
-            HTGeneralSampled,GLGeneralSampled,\
+            GTGeneralSampled,GLGeneralSampled,\
             ADGeneralSampled,DP,False)
 
     """
     @function:
-        gettingGenotype(self,ref,seq,alt, variableSitesPositionIndices):
+     genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error):
     @description:
-        Generate genotype for the specific sequence instroduced
+        compute the genotype likelihoods of a specific read-count set
+    @intput:
+        variantsRC:
+        variableSitesPositionIndices:
+        erro
+    @output:
+    """
+    def genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error):
+        self.appLogger.debug("genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error)")
+        nVariants=len(variableSitesPositionIndices)
+        GL=dict();GLout=dict() # Initialization of genotypeLikehood variable
+        possibleGenotypes=self.getAllPossibleGenotypes()
+        for indexVar in variableSitesPositionIndices:
+            GL[str(indexVar)]={}
+            GLout[str(indexVar)]={}
+            for pg in possibleGenotypes:
+                gen="".join(pg)
+                GL[str(indexVar)][gen]=1
+                GLout[str(indexVar)][gen]=1
+        # getting likelihoods
+
+        for indexVar in variableSitesPositionIndices:
+            for pg in possibleGenotypes:
+                gen="".join(pg)
+                reads=variantsRC[str(indexVar)]
+                for b in reads:
+                    A1=pg[0];A2=pg[1]
+                    valAl1=0; valA2=0
+                    if (b==A1):
+                        valA1=0.5*(1-error)
+                    else:
+                        valA1=0.5*(error/3)
+                    if (b==A2):
+                        valA2=0.5*(1-error)
+                    else:
+                        valA2=0.5*(error/3)
+                    GL[str(indexVar)][gen]=\
+                        GL[str(indexVar)][gen]*(valA1+valA2)
+        for indexVar in variableSitesPositionIndices:
+            for pg in possibleGenotypes:
+                gen="".join(pg)
+                value=GL[str(indexVar)][gen]
+                if value==0:
+                    GLout[str(indexVar)][gen]=0
+                else:
+                    GLout[str(indexVar)][gen]=np.log10(value)
+        return GL
+
+    """
+    @function:
+        def getAllPossibleGenotypes(self):
+    @description:
+        Generates all the possible genotypes
     @intput:
 
     @output:
+        returns a dictionary. key: positions. content [A1,A2]
     """
-    def gettingGenotype(self,ref,seq,alt, variableSitesPositionIndices):
-        self.appLogger.debug("gettingGenotype(self,ref,seq,alt,variableSites)")
-        nVariants=len(variableSitesPositionIndices)
-        GT=dict()
-        print "Hey! (navi's talking): Compare genotype allele by allele!"
-        # init variantsRC
-        for pos in variableSitesPositionIndices:
-            GT[str(pos)]=[]
-        for indexVar in range(0,nVariants):
-            try:
-                var=variableSitesPositionIndices[indexVar]
-                refPos=ref[var]
-                A1=seq[0,var]
-                A2=seq[1,var]
-                altValues=alt[str(var)]
-                for index in range(0,len(altValues)):
-                    altToCompare=altValues[index]
-                    a1=0;a2=0
-                    if refPos==A1:
-                        a1=0
-                    else:
-                        if (index==0) and (altToCompare==A1): a1=1
-                        if (index==1) and (altToCompare==A1): a1=2
-                        if (index==2) and (altToCompare==A1): a1=3
-                    if refPos==A2:
-                        a2=0
-                    else:
-                        if (index==0) and (altToCompare==A2): a2=1
-                        if (index==1) and (altToCompare==A2): a2=2
-                        if (index==2) and (altToCompare==A2): a2=3
+    def getAllPossibleGenotypes(self):
+        self.appLogger.debug("getAllPossibleGenotypes(self)")
+        possibleGenotypes=[]
+        for pos1 in self.__NUCLEOTIDES:
+            for pos2 in self.__NUCLEOTIDES:
+                possibleGenotypes+=[[pos1,pos2]]
+        return possibleGenotypes
 
-                    print A1,A2, refPos, "|\t", a1,a2,"|\t", altToCompare
-                GT[str(indices[indexVar])]=[a1,a2]
-            except Exception as ex:
-                print "except: {}".format(ex)
-                pass
-        return GT
+    """
+    @function:
+        getPossibleGenotypesPerVariableSite(self,ref,alt, variableSitesPositionIndices):
+    @description:
+        get the genotypes for a specfic position
+    @intput:
+        ref
+        alt
+        variableSitesPositionIndices
+    @output:
+        returns a dictionary. key: positions. content [A1,A2]
+    """
+    def getPossibleGenotypesPerVariableSite(self,ref,alt, variableSitesPositionIndices):
+        self.appLogger.debug("getPossibleGenotypesPerVariableSite(self,ref,alt, variableSites)")
+        self.appLogger.debug("Getting genotypes")
+        possibleGenotypes=dict();elems=dict()
+        # Initialization
+        for varSite in variableSitesPositionIndices:
+            possibleGenotypes[str(varSite)]=[]
+            elems[str(varSite)]=[]
+
+        for varSite in variableSitesPositionIndices:
+            elems[str(varSite)]=[ref[varSite]]+alt[str(varSite)]
+
+        for indexAlt in elems.keys():
+            altPos=elems[indexAlt]
+            d=[]
+            for pos1 in altPos:
+                for pos2 in altPos:
+                    if not (set([pos1,pos2]) in d):
+                        d+=[set([pos1,pos2])]
+                        possibleGenotypes[str(indexAlt)]+=["".join([pos1,pos2])]
+
+        return possibleGenotypes
 
 
     """
@@ -947,7 +1018,7 @@ class ReadCount:
             errorD=errorDistro.value()
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
-            possibleNucs=list(set(self.__NUCLEOTIDES)-set([indNucs]))
+            possibleNucs=list(set(self.__NUCLEOTIDES)-set([indNucStrand1]+[indNucStrand2]))
             # I have some positions (at least 1) that is an error
             # errorD= array with coded error nucleotides that will be modified
             if (errorD>0):
@@ -988,28 +1059,49 @@ class ReadCount:
         nVariants=len(variableSitesPositionIndices)
         nInds=len(HT.keys())
         allVariants=dict()
+        possibleGenotypes=None
+        if self.settings.ploidy==2:
+            possibleGenotypes=self.getPossibleGenotypesPerVariableSite(ref,alt,variableSitesPositionIndices)
+
         for indexVAR in variableSitesPositionIndices:
             allVariants[str(indexVAR)]=[]
         # print "Init allvariants dict"
         # print len(HT.keys()),len(indices)
         # Had an error here, because the alt variable was empty (passed wrong variable name to the function)
-        for indexVAR in range(0,nVariants):
-            tmpInd=variableSitesPositionIndices[indexVAR]
-            for indexIND in range(0,nInds):
-                # HT is a dict, HT[indexIND] -> is HT for individual indexIND
-                htPerInd=HT[str(indexIND)]
-                trueRows=None
-                # trueRows is the ref nucleotides
-                valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
-                trueRows=self.codifySequences(valuesToCodify)
-                # print "Before truerows ",DP[indexIND][indexVAR]
-                ind="{0}:{1}:{2}:{3}".format(\
-                    htPerInd[str(tmpInd)],\
-                    ",".join(HL[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str)),\
-                    ",".join(AD[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str)),\
-                    DP[indexIND][indexVAR])
-                allVariants[str(tmpInd)]+=[ind]
+        try:
+            for indexVAR in range(0,nVariants):
+                tmpInd=variableSitesPositionIndices[indexVAR]
+                for indexIND in range(0,nInds):
+                    trueRows=None; htPerInd=None; adPerInd=None;hlPerInd=None;
+                    if self.settings.ploidy==1:
+                        valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
+                        trueRows=self.codifySequences(valuesToCodify)
+                        htPerInd=",".join(HT[str(indexIND)][str(tmpInd)].astype(dtype=int).astype(dtype=np.str))
+                        hlPerInd=",".join(HL[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
+                        adPerInd=",".join(AD[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
+                    if self.settings.ploidy==2:
+                        trueRows=possibleGenotypes[str(tmpInd)]
+                        htVar=HT[str(indexIND)][str(tmpInd)]
+                        htPerInd="/".join([str(val) for val in htVar])
+                        hlPerInd=",".join(\
+                            [str(HL[str(indexIND)][str(tmpInd)][var]) for var in trueRows])
+                        valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
+                        alleles=self.codifySequences(valuesToCodify)
+                        adPerInd=",".join(AD[str(indexIND)][alleles,indexVAR].astype(dtype=int).astype(dtype=np.str))
 
+                    ind="{0}:{1}:{2}:{3}".format(\
+                        htPerInd,\
+                        hlPerInd,\
+                        adPerInd,\
+                        DP[indexIND][indexVAR])
+                    print "Done\t",ind
+                    allVariants[str(tmpInd)]+=[ind]
+        except Exception as ex:
+            print "INSIDE!: \t",ex
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            sys.exit()
         return allVariants
 
     """
@@ -1110,6 +1202,7 @@ class ReadCount:
         numGeneTreeDigits=len(str(nLoci))
         allVariants=self.formatIndividualDataForVCF(\
             REF,alt,variableSitesPositionIndices,HT,HL,AD,DP)
+        print "Done"
         outfile=""
         # flag true=true  - Flag false= sampled
         if flag:
@@ -1130,6 +1223,8 @@ class ReadCount:
                 indexGT,\
                 numGeneTreeDigits\
             )
+
+        print "Out"
 
         # before writing i'm getting max width of the lines written per column
         colWidths=self.getColWidhts(\
@@ -1333,17 +1428,14 @@ class ReadCount:
                             msa,individuals,\
                             referenceFilepath,referenceSeqFull,\
                             variableSites,DP)
-                    try:
-                        if self.settings.ploidy==2:
-                            self.computeDiploid(\
-                                indexST,indexGT,\
-                                msa,individuals,\
-                                referenceFilepath,referenceSeqFull,\
-                                variableSites,DP)
-                    except Exception as ex:
-                        print "OOOOPS!: ",ex
+                    if self.settings.ploidy==2:
+                        self.computeDiploid(\
+                            indexST,indexGT,\
+                            msa,individuals,\
+                            referenceFilepath,referenceSeqFull,\
+                            variableSites,DP)
 
-                    self.appLogger.debug("So far so good")
+
         except ValueError as ve:
             # If there's a wrong ploidy inserted.
             status=False
@@ -1353,3 +1445,10 @@ class ReadCount:
             status=False
             message=te
         return status,message
+# try:
+# except Exception as ex:
+#     print "OOOOPS!: \t",ex
+#     exc_type, exc_obj, exc_tb = sys.exc_info()
+#     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+#     print(exc_type, fname, exc_tb.tb_lineno)
+#     sys.exit()
