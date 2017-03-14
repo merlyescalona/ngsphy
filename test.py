@@ -89,3 +89,24 @@ if __name__ == '__main__':
     coverage=10
     d=NGSReadsReadCount(referenceSequence,error,coverage)
     d.computeCoveragePoisson()
+
+
+
+from scipy.stats import exponential
+mu = self.sequenceSize/2
+fig, ax = plt.subplots(1, 1)
+n, p = 200, 0.5
+x = map(np.arange(binom.ppf(0.001, n, p),binom.ppf(0.999, n, p)))
+print x
+covDistro=(binom.pmf(x, n, p)*self.expCoverage)/max(binom.pmf(x, n, p))
+for index in range(0,len(x)):
+    self.coverageTable[x[index]]=covDistro[index]
+for index in range(0,x[0]):
+    self.coverageTable[index]=covDistro[0]
+for index in range(x[len(x)-1],self.sequenceSize):
+    self.coverageTable[index]=covDistro[len(x)-1]
+fig, ax = plt.subplots(1, 1)
+print self.coverageTable
+print range(1,self.sequenceSize+1)
+ax.plot(range(1,self.sequenceSize+1),self.coverageTable, 'bo', ms=8, label='poisson pmf')
+plt.show()

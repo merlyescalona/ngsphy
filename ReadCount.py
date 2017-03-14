@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,copy,csv,datetime,logging,os,subprocess,sys,threading,time,warnings
+import argparse,copy,csv,datetime,psutil,logging,os,subprocess,sys,multiprocessing,threading,time,warnings
 import numpy as np
 import random as rnd
 import Settings as sp
@@ -32,6 +32,36 @@ def getScoreMatrix(data):
         value[infs]=0
     return value
 
+class RunningInfo:
+    def __init__(self, filename):
+        self.filename=filename
+        # self.appLogger=logging.getLogger('sngsw')
+        self.lock = threading.Lock()
+        self.lock.acquire()
+        f=open(self.filename,"w")
+        f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
+        f.close()
+        self.lock.release()
+    def addLine(self, line):
+        # self.appLogger.debug('Waiting for lock')
+        self.lock.acquire()
+        try:
+            # self.appLogger.debug('Acquired lock')
+            f=open(self.filename,"a")
+            f.write(
+                str(line[0])+","+\
+                str(line[1])+","+\
+                str(line[2])+","+\
+                str(line[3])+","+\
+                str(line[4])+","+\
+                str(line[5])+","+\
+                line[6]+"\n"
+            )
+            f.close()
+        finally:
+            # self.appLogger.debug('Released lock')
+            self.lock.release()
+
 class ReadCount:
     __NUCLEOTIDES=["A","C","G","T"]
     # path related variables
@@ -54,6 +84,8 @@ class ReadCount:
     numSpeciesTreesDigits=0
     filteredST=[]
     numSts=0
+
+    runningInfo=None
 
     def __init__(self,settings):
         self.appLogger=logging.getLogger('ngsphy')
@@ -96,7 +128,13 @@ class ReadCount:
             self.seqerror=float(self.settings.parser.get("read-count","error"))
         except:
             self.seqerror=0
-        # Generating folder structur - basic for
+        # Generating folder structure
+        infoFile="{0}/{1}.info".format(
+            self.output,\
+            self.projectName
+        )
+        self.runningInfo=RunningInfo(infoFile)
+        self.appLogger.info("File with timings of the [read-count] per loci can be find on:     {0}".format(infoFile))
         self.generateFolderStructureGeneral()
 
     """
@@ -207,22 +245,21 @@ class ReadCount:
     def computeCoverageMatrix(self, nInds, nLoci,expCov, indCov, locCov):
         self.appLogger.debug("computeCoverageMatrix(self, nInds, nLoci,expCov, indCov, locCov)")
         self.appLogger.debug("Computing coverage matrix")
-
         # coverage matrix per ST - row:indv - col:loci
         # each cov introduced as parameter is a NGSPhyDistribution
         covMatrix=np.zeros(shape=(nInds, nLoci))
         for loc in range(0,nLoci):
             for ind in range(0,nInds):
                 expc=0;indc=0;locc=0
-                expc=expCov.value()
+                expc=expCov.value(1)[0]
                 coverage=expc
                 if (indCov):
                     indCov.updateValue(expc)
-                    indc=indCov.value()
+                    indc=indCov.value(1)[0]
                     coverage=indc
                 if (locCov):
                     locCov.updateValue(indc)
-                    locc=locCov.value()
+                    locc=locCov.value(1)[0]
                     coverage=locc
                 covMatrix[ind][loc]=coverage
         return covMatrix
@@ -364,7 +401,6 @@ class ReadCount:
                     individuals[str(row["indID"])] = {\
                         "indexST":row["indexST"],\
                         "seqDescription":row["seqDescription"]}
-                    print " Hola!"
             if (self.settings.ploidy==2):
                 # indexST,indID,speciesID,mateID1,mateID2
                 for row in d:
@@ -402,7 +438,7 @@ class ReadCount:
                 startingCoverage
             ))
         distro=ngsphydistro(0,"nb:{0},{1}".format(startingCoverage,startingCoverage))
-        DP=[ distro.value()  for index in range(0,numVarSites) ]
+        DP=distro.value(numVarSites)
         return DP
 
 
@@ -597,7 +633,7 @@ class ReadCount:
             except:
                 pass
             infs=np.inf==value
-            value[infs]=0
+            value[infs]=-300
         return value
 
     """
@@ -736,7 +772,7 @@ class ReadCount:
             ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
             # SAMPLE READ COUNT - need to know error distribution
             errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror))
-            errorD=errorDistro.value()
+            errorD=errorDistro.value(1)[0]
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
             possibleNucs=list(set(self.__NUCLEOTIDES)-set([indNucs]))
@@ -919,7 +955,7 @@ class ReadCount:
                 gen="".join(pg)
                 value=GL[str(indexVar)][gen]
                 if value==0:
-                    GLout[str(indexVar)][gen]=0
+                    GLout[str(indexVar)][gen]=-300
                 else:
                     GLout[str(indexVar)][gen]=np.log10(value)
         return GL
@@ -977,6 +1013,13 @@ class ReadCount:
 
         return possibleGenotypes
 
+    def genotypeOrder(self,alleles):
+        ordered=[]
+        for a in range(0,len(alleles)):
+            for b in range(0,(a+1)):
+                ordered+=[[alleles[a],alleles[b]]]
+        return ordered
+
 
     """
     @function:
@@ -1006,7 +1049,7 @@ class ReadCount:
             indNucStrand1=individualSeq[0,indexSeq]
             indNucStrand2=individualSeq[1,indexSeq]
             diploidDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,0.5))
-            diploidCoverage=diploidDistro.value()
+            diploidCoverage=diploidDistro.value(1)[0]
             finalRC=[indNucStrand1]*(diploidCoverage)
             finalRC+=[indNucStrand2]*(posCoverage-diploidCoverage)
             counter=Counter(finalRC)
@@ -1015,7 +1058,7 @@ class ReadCount:
             ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
             # SAMPLE READ COUNT - need to know error distribution
             errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror))
-            errorD=errorDistro.value()
+            errorD=errorDistro.value(1)[0]
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
             possibleNucs=list(set(self.__NUCLEOTIDES)-set([indNucStrand1]+[indNucStrand2]))
@@ -1065,43 +1108,34 @@ class ReadCount:
 
         for indexVAR in variableSitesPositionIndices:
             allVariants[str(indexVAR)]=[]
-        # print "Init allvariants dict"
-        # print len(HT.keys()),len(indices)
         # Had an error here, because the alt variable was empty (passed wrong variable name to the function)
-        try:
-            for indexVAR in range(0,nVariants):
-                tmpInd=variableSitesPositionIndices[indexVAR]
-                for indexIND in range(0,nInds):
-                    trueRows=None; htPerInd=None; adPerInd=None;hlPerInd=None;
-                    if self.settings.ploidy==1:
-                        valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
-                        trueRows=self.codifySequences(valuesToCodify)
-                        htPerInd=",".join(HT[str(indexIND)][str(tmpInd)].astype(dtype=int).astype(dtype=np.str))
-                        hlPerInd=",".join(HL[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
-                        adPerInd=",".join(AD[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
-                    if self.settings.ploidy==2:
-                        trueRows=possibleGenotypes[str(tmpInd)]
-                        htVar=HT[str(indexIND)][str(tmpInd)]
-                        htPerInd="/".join([str(val) for val in htVar])
-                        hlPerInd=",".join(\
-                            [str(HL[str(indexIND)][str(tmpInd)][var]) for var in trueRows])
-                        valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
-                        alleles=self.codifySequences(valuesToCodify)
-                        adPerInd=",".join(AD[str(indexIND)][alleles,indexVAR].astype(dtype=int).astype(dtype=np.str))
+        for indexVAR in range(0,nVariants):
+            tmpInd=variableSitesPositionIndices[indexVAR]
+            for indexIND in range(0,nInds):
+                trueRows=None; htPerInd=None; adPerInd=None;hlPerInd=None;
+                if self.settings.ploidy==1:
+                    valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
+                    trueRows=self.codifySequences(valuesToCodify)
+                    htPerInd=",".join(HT[str(indexIND)][str(tmpInd)].astype(dtype=int).astype(dtype=np.str))
+                    hlPerInd=",".join(HL[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
+                    adPerInd=",".join(AD[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
+                if self.settings.ploidy==2:
+                    valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
+                    trueRows=["".join(pair) for pair in self.genotypeOrder(valuesToCodify)]
+                    htVar=HT[str(indexIND)][str(tmpInd)]
+                    htPerInd="/".join([str(val) for val in htVar])
+                    hlPerInd=",".join(\
+                        [str(HL[str(indexIND)][str(tmpInd)][var]) for var in trueRows])
+                    alleles=self.codifySequences(valuesToCodify)
+                    adPerInd=",".join(AD[str(indexIND)][alleles,indexVAR].astype(dtype=int).astype(dtype=np.str))
 
-                    ind="{0}:{1}:{2}:{3}".format(\
-                        htPerInd,\
-                        hlPerInd,\
-                        adPerInd,\
-                        DP[indexIND][indexVAR])
-                    print "Done\t",ind
-                    allVariants[str(tmpInd)]+=[ind]
-        except Exception as ex:
-            print "INSIDE!: \t",ex
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)
-            sys.exit()
+                ind="{0}:{1}:{2}:{3}".format(\
+                    htPerInd,\
+                    hlPerInd,\
+                    adPerInd,\
+                    DP[indexIND][indexVAR])
+                allVariants[str(tmpInd)]+=[ind]
+
         return allVariants
 
     """
@@ -1150,9 +1184,9 @@ class ReadCount:
         # flag is either true or sampled
         nInds=len(HT.keys())
         if flag:
-            self.appLogger.info("Writing VCF file (true)")
+            self.appLogger.debug("Writing VCF file (true)")
         else:
-            self.appLogger.info("Writing VCF file (sampled)")
+            self.appLogger.debug("Writing VCF file (sampled)")
         header="{0}\n{1}={2}\n{3}\n{4}={5}".format(\
             "##fileformat=VCFv4.0",\
             "##fileDate",\
@@ -1202,7 +1236,6 @@ class ReadCount:
         numGeneTreeDigits=len(str(nLoci))
         allVariants=self.formatIndividualDataForVCF(\
             REF,alt,variableSitesPositionIndices,HT,HL,AD,DP)
-        print "Done"
         outfile=""
         # flag true=true  - Flag false= sampled
         if flag:
@@ -1224,7 +1257,6 @@ class ReadCount:
                 numGeneTreeDigits\
             )
 
-        print "Out"
 
         # before writing i'm getting max width of the lines written per column
         colWidths=self.getColWidhts(\
@@ -1244,6 +1276,7 @@ class ReadCount:
             formatLines,\
             "\t".join(headerFields)\
             ))
+
         for index in range(0, nVariants):
             # extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
             line="{0:{1}s}\t{2:{3}s}\t{4:{5}s}\t{6:{7}s}\t{8:{9}s}\t{10:{11}s}\t{12:{13}s}\t{14:{15}s}\t{16:{17}s}\t{18}\n".format(\
@@ -1318,7 +1351,7 @@ class ReadCount:
     """
     def writeReference(self,indexST,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):
         self.appLogger.debug(" writeReference(self,indexST,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):")
-        referenceFilepath="{0}/{3:{4}}/{1}_{2}_REF_{3:{4}}_{5:{6}}.fasta".format(\
+        referenceFilepath="{0}/{3:{4}}/{1}_{2}_REF_{3:0{4}d}_{5:0{6}d}.fasta".format(\
             self.referencesFolder,\
             self.projectName,\
             self.dataprefix,\
@@ -1343,6 +1376,80 @@ class ReadCount:
         ))
         return referenceFilepath
 
+    def launchCommand(self, referenceForCurrST, indexST,indexGT, individuals,coverageMatrix):
+        try:
+            self.appLogger.debug("launchCommand(self, referenceList, indexST,indexGT, individuals,coverageMatrix")
+            tStartTime=datetime.datetime.now()
+            numIndividuals=len(individuals.keys())
+            nLoci=self.numLociPerST[indexST-1]
+            self.appLogger.debug("Iterating over nLoci: {0}/{1}".format(indexGT,nLoci))
+            numGeneTreeDigits=len(str(nLoci))
+            filepathLoc="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                self.path,\
+                indexST,\
+                self.numSpeciesTreesDigits,\
+                self.dataprefix,\
+                indexGT,\
+                numGeneTreeDigits\
+            )
+            # dictionary. indices=variable sites, content=variable nucleotide set
+            variableSites=self.extractTrueVariantsPositions(filepathLoc)
+            nVarSites=len(variableSites.keys())
+            self.appLogger.debug(\
+                "Species tree: {0}\t Locus: {1}\t - Found [{2}] variable sites.".format(\
+                    indexST,\
+                    indexGT,\
+                    nVarSites))
+            # Parse MSA files - dictionary[speciesID][tipID]
+            #                   content={description,sequence}
+            msa=parseMSAFile(filepathLoc)
+            # indices to get the sequence of the REFERENCE!
+            referenceSpeciesID=str(referenceForCurrST[1])
+            referenceTipID=str(referenceForCurrST[2])
+            referenceSeqFull=msa[referenceSpeciesID][referenceTipID]['sequence']
+            referenceFilepath=self.writeReference(\
+                indexST,indexGT,\
+                referenceSpeciesID,referenceTipID,\
+                referenceSeqFull)
+            # Coverage per SNP is the same for both true/sampled dataset
+            self.appLogger.debug("Species tree: {0}\t Locus: {1}\t - Getting coverage per individual per variant".format(\
+                indexST,\
+                indexGT
+            ))
+            DP=[self.getDepthCoveragePerIndividual(\
+                    nVarSites,\
+                    coverageMatrix[index][(indexGT-1)]) \
+                    for index in range(0,numIndividuals)\
+                    ]
+            if self.settings.ploidy==1:
+                self.computeHaploid(\
+                    indexST,indexGT,\
+                    msa,individuals,\
+                    referenceFilepath,referenceSeqFull,\
+                    variableSites,DP)
+            if self.settings.ploidy==2:
+                self.computeDiploid(\
+                    indexST,indexGT,\
+                    msa,individuals,\
+                    referenceFilepath,referenceSeqFull,\
+                    variableSites,DP)
+            tEndTime=datetime.datetime.now()
+            ETA=(tEndTime-tStartTime).total_seconds()
+            # row['indexST'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
+            outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}*".format(\
+                            self.readcountTrueFolder,\
+                            self.dataprefix,
+                            indexST,\
+                            self.numSpeciesTreesDigits,\
+                            indexGT,\
+                            numGeneTreeDigits\
+                        )
+            line=[indexST,indexGT,"-",filepathLoc,ETA,"-",outfile]
+            self.runningInfo.addLine(line)
+        except KeyboardInterrupt:
+            sys.stdout.write("{0}{1}Thread has been interrupted!{2}\n".format("\033[91m","\033[1m","\033[0m"))
+            sys.exit()
+
     def run(self):
         self.appLogger.debug("run(self)")
         status=True;    message="Read counts finished ok."
@@ -1352,89 +1459,82 @@ class ReadCount:
             self.generateFolderStructureDetail()
             # Get list of reference sequences
             referenceList=self.parseReferenceList(self.refereceFilepath)
+            nSTS=len(self.filteredST)
             # iterate over the "iterable" species trees / filtered STs
-            for indexFilterST in range(0,len(self.filteredST)):
-                indexST=self.filteredST[indexFilterST] # Get Proper ID for ST
-                referenceForCurrST=referenceList[(indexST-1)] # get proper index for current INDEXST
-                self.appLogger.debug(\
-                    "Iterating over filteredST: {0} ({1}/{2})".format(\
-                        indexST,\
-                        (indexFilterST+1),\
-                        len(self.filteredST)\
-                ))
-                # need the "Individual-description relation" file per species tree
-                # to generate individuals
-                filepathIndividualsRelation=\
-                    "{0}/tables/{1}.{2:0{3}d}.individuals.csv".format(\
-                        self.output,\
-                        self.projectName,\
-                        indexST,\
-                        self.numSpeciesTreesDigits
-                    )
-                # Parse the file to get individual relation
-                # is a dictionary
-                # if ploidy=1: key: indID, content (also a dict): indexST,seqDEscription
-                # if ploidy=2: key: indID, content (also a dict): indexST,speciesID, mateID1,mateID2
-                individuals=self.parseIndividualRelationFile(filepathIndividualsRelation)
-                # I need information for the generation of the coverage MATRIX
-                # for this ST
-                numIndividuals=len(individuals.keys())
-                self.appLogger.debug("Number of individuals: {0}".format(numIndividuals))
-                nLoci=self.numLociPerST[indexST-1]
-                self.appLogger.debug("Number of loci: {0}".format(nLoci))
-                coverageMatrix=self.computeCoverageMatrix(\
-                    numIndividuals,nLoci,\
-                    self.experimentCoverageDistro,\
-                    self.individualCoverageDistro,\
-                    self.locusCoverageDistro)
-                # Iterate over the LOCI of this ST
-                for indexGT in range(1,nLoci+1):
-                    self.appLogger.debug("Iterating over nLoci: {0}/{1}".format(indexGT,nLoci))
-                    numGeneTreeDigits=len(str(nLoci))
-                    filepathLoc="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
-                        self.path,\
-                        indexST,\
-                        self.numSpeciesTreesDigits,\
-                        self.dataprefix,\
-                        indexGT,\
-                        numGeneTreeDigits\
-                    )
-                    # dictionary. indices=variable sites, content=variable nucleotide set
-                    variableSites=self.extractTrueVariantsPositions(filepathLoc)
-                    nVarSites=len(variableSites.keys())
-                    self.appLogger.info(\
-                        "Found [{0}] variable sites.".format(\
-                            nVarSites))
-                    # Parse MSA files - dictionary[speciesID][tipID]
-                    #                   content={description,sequence}
-                    msa=parseMSAFile(filepathLoc)
-                    # indices to get the sequence of the REFERENCE!
-                    referenceSpeciesID=str(referenceForCurrST[1])
-                    referenceTipID=str(referenceForCurrST[2])
-                    referenceSeqFull=msa[referenceSpeciesID][referenceTipID]['sequence']
-                    referenceFilepath=self.writeReference(\
-                        indexST,indexGT,\
-                        referenceSpeciesID,referenceTipID,\
-                        referenceSeqFull)
-                    # Coverage per SNP is the same for both true/sampled dataset
-                    self.appLogger.info("Getting coverage per individual per variant")
-                    DP=[\
-                        self.getDepthCoveragePerIndividual(nVarSites,coverageMatrix[index][(indexGT-1)]) \
-                        for index in range(0,numIndividuals)]
+            self.appLogger.info("Running...")
+            nProcesses=sum(self.numLociPerST)
+            for indexFilterST in range(0,nSTS):
+                try:
+                    indexST=self.filteredST[indexFilterST] # Get Proper ID for ST
+                    nLoci=self.numLociPerST[indexST-1]
+                    currProcessesRunning=1
+                    self.appLogger.debug(\
+                        "Iterating over filteredST: {0} ({1}/{2})".format(\
+                            indexST,\
+                            (indexFilterST+1),\
+                            len(self.filteredST)\
+                    ))
+                    # need the "Individual-description relation" file per species tree
+                    # to generate individuals
+                    filepathIndividualsRelation=\
+                        "{0}/tables/{1}.{2:0{3}d}.individuals.csv".format(\
+                            self.output,\
+                            self.projectName,\
+                            indexST,\
+                            self.numSpeciesTreesDigits
+                        )
+                    # Parse the file to get individual relation
+                    # is a dictionary
+                    # if ploidy=1: key: indID, content (also a dict): indexST,seqDEscription
+                    # if ploidy=2: key: indID, content (also a dict): indexST,speciesID, mateID1,mateID2
+                    individuals=self.parseIndividualRelationFile(filepathIndividualsRelation)
+                    # I need information for the generation of the coverage MATRIX
+                    # for this ST
+                    numIndividuals=len(individuals.keys())
+                    self.appLogger.debug("Number of individuals: {0}".format(numIndividuals))
 
-                    if self.settings.ploidy==1:
-                        self.computeHaploid(\
-                            indexST,indexGT,\
-                            msa,individuals,\
-                            referenceFilepath,referenceSeqFull,\
-                            variableSites,DP)
-                    if self.settings.ploidy==2:
-                        self.computeDiploid(\
-                            indexST,indexGT,\
-                            msa,individuals,\
-                            referenceFilepath,referenceSeqFull,\
-                            variableSites,DP)
+                    self.appLogger.debug("Number of loci: {0}".format(nLoci))
+                    coverageMatrix=self.computeCoverageMatrix(\
+                        numIndividuals,nLoci,\
+                        self.experimentCoverageDistro,\
+                        self.individualCoverageDistro,\
+                        self.locusCoverageDistro)
+                    # Iterate over the LOCI of this ST
+                    referenceForCurrST=referenceList[(indexST-1)] # get proper index for current INDEXST
+                    barrier=threading.Semaphore(nLoci)
+                    indexGT=1
+                    while indexGT < (nLoci+1):
+                        # for indexGT in range(1,(nLoci+1)):
+                        while (threading.activeCount()-1)==self.settings.numThreads:
+                            threading.join()
+                        progress=((currProcessesRunning*100)*1.0)/(nProcesses+1)
+                        currProcessesRunning=(currProcessesRunning+1)
+                        sys.stdout.write("Progress {0:02.1f} %\r".format(progress))
+                        sys.stdout.flush()
+                        jobs=[]
+                        t = multiprocessing.Process(\
+                            target=self.launchCommand,\
+                            args=(\
+                                referenceForCurrST,\
+                                indexST,\
+                                indexGT,\
+                                individuals,\
+                                coverageMatrix)\
+                        )
+                        t.daemon=True
+                        jobs.append(t)
+                        t.start()
+                        indexGT+=1
+                        #t=threading.Thread(target=self.launchCommand(referenceForCurrST,indexST,indexGT,individuals,coverageMatrix))
 
+                    for j in jobs:
+                        j.join()
+                except Exception as ex:
+                    print "OOOOPS!: \t",ex
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    print(exc_type, fname, exc_tb.tb_lineno)
+                    sys.exit()
 
         except ValueError as ve:
             # If there's a wrong ploidy inserted.
@@ -1445,6 +1545,7 @@ class ReadCount:
             status=False
             message=te
         return status,message
+
 # try:
 # except Exception as ex:
 #     print "OOOOPS!: \t",ex

@@ -303,7 +303,7 @@ class Settings:
             # OPTION: threads
             if (self.parser.has_option("execution","threads")):
                 try:
-                    self.numThreads=self.parser.getboolean("execution","threads")
+                    self.numThreads=self.parser.getint("execution","threads")
                 except Exception as e:
                     self.appLogger.warning("Settings - Execution block: Threads automatically set up to 1.")
                     self.parser.set("execution","threads","1")

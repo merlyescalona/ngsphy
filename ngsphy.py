@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,datetime,logging,os,subprocess,sys
+import argparse,datetime,logging,os,threading,sys,psutil
 import numpy as np
 import random as rnd
 import IndividualGenerator as indgen
@@ -32,7 +32,7 @@ class NGSphy:
         logging.basicConfig(format="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s",\
             datefmt="%d/%m/%Y %I:%M:%S %p",\
             filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
-                self.path,self.startTime,PROGRAM_NAME[0:-3]),\
+                self.path,self.startTime,PROGRAM_NAME[0:-3].upper()),\
             filemode='a',\
             level=logging.DEBUG)
         ch = logging.StreamHandler()
@@ -59,7 +59,6 @@ class NGSphy:
             settingsOk,settingsMessage=self.settings.checkArgs()
             # Generate BASIC folder structure
             self.generateFolderStructure()
-
             if (settingsOk):
                 # Settings exist and are ok.
                 # Generate Individuals (plody independency)
@@ -122,7 +121,7 @@ class NGSphy:
         if not good:    self.appLogger.error(message)
         else:   self.appLogger.info(message)
         self.endTime=datetime.datetime.now()
-        self.appLogger.info("Elapsed time:\t{0}".format(self.endTime-self.startTime))
+        self.appLogger.info("Elapsed time (ETA):\t{0}".format(self.endTime-self.startTime))
         self.appLogger.info("Ending at:\t{0}".format(self.endTime.strftime("%a, %b %d %Y. %I:%M:%S %p")))
         sys.exit()
 
@@ -181,5 +180,5 @@ if __name__=="__main__":
         prog.run()
         prog.ending(True,"Run has finished correctly.")
     except KeyboardInterrupt:
-        sys.stdout.write("{0}{1}\nInterrupted!{2}\nPlease run again for the expected outcome.\n".format("\033[91m","\033[1m","\033[0m"))
+        sys.stdout.write("{0}{1}\nProgram has been interrupted!{2}\nPlease run again for the expected outcome.\n".format("\033[91m","\033[1m","\033[0m"))
         sys.exit()

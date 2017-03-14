@@ -8,8 +8,8 @@ from scipy.stats import  binom,expon,gamma,lognorm,norm,nbinom,poisson,uniform
 class NGSPhyDistribution:
 
     __relationNumParams=dict({\
-        "b":2,\
-        "e":1,\
+        "b":2,#mean,percentages\
+        "e":1,#mean\
         "f":1,\
         "g":2,\
         "ln":2,\
@@ -39,25 +39,26 @@ class NGSPhyDistribution:
     def params(self):
         print(self.__params)
 
-    def binom(self):
+    def binom(self,samples):
         #n=number of times tested
         #p=probability
         n=float(self.__params[0])
         p=float(self.__params[1])
         distro=binom(n,p)
-        f=distro.rvs(size=1)
-        self.__value=int(f)
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def exponential(self):
-        self.__value=int(np.random.exponential(float(self.__params[0]),1)[0])
+    def exponential(self,samples):
+        f=np.random.exponential(float(self.__params[0]),size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def fixed(self):
-        self.__value=int(self.__params[0])
+    def fixed(self,samples):
+        self.__value=[int(self.__params[0])]*samples
         return self.__value
 
-    def gamma(self):
+    def gamma(self,samples):
         # The parameterization with alpha and beta is more common in Bayesian statistics,
         # where the gamma distribution is used as a conjugate prior distribution
         # for various types of inverse scale (aka rate) parameters, such as the
@@ -70,18 +71,20 @@ class NGSPhyDistribution:
         shape=float(self.__params[0]*1.0)
         beta=float(1/self.__params[1]*1.0)
         distro=gamma(shape,beta)
-        self.__value=int(distro.rvs(size=1))
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def lognorm(self):
+    def lognorm(self,samples):
         # m=mean, s=sigma - standard deviation
         mean=float(self.__params[0]*1.0)
         sigma=float(self.__params[1]*1.0)
         distro=lognorm(mean,sigma)
-        self.__value=int(distro.rvs(size=1))
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def nbinom(self):
+    def nbinom(self,samples):
         # mu= possion mean
         # r controls the deviation from the poisson
         # This makes the negative binomial distribution suitable as a robust alternative to the Poisson,
@@ -90,32 +93,37 @@ class NGSPhyDistribution:
         mu=float(self.__params[1])
         p=(mu*1.0)/(mu+r)
         distro=nbinom(r,p)
-        self.__value=int(distro.rvs(size=1))
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def normal(self):
+    def normal(self,samples):
         # mean (location) - variance (squared scale)
         locMean=float(self.__params[0]*1.0)
         scaleVariance=float(self.__params[1]*1.0)
         distro=norm(loc=locMean,scale=scaleVariance)
-        self.__value=int(distro.rvs(size=1))
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def poisson(self):
+    def poisson(self,samples):
         l=float(self.__params[0]*1.0)
         distro=poisson(l)
-        self.__value=int(distro.rvs(size=1))
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def random(self):
-        self.__value=int(np.random.sample(1)*float(self.__params[0]))
+    def random(self,samples):
+        f=np.random.sample(samples)*float(self.__params[0])
+        self.__value=[int(item) for item in f]
         return self.__value
 
-    def uniform(self):
+    def uniform(self,samples):
         # mean
         mean=float(self.params[0]*1.0)
-        u=uniform(mean)
-        self.__value=int(u.rvs(size=1))
+        distrou=uniform(mean)
+        f=distro.rvs(size=samples)
+        self.__value=[int(item) for item in f]
         return self.__value
 
     def checkDistribution(self):
@@ -231,32 +239,39 @@ class NGSPhyDistribution:
                 self.__params[self.__dependsOnIndividualDistro]=value
         # print(self.__params)
 
-    def value(self):
-        if self.__distro=="b":
-            self.binom()
-        elif self.__distro=="e":
-            self.exponential()
-        elif self.__distro=="f":
-            self.fixed()
-        elif self.__distro=="g":
-            self.gamma()
-        elif self.__distro=="ln":
-            self.lognormal()
-        elif self.__distro=="n":
-            self.normal()
-        elif self.__distro=="nb":
-            self.nbinom()
-        elif self.__distro=="p":
-            self.poisson()
-        elif self.__distro=="u":
-            self.uniform()
-        else:
-            # if i got to this point I have:
-            # 1) checked that the distribution is correct
-            # 2) that params belong to the distribution
-            # 3) that params are numbers
-            # Also the only distro missing is F (Fixed value)
-            self.__value=0
+    def value(self,samples=1):
+        try:
+            if self.__distro=="b":
+                self.binom(samples)
+            elif self.__distro=="e":
+                self.exponential(samples)
+            elif self.__distro=="f":
+                self.fixed(samples)
+            elif self.__distro=="g":
+                self.gamma(samples)
+            elif self.__distro=="ln":
+                self.lognormal(samples)
+            elif self.__distro=="n":
+                self.normal(samples)
+            elif self.__distro=="nb":
+                self.nbinom(samples)
+            elif self.__distro=="p":
+                self.poisson(samples)
+            elif self.__distro=="u":
+                self.uniform(samples)
+            else:
+                # if i got to this point I have:
+                # 1) checked that the distribution is correct
+                # 2) that params belong to the distribution
+                # 3) that params are numbers
+                # Also the only distro missing is F (Fixed value)
+                self.__value=0
+        except Exception as ex:
+            print "OOOOPS!: \t",ex
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            sys.exit()
         return self.__value
 
     def distroDescription(self):

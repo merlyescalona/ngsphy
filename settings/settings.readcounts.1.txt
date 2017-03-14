@@ -9,4 +9,4 @@ error=0.1
 [execution]
 environment = bash
 run = on
-threads=2
+threads=4
