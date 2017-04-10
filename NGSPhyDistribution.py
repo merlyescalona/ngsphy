@@ -21,22 +21,47 @@ class NGSPhyDistribution:
     })
     __DISTRIBUTIONS=__relationNumParams.keys()
     __value=0
-    __params=None
-    __distro=None
+    __flag=False
+    __params=[]
+    __distro=""
     __type=None
-    __dependsOnExperimentDistro=-1
-    __dependsOnIndividualDistro=-1
+    __upperLevelDistribution=None
 
-    def __init__(self,type,distroline, flag=False):
+    def __init__(self,type,distroline,upperLevelDistribution,flag):
         self.__type=type
+        self.__flag=False
         distroline=distroline.split(":")
-        if not (len(distroline)==1):
+        self.__upperLevelDistribution=upperLevelDistribution
+        # i depend on another level value
+        if (self.__upperLevelDistribution!=None):
+            # Value is empty
+            if (len(distroline)==1):
+                # only have distribution name, meaning
+                # distribution has only 1 param and it comes
+                # from the upperLevelDistribution
+                self.__distro=distroline[0].lower()
+                self.__params=self.__upperLevelDistribution.value(1)
+            if (len(distroline)==2):
+                # i have name and a parameter,
+                # meaning, first para comes from above
+                # second is the second parameter of my distro
+                self.__distro=distroline[0].lower()
+                value=self.__upperLevelDistribution.value(1)[0]
+                if (self.__distro=="nb" and self.__upperLevelDistribution!=None):
+                    self.__params=[value,value]
+                else:
+                    self.__params=[value,\
+                        distroline[1].split(",")[0]]
+        else:
             self.__distro=distroline[0].lower()
-            self.__params=distroline[1].split(",")
+            self.__params=distroline[1].split(",") or []
         if flag:
-            self.checkDistribution()
+            self.coverageDistroCheck()
 
     def params(self):
+        return self.__params
+
+    def printParams(self):
         print(self.__params)
 
     def binom(self,samples):
@@ -46,16 +71,16 @@ class NGSPhyDistribution:
         p=float(self.__params[1])
         distro=binom(n,p)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def exponential(self,samples):
         f=np.random.exponential(float(self.__params[0]),size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def fixed(self,samples):
-        self.__value=[int(self.__params[0])]*samples
+        self.__value=[self.__params[0]]*samples
         return self.__value
 
     def gamma(self,samples):
@@ -72,7 +97,7 @@ class NGSPhyDistribution:
         beta=float(1/self.__params[1]*1.0)
         distro=gamma(shape,beta)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def lognorm(self,samples):
@@ -81,20 +106,20 @@ class NGSPhyDistribution:
         sigma=float(self.__params[1]*1.0)
         distro=lognorm(mean,sigma)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def nbinom(self,samples):
-        # mu= possion mean
+        # mu= poissonon mean
         # r controls the deviation from the poisson
         # This makes the negative binomial distribution suitable as a robust alternative to the Poisson,
         # which approaches the Poisson for large r, but which has larger variance than the Poisson for small r.
-        r=float(self.__params[0])
-        mu=float(self.__params[1])
+        mu=float(self.__params[0])
+        r=float(self.__params[1])
         p=(mu*1.0)/(mu+r)
         distro=nbinom(r,p)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def normal(self,samples):
@@ -103,45 +128,32 @@ class NGSPhyDistribution:
         scaleVariance=float(self.__params[1]*1.0)
         distro=norm(loc=locMean,scale=scaleVariance)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def poisson(self,samples):
         l=float(self.__params[0]*1.0)
         distro=poisson(l)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def random(self,samples):
         f=np.random.sample(samples)*float(self.__params[0])
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
     def uniform(self,samples):
         # mean
         mean=float(self.params[0]*1.0)
-        distrou=uniform(mean)
+        distro=uniform(mean)
         f=distro.rvs(size=samples)
-        self.__value=[int(item) for item in f]
+        self.__value=f
         return self.__value
 
-    def checkDistribution(self):
-        if self.__type==0:
-            #TYPE 0 - EXPERIMENT WISE Coverage
-            return self.experimentCoverageDistroCheck()
-        elif self.__type==1:
-            #TYPE 1 - Individual WISE Coverage
-            return self.individualCoverageDistroCheck()
-        elif self.__type==2:
-            #TYPE 1 - Individual WISE Coverage
-            return self.lociCoverageDistroCheck()
-        else:
-            return False, "Error with the coverage type. Please verify. Exiting."
 
-
-    def experimentCoverageDistroCheck(self):
-        messageOk="Experiment Coverage distribution parsing OK. "
+    def coverageDistroCheck(self):
+        messageOk="{0} Coverage distribution parsing OK. ".format(self.ditroType())
         distroOk=False
         if self.__distro in self.__DISTRIBUTIONS:
             distroOk=True
@@ -152,7 +164,7 @@ class NGSPhyDistribution:
                     try:
                         self.__params[index]=float(self.__params[index])
                     except ValueError:
-                        messageOk="Experiment coverage distribution: Not a correct parameter value. Please verify. Exiting"
+                        messageOk="Not a correct parameter value. Please verify. Exiting"
                         distroOk=False
                         break
             else:
@@ -162,110 +174,51 @@ class NGSPhyDistribution:
             messageOk="Distribution selected is not correct or unavailable. Please verify. Exiting"
         return distroOk, messageOk
 
-    def individualCoverageDistroCheck(self):
-        distroOk=False
-        messageOk="Individual Coverage distribution parsing OK. "
-        if self.__distro in self.__DISTRIBUTIONS:
-            distroOk=True
-            # check cas distro - numparameters
-            if (self.__relationNumParams[self.__distro]==len(self.__params)):
-                # print("got the number of parameter")
-                # check parameters are numbers
-                for index in range(0,len(self.__params)):
-                    if (self.__params[index] in ["ec","experimentcoverage","expcov"]):
-                        self.__dependsOnExperimentDistro=index
-                        # print("Distro based")
-                    else:
-                        try:
-                            self.__params[index]=float(self.__params[index])
-                        except ValueError:
-                            messageOk="Individual coverage distribution: Not a correct parameter value. Please verify. Exiting"
-                            distroOk=False
-                            break
-                # print(self.__distro,self.__params)
-                # Finished checking all the parameters, but there's no depdency - makes no sense - quit.
-                if self.__dependsOnExperimentDistro <0:
-                    messageOk="Individual coverage distribution: Not a correct parameter value. Must be depdendent of *experimentCoverage*. Please verify. Exiting"
-                    distroOk=False
-            else:
-                messageOk="Not the correct number of parameters for the selected distribution. Please verify. Exiting"
-                distroOk=False
+    def ditroType(self):
+        d=""
+        if self.__type==0:
+            d="Experiment-level"
+        elif self.__type==1:
+            d="Individual-level"
         else:
-            messageOk="Distribution selected is not correct or unavailable. Please verify. Exiting"
-        return distroOk, messageOk
+            d="Locus-level"
+        return d
 
-    def lociCoverageDistroCheck(self):
-        distroOk=False
-        messageOk="Individual Coverage distribution parsing OK. "
-        if self.__distro in self.__DISTRIBUTIONS:
-            distroOk=True
-            # check cas distro - numparameters
-            if (self.__relationNumParams[self.__distro]==len(self.__params)):
-                # print("got the number of parameter")
-                # check parameters are numbers
-                for index in range(0,len(self.__params)):
-                    if (self.__params[index] in ["ic","individualcoverage","indcov"]):
-                        self.__dependsOnIndividualDistro=index
-                        # print("Distro based")
-                    else:
-                        try:
-                            self.__params[index]=float(self.__params[index])
-                        except ValueError:
-                            messageOk="Loci coverage distribution: Not a correct parameter value. Please verify. Exiting"
-                            distroOk=False
-                            break
-                # print(self.__distro,self.__params)
-                # Finished checking all the parameters, but there's no depdency - makes no sense - quit.
-                if self.__dependsOnExperimentDistro <0:
-                    messageOk="Loci coverage distribution: Not a correct parameter value. Must be depdendent of *individualCoverage*. Please verify. Exiting"
-                    distroOk=False
-            else:
-                messageOk="Not the correct number of parameters for the selected distribution. Please verify. Exiting"
-                distroOk=False
-        else:
-            messageOk="Distribution selected is not correct or unavailable. Please verify. Exiting"
-        return distroOk, messageOk
-
-
-    def dependsOnExperimentDistro(self):
-        return self.__dependsOnExperimentDistro
-
-    def updateDependingParamValue(self,value):
-        if self.__type==1:
-            if self.__dependsOnExperimentDistro >= 0:
-                self.__params[self.__dependsOnExperimentDistro]=value
-        if self.__type==2:
-            if self.__dependsOnIndividualDistro >= 0:
-                self.__params[self.__dependsOnIndividualDistro]=value
-        # print(self.__params)
+    def updateValue(self,value):
+        self.__params[0]=value
 
     def value(self,samples=1):
         try:
-            if self.__distro=="b":
-                self.binom(samples)
-            elif self.__distro=="e":
-                self.exponential(samples)
-            elif self.__distro=="f":
+            index=0; item=self.__params[0]
+            while (item !=0) and (index < len (self.__params)):
+                index+=1
+                item=self.__params[index]
+            # if there is any parameter that's a 0, i cannot sample from that
+            # i forced then all parameters to be 0, then return a list of fixed values
+            if item==0:
+                for index in range(0,len(self.__params)):
+                    self.__params[index]=0
                 self.fixed(samples)
-            elif self.__distro=="g":
-                self.gamma(samples)
-            elif self.__distro=="ln":
-                self.lognormal(samples)
-            elif self.__distro=="n":
-                self.normal(samples)
-            elif self.__distro=="nb":
-                self.nbinom(samples)
-            elif self.__distro=="p":
-                self.poisson(samples)
-            elif self.__distro=="u":
-                self.uniform(samples)
             else:
-                # if i got to this point I have:
-                # 1) checked that the distribution is correct
-                # 2) that params belong to the distribution
-                # 3) that params are numbers
-                # Also the only distro missing is F (Fixed value)
-                self.__value=0
+                if self.__distro=="b":
+                    self.binom(samples)
+                if self.__distro=="e":
+                    self.exponential(samples)
+                if self.__distro=="f":
+                    self.fixed(samples)
+                if self.__distro=="g":
+                    self.gamma(samples)
+                if self.__distro=="ln":
+                    self.lognormal(samples)
+                if self.__distro=="n":
+                    self.normal(samples)
+                if self.__distro=="nb":
+                    self.nbinom(samples)
+                if self.__distro=="p":
+                    self.poisson(samples)
+                if self.__distro=="u":
+                    self.uniform(samples)
+
         except Exception as ex:
             print "OOOOPS!: \t",ex
             exc_type, exc_obj, exc_tb = sys.exc_info()

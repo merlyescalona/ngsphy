@@ -8,110 +8,111 @@ from select import select
 
 ################################################################################
 class IndividualGenerator:
+    filteredSts=None
+    settings=None
+    # General path
+    path=""
+    # Project name
+    projectName=""
+    # Output path
+    output=""
+    outputinds=""
+    outputtables=""
+    # Number of species trees replicates/folder to work with
+    numSpeciesTrees=0
+    numSpeciesTreesDigits=0
+    # Number of fasta per replicate
+    numFastaFiles=0
+    numFastaFilesDigits=0
+    # Prefix of the datafiles that contain the FASTA sequences for
+    # its corresponding gene tree.
+    dataprefix=""
+    ploidy=1
+    filteredSts=[]
+    # specific form simphy
+    filterSimphy=False
+
     def __init__(self, settings):
         self.appLogger=logging.getLogger('sngsw')
-        self.appLogger.info("Mating: Run started")
+        self.appLogger.info("IndividualGenerator: Run started")
         self.settings=settings
-        # Number of species trees replicates/folder to work with
-        self.numSpeciesTrees=0
-        self.numSpeciesTreesDigits=0
-        # Number of fasta per replicate
-        self.numFastaFiles=0
-        self.numFastaFilesDigits=0
-        # Checking the format of the inputted simphy directory
-        self.path=os.path.abspath(self.settings.parser.get("general", "simphy_folder"))
-        if (self.settings.parser.get("general", "simphy_folder")[-1]=="/"):
-            self.projectName=os.path.basename(self.settings.parser.get("general", "simphy_folder")[0:-1])
-        else:
-            self.projectName=os.path.basename(self.settings.parser.get("general", "simphy_folder"))
-
-        # Prefix of the datafiles that contain the FASTA sequences for
-        # its corresponding gene tree.
-        self.dataprefix=self.settings.parser.get("general","data_prefix")
-        self.output=""
-
-        self.output=os.path.abspath(self.settings.parser.get("general","output_folder_name"))
-        self.appLogger.info("Generating output folder ({0}) and subfolders (individuals,tables,reads)".format(self.output))
-        self.outputtables=os.path.abspath("{0}/tables".format(self.settings.parser.get("general","output_folder_name")))
-
+        self.dataprefix=self.settings.dataprefix
+        self.output=self.settings.outputFolderName
+        self.path=self.settings.path
+        self.ploidy=self.settings.ploidy
+        self.projectName=self.settings.projectName
 
     def checkArgs(self):
-        self.appLogger.info("Checking SimPhy folder...")
+        self.appLogger.info("Checking arguments folder...")
         matingArgsMessageCorrect="Settings are correct, Mating process can be run."
         matingArgsMessageWrong="Something went wrong.\n"
-        # Dir exists
-        simphydir=os.path.exists(self.path)
-        if simphydir:
-            self.appLogger.debug("SimPhy folder exists:\t{0}".format(simphydir))
-        else:
-            matingArgsMessageWrong+="\n\tSimPhy folder does not exist."
-            return False, matingArgsMessageWrong
-
-        # List all the things in the project directory
-        fileList=os.listdir(os.path.abspath(self.path))
-        for index in range(0,len(fileList)):
-            fileList[index]=os.path.abspath(os.path.join(self.path,fileList[index]))
-
-        self.command = os.path.join(self.path,"{0}.command".format(self.projectName))
-        self.params = os.path.join(self.path,"{0}.params".format(self.projectName))
-        self.db = os.path.join(self.path,"{0}.db".format(self.projectName))
-
-        self.appLogger.debug("SimPhy files (command, params, db)")
-        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.db),self.db in fileList))
-        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.command),self.command in fileList))
-        self.appLogger.debug("{0}:\t{1}".format(os.path.basename(self.params),self.params in fileList))
-
-        simphyfiles=((self.command in fileList) and (self.params in fileList) and(self.db in fileList))
-
-        # check if  command, db, params files
-        if not simphyfiles:
-            matingArgsMessageWrong+="\n\tSimPhy files do not exist."
-            return False, matingArgsMessageWrong
-
-        # check how many of them are dirs
-        for item in fileList:
-            baseitem=os.path.basename(item)
-            if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):
-                self.numSpeciesTrees=self.numSpeciesTrees+1
-        self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
-        self.settings.parser.set("general","numSpeciesTrees",str(self.numSpeciesTrees))
-        # check if at least one
-
-        self.appLogger.debug("Num species trees:\t{0}".format(self.numSpeciesTrees))
-        if not (self.numSpeciesTrees>0):
-            matingArgsMessageWrong+="\n\tNot enough number of species tree replicates (at least 1):\t{0}".format(self.numSpeciesTrees>0)
-            return False, matingArgsMessageWrong
-
         self.generateFolderStructure()
+        # need to know whether i'm working with simphy or indelible
+        if (self.settings.parser.has_option("general","numSpeciesTrees")):
+            self.numSpeciesTrees=self.settings.parser.get("general","numSpeciesTrees")
+        else:
+            self.numSpeciesTrees=1
+        self.filteredSts=range(1,self.numSpeciesTrees+1)
+        self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
+        if self.settings.simphy:
+            # checking the replicate that are going to be used
+            # checking if I'll used the filtered in case there's a possibility
+            # that one or many sts do not match the ploidy and number of gene copies
+            if self.settings.filter_simphy:
+                self.filteredSts=self.filterSTMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
+            self.command = os.path.join(\
+                self.path,\
+                self.projectName,\
+                "{0}.command".format(self.projectName))
+            self.params = os.path.join(\
+                self.path,\
+                self.projectName,\
+                "{0}.params".format(self.projectName))
+            self.db = os.path.join(\
+                self.path,\
+                self.projectName,\
+                "{0}.db".format(self.projectName))
+            # check that the species tree replicate folder have the correct data
+            gtperstOK,message=self.checkDataWithinReplicates()
+            if (not gtperstOK):
+                return gtperstOK,message
+            self.settings.parser.set(\
+                "general",\
+                "numLociPerST",\
+                ",".join([str(a) for a in self.getNumLociPerST()]))
+        elif self.settings.indelible:
+            print "HEY!"
+            hasNumLociPerSt=self.settings.parser.has_option(\
+                "general",\
+                "numLociPerST")
+            numFastaFiles=self.settings.parser.getint("general","numLociPerST")
+            self.numFastaFilesDigits=len(str(numFastaFiles))
+            self.numFASTAperST=[numFastaFiles]
+            if not hasNumLociPerSt:
+                return False,"Information about number of loci per folder is missing. Please verify. Exiting"
+        else:
+            return False, "Something is wrong. Please verify. Exiting."
 
-        self.filteredSts=self.filterSTMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
-        gtperstOK,message=self.getNumGTST()
-        if (not gtperstOK):
-            return gtperstOK,message
         self.settings.parser.set("general","filtered_ST",",".join([str(a) for a in self.filteredSts]))
         self.settings.parser.set("general","number_ST",str(self.numSpeciesTrees))
-        self.settings.parser.set("general","numLociPerST",",".join([str(a) for a in self.getNumLociPerST()]))
-
-        matingArgsMessageCorrect+="\n{0}".format(message)
-        # outgroup
         self.outgroup=self.outgroupExists()
         return True, matingArgsMessageCorrect
 
-
     def generateFolderStructure(self):
-        # Checking output path
+            # Checking output path
         self.appLogger.info("Creating folder structure for individual generation...")
         self.outputinds="{0}/individuals".format(self.output)
+        self.outputtables="{0}/tables".format(self.output)
         try:
             self.appLogger.info("Generated individuals/")
-            os.makedirs("{0}".format(self.outputinds))
+            os.makedirs(self.outputinds)
         except:
             self.appLogger.debug("Output folder exists ({0})".format(self.output))
         try:
             self.appLogger.info("Generated tables/")
-            os.makedirs("{0}/tables".format(self.output))
+            os.makedirs(self.outputtables)
         except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.output))
+            self.appLogger.debug("Output folder exists ({0})".format(self.outputtables))
 
 
     def printConfiguration(self):
@@ -126,7 +127,7 @@ class IndividualGenerator:
             )
         )
 
-    def getNumLociPerST(self):
+    def getSimPhyNumLociPerST(self):
         query="select N_Loci from Species_Trees"
         con = sqlite3.connect(self.db)
         res=con.execute(query).fetchall()
@@ -145,15 +146,26 @@ class IndividualGenerator:
         return res
 
     def outgroupExists(self):
-        self.outgroup=False
-        for line in open(self.command,"r"):
-            if "-so" in line or "-SO" in line:
-                self.outgroup=True
+        if self.settings.simphy:
+            for line in open(self.command,"r"):
+                if "-so" in line or "-SO" in line:
+                    self.settings.parser.set("general","outgroup","on")
+                    return True
+        if self.settings.indelible:
+            value=self.settings.parser.getboolean("general","outgroup")
+            return value
+        self.settings.parser.set("general","outgroup","off")
+        return False
 
-    def getNumGTST(self):
+
+    def checkDataWithinReplicates(self):
         self.numFASTAperST=np.repeat(0,self.numSpeciesTrees)
         for indexST in self.filteredSts:
-            curReplicatePath="{0}/{1:0{2}d}/".format(self.path,indexST, self.numSpeciesTreesDigits)
+            curReplicatePath="{0}/{1}/{2:0{3}d}/".format(\
+                self.path,\
+                self.projectName,\
+                indexST,\
+                self.numSpeciesTreesDigits)
             self.numFastaFiles=0;numGeneTrees=0
             fileList=os.listdir(curReplicatePath)
             # check composition of the current indexST folder
@@ -162,12 +174,16 @@ class IndividualGenerator:
                     self.numFastaFiles+=1
                 if  ("g_trees" in item) and (".trees" in item):
                     numGeneTrees+=1
+
             self.numFASTAperST[indexST-1]=self.numFastaFiles
-            self.appLogger.warning("Number of fasta files:\t{0}".format(self.numFastaFiles))
+            self.appLogger.warning(\
+                "Number of fasta files:\t{0}".format(self.numFastaFiles))
             self.numFastaFilesDigits=len(str(self.numFastaFiles))
-            if (self.numFastaFiles<1): # Do not have fasta files from the given replicate to work, I'll skip it.
+            if (self.numFastaFiles<1):
+                # Do not have fasta files from the given replicate to work, I'll skip it.
                 self.appLogger.warning("Replicate {0}({1}): It is not possible to do the mating for this replicate".format(indexST, curReplicatePath))
                 self.appLogger.warning("There are no sequences o there is a missmatch between the prefixes and the number of sequences in the folder.")
+                return False, "Please verify. Exiting."
             if (numGeneTrees<1):
                 return False,"Trying to mate sequences, but there are no gene tree files to back that up. Please, finish the SimPhy run and try again afterwards."
         return True,"Got number of gene trees per species trees"
@@ -196,8 +212,9 @@ class IndividualGenerator:
             for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
                 self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
                 # parsingMSA file
-                fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                fastapath="{0}/{1}/{2:0{3}d}/{4}_{5:0{6}d}.fasta".format(\
                     self.path,\
+                    self.projectName,\
                     indexST,\
                     self.numSpeciesTreesDigits,\
                     self.dataprefix,\
@@ -230,8 +247,9 @@ class IndividualGenerator:
                 self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
                 # parsingMSA file
                 self.appLogger.debug("Using ST={0}, LOC={1}".format(indexST,indexLOC))
-                fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                fastapath="{0}/{1}/{2:0{3}d}/{4}_{5:0{6}d}.fasta".format(\
                     self.path,\
+                    self.projectName,\
                     indexST,\
                     self.numSpeciesTreesDigits,\
                     self.dataprefix,\
@@ -255,13 +273,15 @@ class IndividualGenerator:
         # get first gt of the st to get the descriptions
         indexLOC=1
         self.appLogger.debug("Using ST={0}, LOC={1}".format(indexST,indexLOC))
-        fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+        fastapath="{0}/{1}/{2:0{3}d}/{4}_{5:0{6}d}.fasta".format(\
             self.path,\
+            self.projectName,\
             indexST,\
             self.numSpeciesTreesDigits,\
             self.dataprefix,\
             indexLOC,\
             self.numFastaFilesDigits)
+
         descriptions=parseMSAFileWithDescriptions(fastapath).keys()
         descriptions.sort()
         table=[(item, descriptions[item]) for item in range(0,len(descriptions)) ]
@@ -296,6 +316,7 @@ class IndividualGenerator:
             indFile.close()
 
     def writeIndividualTable(self,indexST,individualTable):
+        self.appLogger.debug("Writing table")
         # mating table
         # indexST,SP,ind-tip1,ind-tip2
         self.appLogger.debug("Writing indexes into file...")
@@ -319,7 +340,62 @@ class IndividualGenerator:
                 seqDescription))
         indexFile.close()
 
+
+    # def generateMatingTableFromSequenceDescription(self,indexST):
     def generateMatingTable(self,indexST):
+        self.appLogger.debug("Mating table")
+        filename=os.path.join(\
+            self.path,self.projectName,\
+            "{0:0{1}d}".format(\
+                indexST,\
+                self.numSpeciesTreesDigits),\
+            "{0}_{1:0{2}d}.fasta".format(\
+                self.dataprefix,\
+                1,\
+                self.numFastaFilesDigits))
+        print filename
+        f=open(filename,"r")
+        lines=f.readlines()
+        f.close()
+        leaves=[ item.strip()[1:] for item in lines if item.startswith(">")]
+        leavesSplit=[ item.split("_") for item in leaves]
+        leavesDict=dict()
+        for tip in leavesSplit:
+            geneFamily="_".join(tip[0:2])
+            try:
+                val=leavesDict[geneFamily]
+                leavesDict[geneFamily]+=1
+            except:
+                leavesDict[geneFamily]=1
+        # Till here i have information about the number of tips per gene family
+        nInds=0;numLeaves=0
+        for item in leavesDict:
+            numLeaves+=leavesDict[item]
+        if self.ploidy==2:
+            nInds=numLeaves/2
+        if self.outgroup:
+            mates+=[(indexST,0,0,0)]
+            nInds=(numLeaves-1)/2
+        mates=[]
+        for geneFamily in leavesDict:
+            t=range(0,leavesDict[geneFamily])
+            while not t==[]:
+                p1=0;p2=0
+                try:
+                    p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
+                    p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
+                except Exception as e:
+                    break
+                sp=geneFamily.split("_")[0]
+                lt=geneFamily.split("_")[1]
+                pair=(indexST,sp,lt,p1,p2)
+                mates+=[pair]
+                self.appLogger.debug("Pair generated: {0}".format(pair))
+        return mates
+
+
+
+    def generateMatingTableFromDB(self,indexST):
         # missing outgroup
         self.appLogger.info("Connecting to the db...")
         con = sqlite3.connect(self.db)
@@ -361,19 +437,21 @@ class IndividualGenerator:
         self.appLogger.debug(indexFilename)
         if not os.path.isfile(indexFilename):
             indexFile=open(indexFilename,"w")
-            indexFile.write("indexST,indID,speciesID,mateID1,mateID2\n")
+            indexFile.write("indexST,indID,speciesID,LocusID,mateID1,mateID2\n")
             indexFile.close()
         indexFile=open(indexFilename,"a")
         for indexRow in range(0,len(matingTable)):
             indID=indexRow
             speciesID=matingTable[indexRow][1]
-            mateID1=matingTable[indexRow][2]
-            mateID2=matingTable[indexRow][3]
-            indexFile.write("{0:0{1}d},{2},{3},{4},{5}\n".format(\
+            locusID=matingTable[indexRow][2]
+            mateID1=matingTable[indexRow][3]
+            mateID2=matingTable[indexRow][4]
+            indexFile.write("{0:0{1}d},{2},{3},{4},{5},{6}\n".format(\
                 indexST,\
                 self.numSpeciesTreesDigits,\
                 indID,\
                 speciesID,\
+                locusID,\
                 mateID1,\
                 mateID2))
         indexFile.close()
@@ -401,18 +479,20 @@ class IndividualGenerator:
             # Extracting info from the dictionary
             st=str(matingTable[currentInd][0])
             sp=str(matingTable[currentInd][1])
-            pair1=str(matingTable[currentInd][2])
-            pair2=str(matingTable[currentInd][3])
+            lt=str(matingTable[currentInd][2])
+            pair1=str(matingTable[currentInd][3])
+            pair2=str(matingTable[currentInd][4])
+            tag="{0}_{1}".format(sp,lt)
             # Organizing strings
             self.appLogger.debug("{0}|{1}-{2}".format(sp, pair1,pair2))
-            seq1=seqDict[sp][pair1]["sequence"]
-            seq2=seqDict[sp][pair2]["sequence"]
-            shortDesc1=seqDict[sp][pair1]["description"][1:len(seqDict[sp][pair1]["description"])]
+            seq1=seqDict[tag][pair1]["sequence"]
+            seq2=seqDict[tag][pair2]["sequence"]
+            shortDesc1=seqDict[tag][pair1]["description"][1:len(seqDict[tag][pair1]["description"])]
             des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S1".format(self.projectName,\
                 indexST,indexLOC,self.dataprefix,currentInd,shortDesc1,\
                 self.numSpeciesTreesDigits,self.numFastaFilesDigits\
             )
-            shortDesc2=seqDict[sp][pair2]["description"][1:len(seqDict[sp][pair2]["description"])]
+            shortDesc2=seqDict[tag][pair2]["description"][1:len(seqDict[tag][pair2]["description"])]
             des2=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S2".format(\
                 self.projectName,indexST,indexLOC,self.dataprefix,\
                 currentInd,shortDesc2,
@@ -428,14 +508,14 @@ class IndividualGenerator:
             indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
             indFile.close()
             if not sp== "0":
-                del seqDict[sp][pair1]
-                del seqDict[sp][pair2]
+                del seqDict[tag][pair1]
+                del seqDict[tag][pair2]
             else:
                 del seqDict["0"]
-        if not seqDict[sp]=={}:
+        if not seqDict[tag]=={}:
             self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
-            self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format( seqDict[sp].keys(), sp))
-            for item in seqDict[sp].keys():
+            self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format( seqDict[tag].keys(), sp))
+            for item in seqDict[tag].keys():
                 del seqDict[sp][item]
 
         return None
@@ -446,8 +526,9 @@ class IndividualGenerator:
             self.appLogger.debug("indexST: {0}".format(indexST))
             for indexLOC in range(1,self.numFASTAperST[indexST-1]+1):
                 #print("indexLOC: {0}".format(indexLOC))
-                fastapath="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
+                fastapath="{0}/{1}/{2:0{3}d}/{4}_{5:0{6}d}.fasta".format(\
                     self.path,\
+                    self.projectName,\
                     indexST,\
                     self.numSpeciesTreesDigits,\
                     self.dataprefix,\

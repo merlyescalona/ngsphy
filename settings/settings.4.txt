@@ -17,3 +17,4 @@ sam=true
 [execution]
 environment=bash
 run=false
+threads=1

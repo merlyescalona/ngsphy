@@ -51,20 +51,14 @@ class NGSReadsARTIllumina:
         self.appLogger=logging.getLogger('ngsphy')
         self.appLogger.info('NGS read simulation: ART run started.')
         self.settings=settings
-        simphy=os.path.abspath(self.settings.parser.get("general", "simphy_folder"))
-        self.output=os.path.abspath(\
-            os.path.join(\
-                simphy,\
-                self.settings.parser.get("general", "output_folder_name")))
+        self.projectName=self.settings.projectName
+        self.output=self.settings.outputFolderName
         self.filteredST=self.settings.parser.get("general", "filtered_ST")
         self.filteredST=[ int(numST) for numST in self.filteredST.split(",")]
         numSTs=self.settings.parser.getint("general","number_ST")
         self.numberSTDigits=len(str(numSTs))
         self.numLociPerST=[int(numST) for numST in self.settings.parser.get("general","numLociPerST").split(",")]
         self.indexLOCDigits=len(str(max(self.numLociPerST)))
-        self.projectName=os.path.basename(simphy)
-        if (simphy[-1]=="/"):
-            self.projectName=os.path.basename(simphy)[0:-1]
         self.prefix=self.settings.parser.get("general","data_prefix")
 
         dash=""; par=[]
@@ -92,16 +86,18 @@ class NGSReadsARTIllumina:
 
         # generating specific folder structure
         self.generateFolderStructure()
-        # Coverage related options
+        # This has been previously checked at Settings Class!
         self.experimentCoverageDistro=ngsphydistro(0,\
-            self.settings.parser.get("coverage","experimentCoverage"))
+            self.settings.parser.get("coverage","experimentCoverage"), None,False)
         if (self.settings.parser.has_option("coverage","individualCoverage")):
             self.individualCoverageDistro=ngsphydistro(1,\
                 self.settings.parser.get("coverage","individualCoverage"),\
+                self.experimentCoverageDistro,\
                 True)
         if (self.settings.parser.has_option("coverage","locusCoverage")):
             self.locusCoverageDistro=ngsphydistro(2,\
                 self.settings.parser.get("coverage","locusCoverage"),\
+                self.individualCoverageDistro,\
                 True)
 
         self.runningInfo=RunningInfo()
@@ -109,9 +105,9 @@ class NGSReadsARTIllumina:
 
     def generateFolderStructure(self):
         self.appLogger.info("Creating folder structure for [ngs-reads-art]")
-        self.readsFolder="{0}/reads".format(self.output)
-        self.scriptsFolder="{0}/scripts".format(self.output)
-        self.coverageFolder="{0}/coverage".format(self.output)
+        self.readsFolder=os.path.join(self.output,"reads")
+        self.scriptsFolder=os.path.join(self.output,"scripts")
+        self.coverageFolder=os.path.join(self.output,"coverage")
 
         try:
             os.makedirs(self.readsFolder)
@@ -132,6 +128,7 @@ class NGSReadsARTIllumina:
             self.appLogger.debug("Output folder exists ({0})".format(self.coverageFolder))
 
     def writeSeedFile(self):
+    	self.appLogger.debug("Start")
         seedfile="{0}/scripts/{1}.seedfile.txt".format(\
             self.output,\
             self.projectName
@@ -178,6 +175,7 @@ class NGSReadsARTIllumina:
         self.appLogger.info("Seed file written...")
 
     def writeSGEScript(self):
+    	self.appLogger.debug("Start")
         jobfile="{0}/scripts/{1}.job.sge.sh".format(\
             self.output,\
             self.projectName
@@ -208,6 +206,7 @@ outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,s
         self.appLogger.info("SGE Job file written ({0})...".format(jobfile))
 
     def writeSLURMScript(self):
+    	self.appLogger.debug("Start")
         jobfile="{0}/scripts/{1}.job.slurm.sh".format(\
             self.output,\
             self.projectName
@@ -247,26 +246,28 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
         for loc in range(0,nLoci):
             for ind in range(0,nInds):
                 expc=0;indc=0;locc=0
-                expc=expCov.value()
+                expc=expCov.value(1)[0]
                 coverage=expc
                 if (indCov):
                     indCov.updateValue(expc)
-                    indc=indCov.value()
+                    indc=indCov.value(1)[0]
                     coverage=indc
                 if (locCov):
                     locCov.updateValue(indc)
-                    locc=locCov.value()
+                    locc=locCov.value(1)[0]
                     coverage=locc
                 covMatrix[ind][loc]=coverage
         return covMatrix
 
     def writeCoverageMatrixIntoFile(self, coverageMatrix, filename):
+    	self.appLogger.debug("Start")
         filepath=os.path.abspath(filename)
         with open(filepath, 'w') as csvfile:
             writer = csv.writer(csvfile)
             [writer.writerow(r) for r in coverageMatrix]
 
     def getCommands(self):
+    	self.appLogger.debug("Start")
         for indexST in self.filteredST:
             csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
                 self.output,\
@@ -325,6 +326,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
         self.appLogger.info("Commands have been generated...")
 
     def writeBashScript(self):
+    	self.appLogger.debug("Start")
         bashfile="{0}/scripts/{1}.sh".format(\
             self.output,\
             self.projectName
@@ -338,6 +340,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
         self.appLogger.info("Bash script written...")
 
     def commandLauncher(self, command):
+    	self.appLogger.debug("Start")
         ngsMessage="";proc=""
         try:
             proc = subprocess.check_output(command[5:],stderr=subprocess.STDOUT)
@@ -416,10 +419,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                 self.appLogger.debug("Output folder exists ({0})".format(item))
 
     def printRunningInfo(self):
-        outputFile="{0}/{1}.info".format(
-            self.output,\
-            self.projectName
-        )
+        outputFile=os.path.join(self.output,"{0}.info".format(self.projectName))
         f=open(outputFile,"w")
         f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
         for item in self.runningInfo.value:

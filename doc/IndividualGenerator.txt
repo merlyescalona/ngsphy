@@ -1,0 +1,19 @@
+    def __init__(self, settings):
+    def checkArgs(self):
+    def generateFolderStructure(self):
+    def printConfiguration(self):
+    def getNumLociPerST(self):
+    def filterSTMatchingIndPerSpeciesAndPloidy(self, ploidy):
+    def outgroupExists(self):
+    def getNumGTST(self):
+    def iteratingOverST(self):
+    def iterationPolyploid(self):
+    def iterationHaploid(self):
+    def generateindividualTable(self,indexST):
+    def generateIndividuals(self,indexST,indexLOC,individualTable,seqDict):
+    def writeIndividualTable(self,indexST,individualTable):
+    def generateMatingTable(self,indexST):
+        # by default there are no outgroups, if there are, this
+    def writeMatingTable(self,indexST,matingTable):
+    def mate(self,indexST,indexLOC,matingTable,sequenceDictionary):
+    def getReferencesSequences(self, indexSP,indexTip):

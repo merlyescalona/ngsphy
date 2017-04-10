@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,copy,csv,datetime,psutil,logging,os,subprocess,sys,multiprocessing,threading,time,warnings
+import argparse,copy,csv,datetime,logging,os,subprocess,sys,multiprocessing,threading,time,warnings
 import numpy as np
 import random as rnd
 import Settings as sp
@@ -99,14 +99,16 @@ class ReadCount:
 
         # This has been previously checked at Settings Class!
         self.experimentCoverageDistro=ngsphydistro(0,\
-            self.settings.parser.get("coverage","experimentCoverage"))
+            self.settings.parser.get("coverage","experimentCoverage"), None,False)
         if (self.settings.parser.has_option("coverage","individualCoverage")):
             self.individualCoverageDistro=ngsphydistro(1,\
                 self.settings.parser.get("coverage","individualCoverage"),\
+                self.experimentCoverageDistro,\
                 True)
         if (self.settings.parser.has_option("coverage","locusCoverage")):
             self.locusCoverageDistro=ngsphydistro(2,\
                 self.settings.parser.get("coverage","locusCoverage"),\
+                self.individualCoverageDistro,\
                 True)
 
         self.output=self.settings.parser.get("general","output_folder_name")
@@ -437,7 +439,7 @@ class ReadCount:
                 numVarSites,\
                 startingCoverage
             ))
-        distro=ngsphydistro(0,"nb:{0},{1}".format(startingCoverage,startingCoverage))
+        distro=ngsphydistro(0,"nb:{0},{1}".format(startingCoverage,startingCoverage), None,False)
         DP=distro.value(numVarSites)
         return DP
 
@@ -574,7 +576,7 @@ class ReadCount:
         self.appLogger.debug("Sampled")
         for indIndex in range(0,nInds):
             indexIND=str(indIndex)
-            self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
+            self.appLogger.info("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
             individualSeq=self.getHaploidIndividualSequence(msa,ind)
             HTSampled=self.gettingHaplotype(\
@@ -586,6 +588,7 @@ class ReadCount:
                 self.seqerror)
             HTGeneralSampled[indexIND]=HTSampled
             HLGeneralSampled[indexIND]=HLSampled
+
         self.writeVCFFile(
             indexST,indexGT,\
             referenceFilepath, referenceSeqFull,\
@@ -771,7 +774,7 @@ class ReadCount:
             ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
             ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
             # SAMPLE READ COUNT - need to know error distribution
-            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror))
+            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror), None,False)
             errorD=errorDistro.value(1)[0]
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
@@ -901,6 +904,7 @@ class ReadCount:
                 self.seqerror)
             GTGeneralSampled[indexIND]=GTSampled
             GLGeneralSampled[indexIND]=GLSampled
+
         self.writeVCFFile(
             indexST,indexGT,\
             referenceFilepath, referenceSeqFull,\
@@ -1048,7 +1052,7 @@ class ReadCount:
             indexSeq=variableSitesPositionIndices[indexVar]
             indNucStrand1=individualSeq[0,indexSeq]
             indNucStrand2=individualSeq[1,indexSeq]
-            diploidDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,0.5))
+            diploidDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,0.5), None,False)
             diploidCoverage=diploidDistro.value(1)[0]
             finalRC=[indNucStrand1]*(diploidCoverage)
             finalRC+=[indNucStrand2]*(posCoverage-diploidCoverage)
@@ -1057,7 +1061,7 @@ class ReadCount:
             ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
             ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
             # SAMPLE READ COUNT - need to know error distribution
-            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror))
+            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror), None,False)
             errorD=errorDistro.value(1)[0]
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
@@ -1463,11 +1467,11 @@ class ReadCount:
             # iterate over the "iterable" species trees / filtered STs
             self.appLogger.info("Running...")
             nProcesses=sum(self.numLociPerST)
+            currProcessesRunning=1
             for indexFilterST in range(0,nSTS):
                 try:
                     indexST=self.filteredST[indexFilterST] # Get Proper ID for ST
                     nLoci=self.numLociPerST[indexST-1]
-                    currProcessesRunning=1
                     self.appLogger.debug(\
                         "Iterating over filteredST: {0} ({1}/{2})".format(\
                             indexST,\
@@ -1499,36 +1503,43 @@ class ReadCount:
                         self.experimentCoverageDistro,\
                         self.individualCoverageDistro,\
                         self.locusCoverageDistro)
+                    coverageMatrixFilename="{0}/coverage/{1}.{2:0{3}d}.csv".format(\
+                        self.output,\
+                        self.projectName,\
+                        indexST,\
+                        self.numSpeciesTreesDigits\
+                    )
+                    self.writeCoverageMatrixIntoFile(coverageMatrix,coverageMatrixFilename)
                     # Iterate over the LOCI of this ST
                     referenceForCurrST=referenceList[(indexST-1)] # get proper index for current INDEXST
                     barrier=threading.Semaphore(nLoci)
                     indexGT=1
                     while indexGT < (nLoci+1):
                         # for indexGT in range(1,(nLoci+1)):
-                        while (threading.activeCount()-1)==self.settings.numThreads:
-                            threading.join()
-                        progress=((currProcessesRunning*100)*1.0)/(nProcesses+1)
-                        currProcessesRunning=(currProcessesRunning+1)
-                        sys.stdout.write("Progress {0:02.1f} %\r".format(progress))
-                        sys.stdout.flush()
+                        threadsToBeRan=(nLoci+1)-indexGT
                         jobs=[]
-                        t = multiprocessing.Process(\
-                            target=self.launchCommand,\
-                            args=(\
-                                referenceForCurrST,\
-                                indexST,\
-                                indexGT,\
-                                individuals,\
-                                coverageMatrix)\
-                        )
-                        t.daemon=True
-                        jobs.append(t)
-                        t.start()
-                        indexGT+=1
-                        #t=threading.Thread(target=self.launchCommand(referenceForCurrST,indexST,indexGT,individuals,coverageMatrix))
+                        for item in range(0,min(self.settings.numThreads, threadsToBeRan)):
+                            progress=((currProcessesRunning*100)*1.0)/(nProcesses+1)
+                            currProcessesRunning+=1
+                            sys.stdout.write("Progress {0:02.1f} %\r".format(progress))
+                            sys.stdout.flush()
+                            time.sleep(0.2)
+                            t = multiprocessing.Process(\
+                                target=self.launchCommand,\
+                                args=(\
+                                    referenceForCurrST,\
+                                    indexST,\
+                                    indexGT,\
+                                    individuals,\
+                                    coverageMatrix)\
+                            )
+                            t.daemon=True
+                            jobs.append(t)
+                            t.start()
+                            indexGT+=1
+                        for j in jobs:
+                            j.join()
 
-                    for j in jobs:
-                        j.join()
                 except Exception as ex:
                     print "OOOOPS!: \t",ex
                     exc_type, exc_obj, exc_tb = sys.exc_info()

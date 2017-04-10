@@ -10,18 +10,18 @@ def parseMSAFile(fastapath):
             if (count%2==0):
                 seq=line[0:-1].strip()
                 try:
-                    test=seqDict[tmp[0]]
+                    test=seqDict[tag]
                 except:
-                    seqDict[tmp[0]]={}
+                    seqDict[tag]={}
 
                 try:
-                    seqDict[tmp[0]].update({tmp[2]:{\
+                    seqDict[tag].update({tmp[2]:{\
                         'description':description,\
                         'sequence':seq\
                     }})
                 except:
-                    seqDict[tmp[0]][tmp[2]]={}
-                    seqDict[tmp[0]].update({tmp[2]:{\
+                    seqDict[tag][tmp[2]]={}
+                    seqDict[tag].update({tmp[2]:{\
                         'description':description,\
                         'sequence':seq\
                     }})
@@ -31,11 +31,11 @@ def parseMSAFile(fastapath):
             else:
                 description=line[0:-1].strip()
                 tmp=description[1:len(description)].split("_")
+                tag="{0}_{1}".format(tmp[0], tmp[1])
         count+=1
     return seqDict
 
 def parseMSAFileWithDescriptions(fastapath):
-
     fastafile=open(fastapath, 'r')
     lines=fastafile.readlines()
     fastafile.close()

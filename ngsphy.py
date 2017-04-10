@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,datetime,logging,os,threading,sys,psutil
+import argparse,datetime,logging,os,threading,sys
 import numpy as np
 import random as rnd
-import IndividualGenerator as indgen
+import IndividualGenerator as ig
+import SequenceGenerator as sg
 import Settings as sp
 import NGSReads as ngs
 import ReadCount as rc
@@ -62,44 +63,47 @@ class NGSphy:
             if (settingsOk):
                 # Settings exist and are ok.
                 # Generate Individuals (plody independency)
-                self.indGenerator=indgen.IndividualGenerator(self.settings)
+                if self.settings.indelible:
+                    self.seqGenerator=sg.SequenceGenerator(self.settings)
+                    indelibleStatus,indelibleMessage=self.seqGenerator.run()
+                    if not (indelibleStatus):
+                        self.ending(indelibleStatus, indelibleMessage)
+                self.indGenerator=ig.IndividualGenerator(self.settings)
                 matingOk,matingMessage=self.indGenerator.checkArgs()
                 if (matingOk):
                     self.indGenerator.iteratingOverST()
                 else:
                     # did not pass the parser reqs.
                     self.ending(matingOk,matingMessage)
-
-                # self.indGenerator.getReferencesSequences(1,1)
                 # After this I'll have generated the individuals and folder structure
                 if self.settings.ngsart:
                     # Doing NGS
                     self.ngs=ngs.NGSReadsARTIllumina(self.settings)
                     status, message=self.ngs.run()
-                    if not status:
-                        self.ending(status,message)
+                    if not status: self.ending(status,message)
                     self.appLogger.info("NGS read simulation process finished. Check log fo status.")
                 else:
                     # self.appLogger.info("NGS read simulation is not being made.")
                     if self.settings.readcount:
                         # If i have read count folder structure must change - i need reference folder
-                        print("ngsphy.py - Read count")
+                        # print("ngsphy.py - Read count")
                         self.readcount=rc.ReadCount(self.settings)
                         status, message=self.readcount.run()
-
+                        if not status:
+                            self.ending(status,message)
                     else:
                         self.appLogger.info("Read count simulation is not being made.")
             else:
                 self.ending(settingsOk,settingsMessage) # did not pass the parser reqs.
+        return
 
     def generateFolderStructure(self):
-        output=os.path.abspath(self.settings.parser.get("general","output_folder_name"))
         self.appLogger.info("Creating basic folder structure.")
         try:
-            self.appLogger.info("Creating output folder: {0} ".format(output))
-            os.makedirs(output)
+            self.appLogger.info("Creating output folder: {0} ".format(self.settings.outputFolderName))
+            os.makedirs(self.settings.outputFolderName)
         except:
-            self.appLogger.debug("Output folder ({0}) exists. ".format(output))
+            self.appLogger.debug("Output folder ({0}) exists. ".format(self.settings.outputFolderName))
 
 
     def log(self, level, message):
@@ -124,8 +128,6 @@ class NGSphy:
         self.appLogger.info("Elapsed time (ETA):\t{0}".format(self.endTime-self.startTime))
         self.appLogger.info("Ending at:\t{0}".format(self.endTime.strftime("%a, %b %d %Y. %I:%M:%S %p")))
         sys.exit()
-
-
 
 def handlingCmdArguments():
     parser = argparse.ArgumentParser(\
@@ -175,10 +177,11 @@ to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 if __name__=="__main__":
     try:
         cmdArgs = handlingCmdArguments()
-        print(cmdArgs)
+        # print(cmdArgs)
         prog = NGSphy(cmdArgs)
         prog.run()
         prog.ending(True,"Run has finished correctly.")
+
     except KeyboardInterrupt:
         sys.stdout.write("{0}{1}\nProgram has been interrupted!{2}\nPlease run again for the expected outcome.\n".format("\033[91m","\033[1m","\033[0m"))
         sys.exit()

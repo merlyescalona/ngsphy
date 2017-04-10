@@ -1,7 +1,10 @@
 [general]
-simphy_folder = test/test_wrapper
 data_prefix = data
+project_name= test_wrapper
+path= /home/merly/git/ngsphy/test/
 ploidy=2
+[data]
+origin=simphy
 [coverage]
 expCov=F:10
 [ngs-reads-art]

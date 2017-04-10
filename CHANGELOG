@@ -1,5 +1,7 @@
+Version 1.2.1
+    Threading added for read-counts
 Version 1.2
-    Threading added
+    Threading added for ART
 Version 1.1.2
 		Changed name repository to ngsphy
 Version 1.1.1

@@ -1,0 +1,24 @@
+[general]
+data_prefix = data
+project_name=test_indelible_v1
+path=/home/merly/git/ngsphy/test/
+ploidy=2
+[data]
+origin=indelible
+indelible_control=/home/merly/git/ngsphy/test/indelible1/control.2.txt
+newick_file=/home/merly/git/ngsphy/test/indelible1/t2.tree
+[coverage]
+expCov=F:10
+[ngs-reads-art]
+amp=true
+l=100
+m=250
+p=true
+q=true
+s=50
+sam=true
+ss=HS20
+[execution]
+environment = bash
+run = on
+threads=4
