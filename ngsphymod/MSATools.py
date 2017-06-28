@@ -3,12 +3,22 @@ def parseMSAFile(fastapath):
     fastafile=open(fastapath, 'r')
     lines=fastafile.readlines()
     fastafile.close()
+    seqdata=[]
     seqDict=dict()
     description=""; seq=""; tmp="";count=1
     for line in lines:
+        if line.strip().startswith(">"):
+            seqdata+=[line.strip()]
+        else:
+            if(seqdata[-1].startswith(">")):
+                seqdata+=[line.strip()]
+            else:
+                seqdata[-1]+=line.strip()
+
+    for line in seqdata:
         if not (line.strip()==''):
             if (count%2==0):
-                seq=line[0:-1].strip()
+                seq=line
                 try:
                     test=seqDict[tag]
                 except:
@@ -29,8 +39,8 @@ def parseMSAFile(fastapath):
                 description=None
                 tmp=None
             else:
-                description=line[0:-1].strip()
-                tmp=description[1:len(description)].split("_")
+                description=line[1:len(line)]
+                tmp=description.split("_")
                 tag="{0}_{1}".format(tmp[0], tmp[1])
         count+=1
     return seqDict
@@ -41,7 +51,16 @@ def parseMSAFileWithDescriptions(fastapath):
     fastafile.close()
     seqDict=dict()
     description=""; seq=""; tmp="";count=1
+    seqdata=[]
     for line in lines:
+        if line.strip().startswith(">"):
+            seqdata+=[line.strip()]
+        else:
+            if(seqdata[-1].startswith(">")):
+                seqdata+=[line.strip()]
+            else:
+                seqdata[-1]+=line.strip()
+    for line in seqdata:
         if not (line.strip()==''):
             if (count%2==0):
                 seq=line[0:-1].strip()
@@ -50,7 +69,7 @@ def parseMSAFileWithDescriptions(fastapath):
                 description=None
                 tmp=None
             else:
-                description=line[0:-1].strip()
+                description=line.strip()
                 tmp=description[1:len(description)]
         count+=1
     return seqDict
