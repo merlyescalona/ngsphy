@@ -1,5 +1,5 @@
 import argparse,csv,datetime,logging,os,subprocess,sys,threading, time
-from NGSPhyDistribution import NGSPhyDistribution as ngsphydistro
+from ngsphymod.Coverage import NGSPhyDistribution as ngsphydistro
 import numpy as np
 import random as rnd
 import Settings as sp
@@ -19,7 +19,7 @@ class RunningInfo(object):
             # self.appLogger.debug('Released lock')
             self.lock.release()
 
-class NGSReadsARTIllumina:
+class ARTIllumina:
     __SHORT_NAMES=["sf" ,"dp","ploidy","ofn","1","2","amp","c","d","ef","f","h","i",\
                 "ir","ir2","dr","dr2","k","l","m","mp","M","nf","na",\
                 "o","p","q","qU","qs","qL","qs2","rs","s","sam","sp","ss"]
@@ -37,29 +37,24 @@ class NGSReadsARTIllumina:
     numFiles=0
 
     # file path related variables
-    ploidyName="individuals"
-    readsFolder=""
-    scriptsFolder=""
-    coverageFolder=""
+    individualsFolderName="individuals"
+    coverageFolderPath=""
+    readsFolderPath=""
+    scriptsFolderPath=""
 
-    # Coverage Distribution variables
-    experimentCoverageDistro=None
-    individualCoverageDistro=None
-    locusCoverageDistro=None
 
     def __init__(self,settings):
         self.appLogger=logging.getLogger('ngsphy')
         self.appLogger.info('NGS read simulation: ART run started.')
         self.settings=settings
-        self.projectName=self.settings.projectName
-        self.output=self.settings.outputFolderName
-        self.filteredST=self.settings.parser.get("general", "filtered_ST")
-        self.filteredST=[ int(numST) for numST in self.filteredST.split(",")]
-        numSTs=self.settings.parser.getint("general","number_ST")
-        self.numberSTDigits=len(str(numSTs))
-        self.numLociPerST=[int(numST) for numST in self.settings.parser.get("general","numLociPerST").split(",")]
-        self.indexLOCDigits=len(str(max(self.numLociPerST)))
-        self.prefix=self.settings.parser.get("general","data_prefix")
+        self.numSpeciesTrees=self.settings.parser.getint("general","numspeciestrees")
+        self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
+        self.filteredST=[ int(numST) for numST in self.settings.parser.get("general", "filtered_ST").strip().split(",")]
+        self.numLociPerSpeciesTree=[int(numST) for numST in self.settings.parser.get("general","numLociPerSpeciesTree").split(",")]
+        self.numLociPerSpeciesTreeDigits=[ len(str(item)) for item in self.numLociPerSpeciesTree]
+        cc=self.settings.parser.get("general", "numIndividualsPerSpeciesTree").strip().split(",")
+        self.numIndividualsPerSpeciesTree=[ int(item) for item in cc if not item == ""]
+        self.numIndividualsPerSpeciesTreeDigits=[len(str(item )) for item in self.numIndividualsPerSpeciesTree]
 
         dash=""; par=[]
         settingsParams=self.settings.parser.items("ngs-reads-art")
@@ -86,87 +81,67 @@ class NGSReadsARTIllumina:
 
         # generating specific folder structure
         self.generateFolderStructure()
-        # This has been previously checked at Settings Class!
-        self.experimentCoverageDistro=ngsphydistro(0,\
-            self.settings.parser.get("coverage","experimentCoverage"), None,False)
-        if (self.settings.parser.has_option("coverage","individualCoverage")):
-            self.individualCoverageDistro=ngsphydistro(1,\
-                self.settings.parser.get("coverage","individualCoverage"),\
-                self.experimentCoverageDistro,\
-                True)
-        if (self.settings.parser.has_option("coverage","locusCoverage")):
-            self.locusCoverageDistro=ngsphydistro(2,\
-                self.settings.parser.get("coverage","locusCoverage"),\
-                self.individualCoverageDistro,\
-                True)
-
         self.runningInfo=RunningInfo()
 
 
     def generateFolderStructure(self):
         self.appLogger.info("Creating folder structure for [ngs-reads-art]")
-        self.readsFolder=os.path.join(self.output,"reads")
-        self.scriptsFolder=os.path.join(self.output,"scripts")
-        self.coverageFolder=os.path.join(self.output,"coverage")
+        self.readsFolderPath=os.path.join(self.settings.outputFolderPath,"reads")
+        self.scriptsFolderPath=os.path.join(self.settings.outputFolderPath,"scripts")
+        self.coverageFolderPath=os.path.join(self.settings.outputFolderPath,"coverage")
+        try:
+            os.makedirs(self.readsFolderPath)
+            self.appLogger.info("Generating output folder ({0})".format(self.readsFolderPath))
+        except:
+            self.appLogger.debug("Output folder exists ({0})".format(self.readsFolderPath))
 
         try:
-            os.makedirs(self.readsFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.readsFolder))
+            os.makedirs(self.scriptsFolderPath)
+            self.appLogger.info("Generating output folder ({0})".format(self.scriptsFolderPath))
         except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.readsFolder))
+            self.appLogger.debug("Output folder exists ({0})".format(self.scriptsFolderPath))
 
-        try:
-            os.makedirs(self.scriptsFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.scriptsFolder))
-        except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.scriptsFolder))
-
-        try:
-            os.makedirs(self.coverageFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.coverageFolder))
-        except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.coverageFolder))
 
     def writeSeedFile(self):
     	self.appLogger.debug("Start")
         seedfile="{0}/scripts/{1}.seedfile.txt".format(\
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         sf=open(seedfile,"w")
         for indexST in self.filteredST:
             for indexST in self.filteredST:
                 csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
-                    self.output,\
-                    self.projectName,\
+                    self.settings.outputFolderPath,\
+                    self.settings.projectName,\
                     indexST,\
-                    self.numberSTDigits,\
-                    self.ploidyName
+                    self.numSpeciesTreesDigits,\
+                    self.individualsFolderName
                 ))
                 # Generation of folder structure
                 d = csv.DictReader(csvfile)
                 self.matingDict = [row for row in d]
                 csvfile.close()
-                for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
+                for indexLOC in range(1,self.numLociPerSpeciesTree[indexST-1]+1):
                     for row in self.matingDict:
                         # indexST,indexLOC,indID,speciesID,mateID1,mateID2
                         inputFile="{0}/individuals/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}.fasta".format(\
-                            self.output,\
+                            self.settings.outputFolderPath,\
                             row['indexST'],\
                             indexLOC,\
-                            self.indexLOCDigits,
-                            self.projectName,\
-                            self.prefix,\
+                            self.numLociPerSpeciesTreeDigits[indexST-1],
+                            self.settings.projectName,\
+                            self.settings.dataPrefix,\
                             row['indID']\
                         )
                         # This means, from a multiple (2) sequence fasta file.
                         outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}_R".format(\
-                            self.output,\
+                            self.settings.outputFolderPath,\
                             row['indexST'],\
                             indexLOC,\
-                            self.indexLOCDigits,
-                            self.projectName,\
-                            self.prefix,\
+                            self.numLociPerSpeciesTreeDigits[indexST-1],
+                            self.settings.projectName,\
+                            self.settings.dataPrefix,\
                             row['indID']\
                         )
                         sf.write("{0}\t{1}\n".format(inputFile,outputFile))
@@ -177,13 +152,13 @@ class NGSReadsARTIllumina:
     def writeSGEScript(self):
     	self.appLogger.debug("Start")
         jobfile="{0}/scripts/{1}.job.sge.sh".format(\
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         j=open(jobfile,"w")
         seedfile="{0}/scripts/{1}.seedfile.txt".format(\
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
 
         inputFile="$inputfile"
@@ -208,13 +183,13 @@ outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,s
     def writeSLURMScript(self):
     	self.appLogger.debug("Start")
         jobfile="{0}/scripts/{1}.job.slurm.sh".format(\
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         j=open(jobfile,"w")
         seedfile="{0}/scripts/{1}.seedfile.txt".format(\
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         inputFile="$inputfile"
         outputFile="$outputfile"
@@ -238,82 +213,70 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
         jobfile.close()
         self.appLogger.info("SLURM Job file written ({0})...".format(jobfile))
 
-    def computeCoverageMatrix(self, nInds, nLoci,expCov, indCov, locCov):
-    	# coverage matrix per ST - row:indv - col:loci
-    	# each cov introduced as parameter is a NGSPhyDistribution
-    	self.appLogger.debug("Computing coverage matrix")
-        covMatrix=np.zeros(shape=(nInds, nLoci))
-        for loc in range(0,nLoci):
-            for ind in range(0,nInds):
-                expc=0;indc=0;locc=0
-                expc=expCov.value(1)[0]
-                coverage=expc
-                if (indCov):
-                    indCov.updateValue(expc)
-                    indc=indCov.value(1)[0]
-                    coverage=indc
-                if (locCov):
-                    locCov.updateValue(indc)
-                    locc=locCov.value(1)[0]
-                    coverage=locc
-                covMatrix[ind][loc]=coverage
-        return covMatrix
+    def retrieveCoverageMatrix(self, indexST):
+        self.appLogger.debug("Retrieving coverage matrix")
+        # coverage matrix per ST - row:indv - col:loci
+        # each cov introduced as parameter is a NGSPhyDistribution
+        coverageMatrixFilename=os.path.join(\
+            self.coverageFolderPath,\
+            "{0}.{1:0{2}d}.coverage.csv".format(\
+                self.settings.projectName,\
+                indexST,\
+                self.numSpeciesTreesDigits\
+            )
+        )
 
-    def writeCoverageMatrixIntoFile(self, coverageMatrix, filename):
-    	self.appLogger.debug("Start")
-        filepath=os.path.abspath(filename)
-        with open(filepath, 'w') as csvfile:
-            writer = csv.writer(csvfile)
-            [writer.writerow(r) for r in coverageMatrix]
+        coverageMatrix=np.zeros(shape=(self.numIndividualsPerSpeciesTree[indexST-1], self.numLociPerSpeciesTree[indexST-1]))
+        firstLine=True; counter=0
+        with open(coverageMatrixFilename, 'rb') as csvfile:
+            coveragereader = csv.reader(csvfile, delimiter=',')
+            for row in coveragereader:
+                if firstLine:
+                    firstLine=False
+                else:
+                    coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
+                    counter+=1
+                if not counter < self.numIndividualsPerSpeciesTree[indexST-1]: break
+        return coverageMatrix
 
     def getCommands(self):
     	self.appLogger.debug("Start")
         for indexST in self.filteredST:
             csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
-                self.output,\
-                self.projectName,\
+                self.settings.outputFolderPath,\
+                self.settings.projectName,\
                 indexST,\
-                self.numberSTDigits,\
-                self.ploidyName
+                self.numSpeciesTreesDigits,\
+                self.individualsFolderName
             ))
             # Generation of folder structure
             d = csv.DictReader(csvfile)
             self.matingDict = [row for row in d]
             csvfile.close()
             nInds=len(self.matingDict)
-            nLoci=self.numLociPerST[indexST-1]
-            coverageMatrix=self.computeCoverageMatrix(nInds,nLoci,\
-                self.experimentCoverageDistro,\
-                self.individualCoverageDistro,\
-                self.locusCoverageDistro)
-            coverageMatrixFilename="{0}/coverage/{1}.{2:0{3}d}.csv".format(\
-                self.output,\
-                self.projectName,\
-                indexST,\
-                self.numberSTDigits\
-            )
-            self.writeCoverageMatrixIntoFile(coverageMatrix,coverageMatrixFilename)
-            for indexLOC in range(1,self.numLociPerST[indexST-1]+1):
+            nLoci=self.numLociPerSpeciesTree[indexST-1]
+            coverageMatrix=self.retrieveCoverageMatrix(indexST)
+            for indexLOC in range(1,self.numLociPerSpeciesTree[indexST-1]+1):
                 for row in self.matingDict:
                     # indexST,indexLOC,indID,speciesID,mateID1,mateID2
                     inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}.fasta".format(\
-                        self.output,\
+                        self.settings.outputFolderPath,\
                         int(row['indexST']),\
-                        self.numberSTDigits,\
+                        self.numSpeciesTreesDigits,\
                         indexLOC,\
-                        self.indexLOCDigits,
-                        self.projectName,\
-                        self.prefix,\
+                        self.numLociPerSpeciesTreeDigits[indexST-1],
+                        self.settings.projectName,\
+                        self.settings.dataPrefix,\
                         int(row['indID']))
                     # This means, from a multiple (2) sequence fasta file.
                     outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}_R".format(\
-                        self.output,\
+                        self.settings.outputFolderPath,\
                         int(row['indexST']),\
-                        self.numberSTDigits,\
+                        self.numSpeciesTreesDigits,\
                         indexLOC,\
-                        self.indexLOCDigits,
-                        self.projectName,\
-                        self.prefix,\
+                        self.numLociPerSpeciesTreeDigits[indexST-1],
+                        self.settings.projectName,\
+                        self.settings.dataPrefix,\
                         int(row['indID'])\
                     )
                     coverage=coverageMatrix[int(row['indID'])][indexLOC-1]
@@ -328,8 +291,8 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
     def writeBashScript(self):
     	self.appLogger.debug("Start")
         bashfile="{0}/scripts/{1}.sh".format(\
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         j=open(bashfile,"w")
         for item in self.commands:
@@ -337,7 +300,6 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
             j.write(" ".join(c))
             j.write("\n")
         j.close()
-        self.appLogger.info("Bash script written...")
 
     def commandLauncher(self, command):
     	self.appLogger.debug("Start")
@@ -419,7 +381,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
                 self.appLogger.debug("Output folder exists ({0})".format(item))
 
     def printRunningInfo(self):
-        outputFile=os.path.join(self.output,"{0}.info".format(self.projectName))
+        outputFile=os.path.join(self.settings.outputFolderPath,"{0}.info".format(self.settings.projectName))
         f=open(outputFile,"w")
         f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
         for item in self.runningInfo.value:

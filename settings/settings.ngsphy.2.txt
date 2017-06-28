@@ -1,0 +1,24 @@
+[general]
+path=/home/merly/git/ngsphy/test
+project_name=test_wrapper
+ploidy=2
+[data]
+origin=1
+data_prefix = data
+[coverage]
+experiment=F:10
+locus=LN:1.5,1
+[ngs-reads-art]
+amp=true
+c=100
+ef=false
+l=150
+m=250
+p=true
+q=true
+s=50
+sam=true
+[execution]
+environment = bash
+run = off
+threads=4

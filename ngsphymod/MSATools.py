@@ -83,7 +83,3 @@ def isFasta(filepath):
     else:
         return False
     return True
-
-
-def parseIndividualRelationFile(filepath):
-    pass

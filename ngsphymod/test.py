@@ -110,3 +110,33 @@ print self.coverageTable
 print range(1,self.sequenceSize+1)
 ax.plot(range(1,self.sequenceSize+1),self.coverageTable, 'bo', ms=8, label='poisson pmf')
 plt.show()
+
+
+import matplotlib.pyplot as plt
+from scipy.stats import nbinom
+import numpy as np
+mu=80
+r=50
+p=(r*1.0)/(r+mu)
+distro=nbinom(r,p)
+fig, ax = plt.subplots(1, 1)
+x = np.arange(distro.ppf(0.001),distro.ppf(0.999))
+ax.plot(x, distro.pmf(x), 'bo', ms=8, label='nbinom pmf')
+ax.vlines(mu, 0, distro.pmf(mu), colors='b', lw=5, alpha=0.5)
+ax.set_title(distro.stats(moments="m"))
+plt.show()
+
+
+import matplotlib.pyplot as plt
+from scipy.stats import gamma
+import numpy as np
+mu=80
+r=50
+p=(r*1.0)/(r+mu)
+distro=nbinom(r,p)
+fig, ax = plt.subplots(1, 1)
+x = np.arange(distro.ppf(0.001),distro.ppf(0.999))
+ax.plot(x, distro.pmf(x), 'bo', ms=8, label='nbinom pmf')
+ax.vlines(mu, 0, distro.pmf(mu), colors='b', lw=5, alpha=0.5)
+ax.set_title(distro.stats(moments="m"))
+plt.show()

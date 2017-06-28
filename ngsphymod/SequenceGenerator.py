@@ -1,5 +1,5 @@
 #!/usr/bin/home/python
-import argparse,copy,datetime,ete2,logging,os,re,sys, threading, subprocess
+import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing, subprocess
 import numpy as np
 import random as rnd
 import Settings as sp
@@ -10,14 +10,10 @@ class SequenceGenerator:
     appLoger=None
     settings=None
 
-    ngsphyindeliblecontrol=""
-    indeliblecontrol=""
-    newickFile=""
-    projectName=""
-    path=""
+    newIndelibleFilePath=""
     output=""
 
-    evolve=[]
+    evolve=[1,"ngsphydata_1"]
     partition=[]
 
     numGTs=0
@@ -27,88 +23,47 @@ class SequenceGenerator:
         self.appLogger=logging.getLogger('ngsphy')
         self.appLogger.debug('INDELible run')
         self.settings=settings
-        self.ngsphyindeliblecontrol=self.settings.ngsphyindeliblecontrol
-        self.newickFile=self.settings.newickFile
-        self.projectName=self.settings.projectName
-        self.path=self.settings.path
-        self.output=os.path.join(self.path,self.projectName,"1")
-        self.indeliblecontrol=os.path.join(self.path,self.projectName,"1","control.txt")
+        self.output=os.path.join(self.settings.path,self.settings.projectName,"1")
+        self.newIndelibleFilePath=os.path.join(self.settings.path,self.settings.projectName,"1","control.txt")
 
     def run(self):
         self.generateFolderStructure()
         # check naming of the leaves
-        namingStatus, namingMessage=self.checkTreeLabels()
         # adding extra information on presence of outgroup
         self.addOutgroupInfoToSettings()
-
-        if (namingStatus):
-            # check ploidy and tree correspondance
-            ploidyStatus,ploidyMessage=self.checkPloidyTreeRelation()
-            if (ploidyStatus):
-                self.appLogger.debug("Out tree-ploidy relation")
-                self.writeIndelibleControlFile()
-                runStatus,runMessage=self.runIndelible()
-                if not runStatus:
-                    return False,runMessage
-            else:
-                return False, ploidyMessage
-        else:
-            return False, namingMessage
+        # check ploidy and tree correspondance
+        ploidyStatus,ploidyMessage=self.checkPloidyTreeRelation()
+        if not ploidyStatus: return False, ploidyMessage
+        self.appLogger.debug("Out tree-ploidy relation")
+        self.writeIndelibleControlFile()
+        runStatus,runMessage=self.runIndelible()
+        if not runStatus: return False,runMessage
         return True, "Run finished"
 
     def generateFolderStructure(self):
         self.appLogger.info("Creating folder structure for INDELible run")
-        # create pporject folder
         try:
-            os.makedirs(os.path.join(self.path,self.projectName))
-            self.appLogger.info("Generating project folder ({0})".format(os.path.join(self.path,self.projectName)))
+            os.makedirs(os.path.join(self.settings.path,self.settings.projectName))
+            self.appLogger.info("Generating project folder ({0})".format(os.path.join(self.settings.path,self.settings.projectName)))
         except:
-            self.appLogger.debug("Project folder exists ({0})".format(os.path.join(self.path,self.projectName)))
+            self.appLogger.debug("Project folder exists ({0})".format(os.path.join(self.settings.path,self.settings.projectName)))
         # create data folder
         try:
-            os.makedirs(os.path.join(self.path,self.projectName,"1"))
-            self.appLogger.info("Generating data folder ({0})".format(os.path.join(self.path,self.projectName,"1")))
+            os.makedirs(os.path.join(self.settings.path,self.settings.projectName,"1"))
+            self.appLogger.info("Generating data folder ({0})".format(os.path.join(self.settings.path,self.settings.projectName,"1")))
         except:
-            self.appLogger.debug("Data folder exists ({0})".format(os.path.join(self.path,self.projectName,"1")))
+            self.appLogger.debug("Data folder exists ({0})".format(os.path.join(self.settings.path,self.settings.projectName,"1")))
 
-    def checkTreeLabels(self):
-        self.appLogger.debug("Checking labels")
-        messageCorrect="Labels of the tree are correct"
-        messageWrong="INDELible control file - Something's wrong!\n\t"
-        try:
-            tree=ete2.Tree(self.newickFile)
-        except ete2.parser.newick.NewickError as nerror:
-            return False, "There is a problem with the newick file\n{}\nPlease verify. Exiting.".format(nerror)
-
-        leaves=[ item.get_leaf_names()[0] for item in tree.get_leaves()]
-        pattern = re.compile("^[0-9]+_[0-9]+_[0-9]+$")
-        for item in leaves:
-            if not pattern.match(item):
-                break
-        if not pattern.match(item):
-            messageWrong+="{0}\n\t{1}\n\t{2}\n\t{3}\n\t{4}".format(\
-            "Labels chosen for the tips of the tree are not correct.",\
-            "Labels should follow this pattern: SpeciesID_LocusID_IndividualID",\
-            "Where SpeciesID,LocusID,IndividualID are numbers and bigger than 0.",\
-            "Outgroup, if present, should be represented as 0_0_0",\
-            "Please verify. Exiting."\
-            )
-            return False,messageWrong
-        return True, messageCorrect
 
     def addOutgroupInfoToSettings(self):
         self.appLogger.debug("Outgroup")
-        try:
-            tree=ete2.Tree(self.newickFile)
-        except ete2.parser.newick.NewickError as nerror:
-            return False, "There is a problem with the newick file\n{}\nPlease verify. Exiting.".format(nerror)
-
-        leaves=[ item.get_leaf_names()[0] for item in tree.get_leaves()]
-
+        tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
+        leaves=[ node.taxon.label for node in tree.leaf_node_iter()]
+        item=""
         for item in leaves:
-            if item == "0_0_0":
-                break
+            if item == "0_0_0": break
         if item=="0_0_0":
+            self.settings.outgroup=True
             self.settings.parser.set("general","outgroup","on")
         else:
             self.settings.parser.set("general","outgroup","off")
@@ -117,8 +72,12 @@ class SequenceGenerator:
         self.appLogger.debug("Checking ploidy - num tips relation")
         messageCorrect="Ploidy and number of gene copies per gene family match properly."
         messageWrong="INDELible control file - Something's wrong!\n\t"
-        tree=ete2.Tree(self.newickFile)
-        leaves=[ item.get_leaf_names()[0] for item in tree.get_leaves()]
+        tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
+        leaves=[]
+        if self.settings.outgroup:
+            leaves=[ node.taxon.label for node in tree.leaf_node_iter() if not node.taxon.label =="0_0_0"]
+        else:
+            leaves=[ node.taxon.label for node in tree.leaf_node_iter()]
         leavesSplit=[ item.split("_") for item in leaves]
         leavesDict=dict()
         for tip in leavesSplit:
@@ -129,7 +88,8 @@ class SequenceGenerator:
             except:
                 leavesDict[geneFamily]=1
         for item in leavesDict:
-            if (leavesDict[item] % self.settings.ploidy) != 0:
+            print(item,leavesDict[item])
+            if not leavesDict[item] % self.settings.ploidy == 0:
                 messageWrong+="{0}\n\t{1}".format(\
                 "The number of gene copies within one of the gene families does not match the ploidy selected for this run.",\
                 "Please verify. Exiting."\
@@ -139,7 +99,8 @@ class SequenceGenerator:
 
     def writeIndelibleControlFile(self):
         self.appLogger.debug("Writing new control file")
-        f=open(self.ngsphyindeliblecontrol,"r")
+        print self.settings.ngsphyIndelibleControlFilePath
+        f=open(self.settings.ngsphyIndelibleControlFilePath,"r")
         lines=f.readlines()
         f.close()
         newlines=copy.copy(lines)
@@ -148,8 +109,6 @@ class SequenceGenerator:
         modelname=""
         while len(newlines)>0:
             line=newlines.pop()
-            if "[NGSPHYEVOLVE]" in line:
-                self.evolve=line.split() # ill get 2 elems + label
             if "[NGSPHYPARTITION]" in line:
                 self.partition=line.split() # ill get 3 elems + label
             if "[MODEL]" in line:
@@ -163,11 +122,13 @@ class SequenceGenerator:
                 break
             controllines+=[item.strip("\n")]
 
-        f=open(self.newickFile)
+        f=open(self.settings.newickFilePath)
         newicklines=f.readlines()
         f.close()
         newicktree=[ item.strip() for item in newicklines if item.strip()!=""]
         newicktree="".join(newicktree)
+        newicktree=newicktree.replace("'","")
+        print(newicktree)
         if newicktree[-1]!=";":
             newicktree+=";"
         controllines+=["{0} {1} {2}".format(\
@@ -183,14 +144,12 @@ class SequenceGenerator:
             self.partition[3]
         )]
 
-        numGTs=int(self.evolve[1])
-        numGTDigits=len(str(numGTs))
         controllines+=["[EVOLVE]"]
-        for indexGT in range(1, numGTs+1):
-            controllines+=["  {0} 1 {1}".format(\
-                "ngsphypartition",\
-                "{0}_{1:0{2}d}".format(self.evolve[2],indexGT, numGTDigits)
-            )]
+        controllines+=[" {0} {1} {2}".format(\
+            "ngsphypartition",\
+            self.evolve[0],\
+            self.evolve[1]\
+        )]
 
         # full control file, missing checking settings of output and fastaextension
         fastaoutput="\t[output] FASTA"
@@ -217,22 +176,22 @@ class SequenceGenerator:
             controllines.insert(2,"  [fastaextension] fasta")
 
         # write controllines to file
-        f=open(self.indeliblecontrol,"w")
+        f=open(self.newIndelibleFilePath,"w")
         for item in controllines:
             f.write("{}\n".format(item))
         f.close()
 
     def runIndelible(self):
         self.appLogger.debug("Running...")
-        self.settings.parser.set("general","numLociPerST",self.evolve[1])
+        self.settings.parser.set("general","numLociPerSpeciesTree","1")
         self.settings.parser.set("general", "filtered_ST", "1")
-        self.settings.parser.set("general", "number_ST", "1")
-        self.settings.parser.set("general", "data_prefix",self.evolve[2])
+        self.settings.parser.set("general", "data_prefix",self.evolve[1])
         try:
             self.appLogger.info("Waiting for INDELible process to finish. This may take a while...")
-            t = threading.Thread(target=self.indelibleLauncher())
+            t = multiprocessing.Process(target=self.indelibleLauncher())
             t.start()
             t.join()
+            self.appLogger.info("INDELible's run has finished.")
         except RuntimeError as verror:
             return   False, verror
         return True, "INDELible's run has finished."
@@ -246,12 +205,10 @@ class SequenceGenerator:
             self.appLogger.info("Running INDELible")
             proc = subprocess.check_output("indelible",stderr=subprocess.STDOUT)
             cpuTime = [line.split(":")[1].split()[0] for line in proc.split('\n') if "* Block" in line]
-            numGTDigits=len(str(len(cpuTime)))
             for item in range(1,len(cpuTime)):
-                indexGT=item
                 cpu=cpuTime[(item-1)]
-                output="{0}_{1:0{2}d}".format(self.evolve[2],item,numGTDigits )
-                lines+=[indexGT,cpu,output]
+                output="{0}_{1}".format(self.evolve[1],item )
+                lines+=[item,cpu,output]
         except OSError as error:
             indelibleMessage="Output folder does not exist. Please verify. Exiting."
             self.appLogger.error(indelibleMessage)
@@ -266,12 +223,12 @@ class SequenceGenerator:
             "\nFor more information about this error please run the following commands separately:\n"+\
             "\n\tcd {0}\n\tindelible\n".format(self.output)
             raise RuntimeError(indelibleMessage)
-        self.printRunningInfo(line)
+        self.printRunningInfo(lines)
 
     def printRunningInfo(self, lines):
         outputFile="{0}/{1}.indelible.info".format(
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         f=open(outputFile,"w")
         f.write("indexGT,cpuTime,outputFilePrefix\n")
@@ -283,35 +240,3 @@ class SequenceGenerator:
             )
         f.close()
         self.appLogger.info("File with timings of the INDELible run can be find on: {0}".format(outputFile))
-
-    def cleanUpControlFile(self):
-        f=open(self.ngsphyindeliblecontrol,"r")
-        lines=f.readLines()
-        f.close()
-        newlines=[ item.strip() for item in lines if item.strip()!=""]
-        for item in newlines:
-            if item.startswith("// ") or item.startswith("//"):
-                newlines.remove(item)
-        for index in range(0,len(newlines)):
-            item=newlines[index]
-            if item.find("//")>-1:
-                item=item[0:item.find("//")]
-                newlines[index]=item
-        for item in newlines:
-            if item=="": newlines.remove(item)
-        startBracket=[];endBracket=[]
-        for index in range(0,len(newlines)):
-            item=newlines[index]
-            if item.find("/*")>-1:
-                startBracket+=[index]
-        for index in range(0,len(newlines)):
-            item=newlines[index]
-            if item.find("*/")>-1:
-                endBracket+=[(index+1)]
-        linestoremove=[]
-        for index in range(0,len(startBracket)):
-            linestoremove+=newlines[startBracket[index]:endBracket[index]]
-        for item in linestoremove:
-            newlines.remove(item)
-        # until here my control file is out of comments
-        return newlines

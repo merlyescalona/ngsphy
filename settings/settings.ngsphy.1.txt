@@ -1,15 +1,16 @@
-[general]
-data_prefix = data
+ñ[general]
 path=/home/merly/git/ngsphy/test
 project_name=test_wrapper
 ploidy=1
 [data]
-origin=simphy
+origin=1
+data_prefix = data
+
 [coverage]
-expCov=F:10
+experiment=F:10
 [ngs-read-count]
 error=0.1
 [execution]
 environment = bash
 run = on
-threads=2
+threads=4

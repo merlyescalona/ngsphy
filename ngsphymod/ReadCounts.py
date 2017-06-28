@@ -4,9 +4,8 @@ import argparse,copy,csv,datetime,logging,os,subprocess,sys,multiprocessing,thre
 import numpy as np
 import random as rnd
 import Settings as sp
-from MELoggingFormatter import MELoggingFormatter as mlf
-from MSATools import *
-from NGSPhyDistribution import NGSPhyDistribution as ngsphydistro
+from ngsphymod.MSATools import *
+from ngsphymod.Coverage import NGSPhyDistribution as ngsphydistro
 
 try:
     from collections import Counter
@@ -62,81 +61,57 @@ class RunningInfo:
             # self.appLogger.debug('Released lock')
             self.lock.release()
 
-class ReadCount:
+class ReadCounts:
     __NUCLEOTIDES=["A","C","G","T"]
-    # path related variables
-    readcountFolder=""
-    referencesFolder=""
-    coverageFolder=""
-
-    # Coverage Distribution variables
-    experimentCoverageDistro=None
-    individualCoverageDistro=None
-    locusCoverageDistro=None
-
-    seqerror=0
-    refereceFilepath=None
-    dataprefix=""
-
-    output=""
-    numLociPerST=[]
-    numSpeciesTrees=0
-    numSpeciesTreesDigits=0
-    filteredST=[]
-    numSts=0
-
+    appLogger=None
     runningInfo=None
+    # path related variables
+    coverageFolderPath=""
+    readcountFolderPath=""
+    readcountTrueFolderPath=""
+    readcountSampledFolderPath=""
+    referencesFolderPath=""
+
+    numSpeciesTrees=None
+    numLociPerSpeciesTree=[]
+    numIndividualsPerSpeciesTree=[]
+    numSpeciesTreesDigits=[]
+    numLociPerSpeciesTreeDigits=[]
+    numIndividualsPerSpeciesTreeDigits=[]
+    filteredST=[]
+
+
 
     def __init__(self,settings):
         self.appLogger=logging.getLogger('ngsphy')
         self.appLogger.info('Read counts.')
         self.settings=settings
-        self.path=os.path.abspath(self.settings.parser.get("general", "simphy_folder"))
-        if (self.settings.parser.get("general", "simphy_folder")[-1]=="/"):
-            self.projectName=os.path.basename(self.settings.parser.get("general", "simphy_folder")[0:-1])
-        else:
-            self.projectName=os.path.basename(self.settings.parser.get("general", "simphy_folder"))
 
-        # This has been previously checked at Settings Class!
-        self.experimentCoverageDistro=ngsphydistro(0,\
-            self.settings.parser.get("coverage","experimentCoverage"), None,False)
-        if (self.settings.parser.has_option("coverage","individualCoverage")):
-            self.individualCoverageDistro=ngsphydistro(1,\
-                self.settings.parser.get("coverage","individualCoverage"),\
-                self.experimentCoverageDistro,\
-                True)
-        if (self.settings.parser.has_option("coverage","locusCoverage")):
-            self.locusCoverageDistro=ngsphydistro(2,\
-                self.settings.parser.get("coverage","locusCoverage"),\
-                self.individualCoverageDistro,\
-                True)
-
-        self.output=self.settings.parser.get("general","output_folder_name")
-        self.numLociPerST=[int(numST) for numST in self.settings.parser.get("general","numLociPerST").split(",")]
-        self.numSpeciesTrees=int(self.settings.parser.get("general","numSpeciesTrees"))
+        self.numSpeciesTrees=self.settings.parser.getint("general", "numspeciestrees")
+        cc=self.settings.parser.get("general", "numLociPerSpeciesTree").strip().split(",")
+        self.numLociPerSpeciesTree=[ int(item) for item in cc if not item ==""]
+        cc=self.settings.parser.get("general", "numIndividualsPerSpeciesTree").strip().split(",")
+        self.numIndividualsPerSpeciesTree=[ int(item) for item in cc if not item == ""]
         self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
-        self.dataprefix=self.settings.parser.get("general","data_prefix")
-        self.filteredST=self.settings.parser.get("general", "filtered_ST")
-        self.filteredST=[ int(numST) for numST in self.filteredST.split(",")]
-        self.numSTs=self.settings.parser.getint("general","number_ST")
+        self.numLociPerSpeciesTreeDigits=[len(str(item)) for item in self.numLociPerSpeciesTree]
+        self.numIndividualsPerSpeciesTreeDigits=[len(str(item )) for item in self.numIndividualsPerSpeciesTree]
+        self.filteredST=[int(item) for item in self.settings.parser.get("general", "filtered_ST").strip().split(",")]
 
-        self.refereceFilepath=self.settings.parser.get("read-count","reference")
-        if self.refereceFilepath=="None":
-            self.refereceFilepath=None
-        else:
-            self.refereceFilepath=os.path.abspath(self.refereceFilepath)
-
-        try:
-            self.seqerror=float(self.settings.parser.get("read-count","error"))
-        except:
-            self.seqerror=0
         # Generating folder structure
         infoFile="{0}/{1}.info".format(
-            self.output,\
-            self.projectName
+            self.settings.outputFolderPath,\
+            self.settings.projectName
         )
         self.runningInfo=RunningInfo(infoFile)
-        self.appLogger.info("File with timings of the [read-count] per loci can be find on:     {0}".format(infoFile))
+        self.appLogger.info("File with timings of the [ngs-read-count] per loci can be find on:\t{0}".format(infoFile))
+
+        # naming variables for shorter codeline
+        self.coverageFolderPath="{0}/coverage".format(self.settings.outputFolderPath)
+        self.readcountFolderPath="{0}/reads".format(self.settings.outputFolderPath)
+        self.readcountTrueFolderPath="{0}/reads/true".format(self.settings.outputFolderPath)
+        self.readcountSampledFolderPath="{0}/reads/sampled".format(self.settings.outputFolderPath)
+        self.referencesFolderPath="{0}/refereces".format(self.settings.outputFolderPath)
+
         self.generateFolderStructureGeneral()
 
     """
@@ -145,47 +120,35 @@ class ReadCount:
     @description:
         Generates basic folder structure needed for Read Count option.
         This includes:
-            - read-count
-            - read-count/true
-            - read-count/sampled
+            - reads
+            - reads/true
+            - reads/sampled
             - refereces
-            - coverage
     """
     def generateFolderStructureGeneral(self):
         self.appLogger.debug("generateFolderStructureGeneral(self)")
         # Checking output path
-        self.appLogger.info("Creating folder structure for [read-count]")
-        self.readcountFolder="{0}/read-count".format(self.output)
-        self.readcountTrueFolder="{0}/read-count/true".format(self.output)
-        self.readcountSampledFolder="{0}/read-count/sampled".format(self.output)
-        self.referencesFolder="{0}/refereces".format(self.output)
-        self.coverageFolder="{0}/coverage".format(self.output)
+        self.appLogger.info("Creating folder structure for [ngs-read-count]")
         try:
-            os.makedirs(self.readcountFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.readcountFolder))
+            os.makedirs(self.readcountFolderPath)
+            self.appLogger.info("Generating output folder ({0})".format(self.readcountFolderPath))
         except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.readcountFolder))
+            self.appLogger.debug("Output folder exists ({0})".format(self.readcountFolderPath))
         try:
-            os.makedirs(self.readcountTrueFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.readcountTrueFolder))
+            os.makedirs(self.readcountTrueFolderPath)
+            self.appLogger.info("Generating output folder ({0})".format(self.readcountTrueFolderPath))
         except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.readcountTrueFolder))
+            self.appLogger.debug("Output folder exists ({0})".format(self.readcountTrueFolderPath))
         try:
-            os.makedirs(self.readcountSampledFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.readcountSampledFolder))
+            os.makedirs(self.readcountSampledFolderPath)
+            self.appLogger.info("Generating output folder ({0})".format(self.readcountSampledFolderPath))
         except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.readcountSampledFolder))
+            self.appLogger.debug("Output folder exists ({0})".format(self.readcountSampledFolderPath))
         try:
-            os.makedirs(self.referencesFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.referencesFolder))
+            os.makedirs(self.referencesFolderPath)
+            self.appLogger.info("Generating output folder ({0})".format(self.referencesFolderPath))
         except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.referencesFolder))
-
-        try:
-            os.makedirs(self.coverageFolder)
-            self.appLogger.info("Generating output folder ({0})".format(self.coverageFolder))
-        except:
-            self.appLogger.debug("Output folder exists ({0})".format(self.coverageFolder))
+            self.appLogger.debug("Output folder exists ({0})".format(self.referencesFolderPath))
 
     """
     @function:
@@ -202,18 +165,18 @@ class ReadCount:
         for i in range(0,len(self.filteredST)):
             indexST=self.filteredST[i]
             trueFolder="{0}/{1:0{2}d}".format(\
-                self.readcountTrueFolder,\
+                self.readcountTrueFolderPath,\
                 indexST,\
                 self.numSpeciesTreesDigits)
+            self.appLogger.debug("{0}|{1}".format(i, self.filteredST[i]))
             sampledFolder="{0}/{1:0{2}d}".format(\
-                self.readcountSampledFolder,\
+                self.readcountSampledFolderPath,\
                 indexST,\
                 self.numSpeciesTreesDigits)
             references="{0}/{1:0{2}d}".format(\
-                self.referencesFolder,\
+                self.referencesFolderPath,\
                 indexST,\
-                self.numSpeciesTreesDigits
-            )
+                self.numSpeciesTreesDigits)
             try:
                 os.makedirs(trueFolder)
                 self.appLogger.info("Generating output folder ({0})".format(trueFolder))
@@ -230,59 +193,33 @@ class ReadCount:
             except:
                 self.appLogger.debug("Output folder exists ({0})".format(references))
 
-    """
-    @function:
-        computeCoverageMatrix(self, nInds, nLoci,expCov, indCov, locCov):
-    @description:
-        Computes coverage matrix for a whole replicate
-    @intput:
-        nInds: number of individuals
-        nLoci: number of loci
-        expCov: NGSPhyDistribution object used for experiment-wide coverage
-        indCov: NGSPhyDistribution object used for individual-specific coverage
-        locCov: NGSPhyDistribution object used for locus-specific coverage
-    @output:
-        covMatrix: nInds (rows) x nLoci (columns)
-    """
-    def computeCoverageMatrix(self, nInds, nLoci,expCov, indCov, locCov):
-        self.appLogger.debug("computeCoverageMatrix(self, nInds, nLoci,expCov, indCov, locCov)")
-        self.appLogger.debug("Computing coverage matrix")
+
+    def retrieveCoverageMatrix(self, indexST):
+        self.appLogger.debug("Retrieving coverage matrix")
         # coverage matrix per ST - row:indv - col:loci
         # each cov introduced as parameter is a NGSPhyDistribution
-        covMatrix=np.zeros(shape=(nInds, nLoci))
-        for loc in range(0,nLoci):
-            for ind in range(0,nInds):
-                expc=0;indc=0;locc=0
-                expc=expCov.value(1)[0]
-                coverage=expc
-                if (indCov):
-                    indCov.updateValue(expc)
-                    indc=indCov.value(1)[0]
-                    coverage=indc
-                if (locCov):
-                    locCov.updateValue(indc)
-                    locc=locCov.value(1)[0]
-                    coverage=locc
-                covMatrix[ind][loc]=coverage
-        return covMatrix
+        coverageMatrixFilename=os.path.join(\
+            self.coverageFolderPath,\
+            "{0}.{1:0{2}d}.coverage.csv".format(\
+                self.settings.projectName,\
+                indexST,\
+                self.numSpeciesTreesDigits\
+            )
+        )
 
-    """
-    @function:
-        writeCoverageMatrixIntoFile(self, coverageMatrix, filename):
-    @description:
-        Write coverageMatrix into filename
-    @intput:
-        coverageMatrix: computed by - computeCoverageMatrix()
-        filename: path of the file where the coverageMatrix will be stored
-    @result:
-        file will be generated in the given apth
-    """
-    def writeCoverageMatrixIntoFile(self, coverageMatrix, filename):
-        self.appLogger.debug("writeCoverageMatrixIntoFile(self, coverageMatrix, filename)")
-        filepath=os.path.abspath(filename)
-        with open(filepath, 'w') as csvfile:
-            writer = csv.writer(csvfile)
-            [writer.writerow(r) for r in coverageMatrix]
+        coverageMatrix=np.zeros(shape=(self.numIndividualsPerSpeciesTree[indexST-1], self.numLociPerSpeciesTree[indexST-1]))
+        firstLine=True; counter=0
+        with open(coverageMatrixFilename, 'rb') as csvfile:
+            coveragereader = csv.reader(csvfile, delimiter=',')
+            for row in coveragereader:
+                if firstLine:
+                    firstLine=False
+                else:
+                    coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
+                    counter+=1
+                if not counter < self.numIndividualsPerSpeciesTree[indexST-1]: break
+        return coverageMatrix
+
 
     """
     @function:
@@ -295,7 +232,7 @@ class ReadCount:
         If "None" inputted (file is missing) then reference by default is 1_0_0
         for all species tree replicates.
     @output:
-        output: list. each element of the list is a triplet (STID,SPID,TIPID)
+        output: list. each element of the list is a triplet (REPLICATEID,SPID,LOCID,GENEID)
     """
     def parseReferenceList(self, filename):
         self.appLogger.debug("parseReferenceList(self, filename)")
@@ -310,18 +247,18 @@ class ReadCount:
             for index in range(0, len(lines)):
                 d=lines[index].strip().split(",")
                 try:
-                    referenceList+=[(d[0],d[1],d[2])]
+                    referenceList+=[(d[0],d[1],d[2],d[3])]
                 except IndexError as ie:
                     self.appLogger.warning("Parsing reference list. "+\
                         "A default reference has been introduced.\n"+\
                         "Replicate index: {0}".format(\
-                        index
+                        (index+1)
                     ))
-                    referenceList+=[(index+1,1,0)]
+                    referenceList+=[(index+1,1,0,0)]
         else:
             # iterate get a list with same decription for all species trees
             for item in range(0,self.numSpeciesTrees):
-                referenceList+=[(item+1,1,0)]
+                referenceList+=[(item+1,1,0,0)]
         return referenceList
 
     """
@@ -402,13 +339,16 @@ class ReadCount:
                 for row in d:
                     individuals[str(row["indID"])] = {\
                         "indexST":row["indexST"],\
-                        "seqDescription":row["seqDescription"]}
+                        "speciesID":row["speciesID"],\
+                        "locusID":row["locusID"],\
+                        "geneID":row["geneID"]}
             if (self.settings.ploidy==2):
                 # indexST,indID,speciesID,mateID1,mateID2
                 for row in d:
                     individuals[str(row["indID"])] = {\
                         "indexST":row["indexST"],\
                         "speciesID":row["speciesID"],\
+                        "locusID":row["locusID"],\
                         "mateID1":row["mateID1"],\
                         "mateID2":row["mateID2"]}
             csvfile.close()
@@ -439,7 +379,7 @@ class ReadCount:
                 numVarSites,\
                 startingCoverage
             ))
-        distro=ngsphydistro(0,"nb:{0},{1}".format(startingCoverage,startingCoverage), None,False)
+        distro=ngsphydistro("nb",[startingCoverage,startingCoverage])
         DP=distro.value(numVarSites)
         return DP
 
@@ -458,13 +398,13 @@ class ReadCount:
     def getHaploidIndividualSequence(self,msa,ind):
         # ind: [indID,indexST,seqDescription]
         self.appLogger.debug("getHaploidIndividualSequence(self,msa,ind)")
-        seqSize=len(msa[str(1)][str(0)]['sequence'])
+        seqSize=len(msa["{0}_{1}".format(str(1),str(0))][str(0)]['sequence'])
         fullInd=None; speciesID=None; tipID=None; tmp=None
         fullInd=np.chararray(shape=(1,seqSize), itemsize=1)
-        seqDescription=ind["seqDescription"].strip().split("_")
-        speciesID=seqDescription[0]
-        tipID=seqDescription[2]
-        tmp=list(msa[str(speciesID)][str(tipID)]['sequence'])
+        speciesID=ind["speciesID"].strip()
+        locusID=ind["locusID"].strip()
+        tipID=ind["geneID"].strip()
+        tmp=list(msa["{0}_{1}".format(str(speciesID), str(locusID))][str(tipID)]['sequence'])
         fullInd=[item for item in tmp]
         return fullInd
 
@@ -482,15 +422,17 @@ class ReadCount:
     def getDiploidIndividualSequence(self,msa,ind):
         # ind:[indID, indexST,speciesID, mateID1,mateID2]
         self.appLogger.debug("getDiploidIndividualSequence(self,msa,ind)")
-        seqSize=len(msa[str(1)][str(0)]['sequence'])
+        seqSize=len(msa["1_0"][str(0)]['sequence'])
         fullInd=None;  tmp=None
         speciesID=ind["speciesID"];
+        locusID=ind["locusID"];
         tipID1=ind["mateID1"];
         tipID2=ind["mateID2"];
+        geneFamily="{0}_{1}".format(speciesID,locusID)
         fullInd=np.chararray(shape=(2,seqSize), itemsize=1)
-        tmp=list(msa[str(speciesID)][str(tipID1)]['sequence'])
+        tmp=list(msa[geneFamily][str(tipID1)]['sequence'])
         fullInd[0,:]=[item for item in tmp]
-        tmp=list(msa[str(speciesID)][str(tipID2)]['sequence'])
+        tmp=list(msa[geneFamily][str(tipID2)]['sequence'])
         fullInd[1,:]=[item for item in tmp]
         return fullInd
 
@@ -536,11 +478,14 @@ class ReadCount:
         # TRUE
         ########################################################
         # iterate over individuals
+
         self.appLogger.debug("True")
         altInd=copy.copy(alt)
         for indIndex in range(0,nInds):
             indexIND=str(indIndex)
-            self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
+            self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
+                indexST, indexGT,
+                indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
             individualSeq=self.getHaploidIndividualSequence(msa,ind)
             # individualSeq[202]+="**"
@@ -562,6 +507,7 @@ class ReadCount:
             HTGeneral[indexIND]=HTTrue
             HLGeneral[indexIND]=HLTrue
 
+
         # here corresponds to the INDEXST that is going to be written
         self.writeVCFFile(\
             indexST,indexGT,\
@@ -579,15 +525,13 @@ class ReadCount:
             self.appLogger.info("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
             individualSeq=self.getHaploidIndividualSequence(msa,ind)
-            HTSampled=self.gettingHaplotype(\
+            HTGeneralSampled[indexIND]=self.gettingHaplotype(\
                 referenceSeqFull,individualSeq,\
                 altInd, variableSitesPositionIndices)
-            HLSampled=self.haplotypeLikehood(\
+            HLGeneralSampled[indexIND]=self.haplotypeLikehood(\
                 rcsSampled[indexIND],\
                 variableSitesPositionIndices,\
-                self.seqerror)
-            HTGeneralSampled[indexIND]=HTSampled
-            HLGeneralSampled[indexIND]=HLSampled
+                self.settings.seqerror)
 
         self.writeVCFFile(
             indexST,indexGT,\
@@ -595,6 +539,34 @@ class ReadCount:
             altInd,variableSitesPositionIndices,\
             HTGeneralSampled,HLGeneralSampled,\
             ADGeneralSampled,DP,False)
+        # f=open("test_run.hap.txt","a")
+        # for indexIND in range(0,nInds):
+        #     for indVar in range(0,len(variableSitesPositionIndices)):
+        #         pos=variableSitesPositionIndices[indVar]
+        #         indexIND=str(indexIND)
+        #         f.write("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16},{17},{18},{19},{20}".format(\
+        #             indexST,\
+        #             indexGT,\
+        #             indexIND,\
+        #             indVar,\
+        #             ADGeneral[indexIND][0,indVar],\
+        #             ADGeneral[indexIND][1,indVar],\
+        #             ADGeneral[indexIND][2,indVar],\
+        #             ADGeneral[indexIND][3,indVar],\
+        #             ADGeneralSampled[indexIND][0,indVar],\
+        #             ADGeneralSampled[indexIND][1,indVar],\
+        #             ADGeneralSampled[indexIND][2,indVar],\
+        #             ADGeneralSampled[indexIND][3,indVar],\
+        #             HLGeneral[indexIND][0,indVar],\
+        #             HLGeneral[indexIND][1,indVar],\
+        #             HLGeneral[indexIND][2,indVar],\
+        #             HLGeneral[indexIND][3,indVar],\
+        #             HLGeneralSampled[indexIND][0,indVar],\
+        #             HLGeneralSampled[indexIND][1,indVar],\
+        #             HLGeneralSampled[indexIND][2,indVar],\
+        #             HLGeneralSampled[indexIND][3,indVar]
+        #         ))
+        #     f.close()
 
     """
     @function:
@@ -774,7 +746,7 @@ class ReadCount:
             ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
             ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
             # SAMPLE READ COUNT - need to know error distribution
-            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror), None,False)
+            errorDistro=ngsphydistro("b",[posCoverage,self.settings.seqerror])
             errorD=errorDistro.value(1)[0]
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
@@ -842,7 +814,9 @@ class ReadCount:
         for indIndex in range(0,nInds):
             GTTrue=dict()
             indexIND=str(indIndex)
-            self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
+            self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
+                indexST, indexGT,
+                indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
             individualSeq=self.getDiploidIndividualSequence(msa,ind)
             ADTrue,ADSampled=self.getAllelicDepthPerDiploidIndividual(\
@@ -885,7 +859,9 @@ class ReadCount:
         for indIndex in range(0,nInds):
             GTSampled=dict()
             indexIND=str(indIndex)
-            self.appLogger.debug("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
+            self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
+                indexST, indexGT,
+                indIndex,(indIndex+1),nInds))
             ind=individuals[indexIND]
             individualSeq=self.getDiploidIndividualSequence(msa,ind)
             GTSampledS0=self.gettingHaplotype(
@@ -901,7 +877,7 @@ class ReadCount:
             GLSampled=self.genotypeLikehood(\
                 rcsSampled[indexIND],\
                 variableSitesPositionIndices,\
-                self.seqerror)
+                self.settings.seqerror)
             GTGeneralSampled[indexIND]=GTSampled
             GLGeneralSampled[indexIND]=GLSampled
 
@@ -916,7 +892,7 @@ class ReadCount:
     @function:
      genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error):
     @description:
-        compute the genotype likelihoods of a specific read-count set
+        compute the genotype likelihoods of a specific ngs-read-count set
     @intput:
         variantsRC:
         variableSitesPositionIndices:
@@ -1052,7 +1028,7 @@ class ReadCount:
             indexSeq=variableSitesPositionIndices[indexVar]
             indNucStrand1=individualSeq[0,indexSeq]
             indNucStrand2=individualSeq[1,indexSeq]
-            diploidDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,0.5), None,False)
+            diploidDistro=ngsphydistro("b",[posCoverage,0.5])
             diploidCoverage=diploidDistro.value(1)[0]
             finalRC=[indNucStrand1]*(diploidCoverage)
             finalRC+=[indNucStrand2]*(posCoverage-diploidCoverage)
@@ -1061,7 +1037,7 @@ class ReadCount:
             ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
             ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
             # SAMPLE READ COUNT - need to know error distribution
-            errorDistro=ngsphydistro(0,"b:{0},{1}".format(posCoverage,self.seqerror), None,False)
+            errorDistro=ngsphydistro("b",[posCoverage,self.settings.seqerror])
             errorD=errorDistro.value(1)[0]
             errorPositions=[]
             # need to know possible nucleotides to substitute my position with error
@@ -1120,7 +1096,7 @@ class ReadCount:
                 if self.settings.ploidy==1:
                     valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
                     trueRows=self.codifySequences(valuesToCodify)
-                    htPerInd=",".join(HT[str(indexIND)][str(tmpInd)].astype(dtype=int).astype(dtype=np.str))
+                    htPerInd="{}".format(HT[str(indexIND)][str(tmpInd)])
                     hlPerInd=",".join(HL[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
                     adPerInd=",".join(AD[str(indexIND)][trueRows,indexVAR].astype(dtype=int).astype(dtype=np.str))
                 if self.settings.ploidy==2:
@@ -1210,7 +1186,7 @@ class ReadCount:
         # filename, file_extension = os.path.splitext('/path/to/somefile.ext')
         headerCols=["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"]+indnames
         # CHROM
-        numGeneTreeDigits=len(str(self.numLociPerST[(indexST-1)]))
+        numGeneTreeDigits=len(str(self.numLociPerSpeciesTree[(indexST-1)]))
         chromName="ST.{0:0{1}d}.GT.{2:0{3}d}".format(indexST,\
             self.numSpeciesTreesDigits,\
             indexGT,\
@@ -1236,7 +1212,7 @@ class ReadCount:
         # format
         FORMAT=["GT:GL:AD:DP"]*nVariants
         # extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
-        nLoci=self.numLociPerST[indexST-1]
+        nLoci=self.numLociPerSpeciesTree[indexST-1]
         numGeneTreeDigits=len(str(nLoci))
         allVariants=self.formatIndividualDataForVCF(\
             REF,alt,variableSitesPositionIndices,HT,HL,AD,DP)
@@ -1244,8 +1220,8 @@ class ReadCount:
         # flag true=true  - Flag false= sampled
         if flag:
             outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}_TRUE.vcf".format(\
-                self.readcountTrueFolder,\
-                self.dataprefix,
+                self.readcountTrueFolderPath,\
+                self.settings.dataPrefix,
                 indexST,\
                 self.numSpeciesTreesDigits,\
                 indexGT,\
@@ -1253,8 +1229,8 @@ class ReadCount:
             )
         else:
             outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}.vcf".format(\
-                self.readcountSampledFolder,\
-                self.dataprefix,
+                self.readcountSampledFolderPath,\
+                self.settings.dataPrefix,
                 indexST,\
                 self.numSpeciesTreesDigits,\
                 indexGT,\
@@ -1341,7 +1317,7 @@ class ReadCount:
 
     """
     @function:
-        writeReference(self,indexST,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):
+        writeReference(self,indexST,indexGT,referenceSpeciesID,referenceLocusID,referenceTipID,referenceSeqFull):
     @description:
         write reference sequence file separately
     @intput:
@@ -1353,24 +1329,25 @@ class ReadCount:
     @output:
         filepath where the reference will be written.
     """
-    def writeReference(self,indexST,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):
+    def writeReference(self,indexST,indexGT,referenceSpeciesID,referenceLocusID,referenceTipID,referenceSeqFull):
         self.appLogger.debug(" writeReference(self,indexST,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):")
         referenceFilepath="{0}/{3:{4}}/{1}_{2}_REF_{3:0{4}d}_{5:0{6}d}.fasta".format(\
-            self.referencesFolder,\
-            self.projectName,\
-            self.dataprefix,\
+            self.referencesFolderPath,\
+            self.settings.projectName,\
+            self.settings.dataPrefix,\
             indexST,\
             self.numSpeciesTreesDigits,\
             indexGT,\
-            len(str(self.numLociPerST[(indexST-1)]))\
+            len(str(self.numLociPerSpeciesTree[(indexST-1)]))\
         )
-        description=">REFERENCE:{0}:ST.{1:{2}}:GT.{3:{4}}:{5}_0_{6}".format(\
-            self.dataprefix,\
+        description=">REFERENCE:{0}:ST.{1:{2}}:GT.{3:{4}}:{5}_{6}_{7}".format(\
+            self.settings.dataPrefix,\
             indexST,\
             self.numSpeciesTreesDigits,\
-            self.numLociPerST[(indexST-1)],\
-            len(str(self.numLociPerST[(indexST-1)])),\
+            self.numLociPerSpeciesTree[(indexST-1)],\
+            len(str(self.numLociPerSpeciesTree[(indexST-1)])),\
             referenceSpeciesID,\
+            referenceLocusID,\
             referenceTipID\
         )
         f=open(referenceFilepath,"w")
@@ -1380,19 +1357,22 @@ class ReadCount:
         ))
         return referenceFilepath
 
+
+
     def launchCommand(self, referenceForCurrST, indexST,indexGT, individuals,coverageMatrix):
         try:
             self.appLogger.debug("launchCommand(self, referenceList, indexST,indexGT, individuals,coverageMatrix")
             tStartTime=datetime.datetime.now()
             numIndividuals=len(individuals.keys())
-            nLoci=self.numLociPerST[indexST-1]
+            nLoci=self.numLociPerSpeciesTree[indexST-1]
             self.appLogger.debug("Iterating over nLoci: {0}/{1}".format(indexGT,nLoci))
             numGeneTreeDigits=len(str(nLoci))
-            filepathLoc="{0}/{1:0{2}d}/{3}_{4:0{5}d}.fasta".format(\
-                self.path,\
+            filepathLoc="{0}/{1}/{2:0{3}d}/{4}_{5:0{6}d}.fasta".format(\
+                self.settings.path,\
+                self.settings.projectName,\
                 indexST,\
                 self.numSpeciesTreesDigits,\
-                self.dataprefix,\
+                self.settings.dataPrefix,\
                 indexGT,\
                 numGeneTreeDigits\
             )
@@ -1408,15 +1388,17 @@ class ReadCount:
             #                   content={description,sequence}
             msa=parseMSAFile(filepathLoc)
             # indices to get the sequence of the REFERENCE!
+            tag="{0}_{1}".format(referenceForCurrST[1],referenceForCurrST[2])
             referenceSpeciesID=str(referenceForCurrST[1])
-            referenceTipID=str(referenceForCurrST[2])
-            referenceSeqFull=msa[referenceSpeciesID][referenceTipID]['sequence']
+            referenceLocusID=str(referenceForCurrST[2])
+            referenceTipID=str(referenceForCurrST[3])
+            referenceSeqFull=msa[tag][referenceTipID]['sequence']
             referenceFilepath=self.writeReference(\
                 indexST,indexGT,\
-                referenceSpeciesID,referenceTipID,\
+                referenceSpeciesID,referenceLocusID,referenceTipID,\
                 referenceSeqFull)
             # Coverage per SNP is the same for both true/sampled dataset
-            self.appLogger.debug("Species tree: {0}\t Locus: {1}\t - Getting coverage per individual per variant".format(\
+            self.appLogger.info("Species tree: {0}\t Locus: {1}\t - Getting coverage per individual per variant".format(\
                 indexST,\
                 indexGT
             ))
@@ -1441,8 +1423,8 @@ class ReadCount:
             ETA=(tEndTime-tStartTime).total_seconds()
             # row['indexST'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
             outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}*".format(\
-                            self.readcountTrueFolder,\
-                            self.dataprefix,
+                            self.readcountTrueFolderPath,\
+                            self.settings.dataPrefix,
                             indexST,\
                             self.numSpeciesTreesDigits,\
                             indexGT,\
@@ -1462,90 +1444,67 @@ class ReadCount:
             # generating folder structure for this part
             self.generateFolderStructureDetail()
             # Get list of reference sequences
-            referenceList=self.parseReferenceList(self.refereceFilepath)
+            referenceList=self.parseReferenceList(self.settings.readCountsReferenceFilePath)
             nSTS=len(self.filteredST)
             # iterate over the "iterable" species trees / filtered STs
             self.appLogger.info("Running...")
-            nProcesses=sum(self.numLociPerST)
+            nProcesses=sum([self.numLociPerSpeciesTree[item-1] for item in self.filteredST])
             currProcessesRunning=1
+            pool=multiprocessing.Pool(self.settings.numThreads)
+
+            filepathIndividualsRelations=[\
+                "{0}/tables/{1}.{2:0{3}d}.individuals.csv".format(\
+                self.settings.outputFolderPath,\
+                self.settings.projectName,\
+                indexST,\
+                self.numSpeciesTreesDigits)\
+            for indexST in self.filteredST]
+
+            individualsList=[self.parseIndividualRelationFile(singlefile) for singlefile in filepathIndividualsRelations]
+            numIndividualsList=[len(item.keys()) for item in individualsList]
+            coverageMatrices=[self.retrieveCoverageMatrix(indexST) for indexST in self.filteredST]
+            nLociList=[self.numLociPerSpeciesTree[item-1] for item in self.filteredST]
+            ARGS=[(referenceList[item],\
+                self.filteredST[item],\
+                nLociList[item],\
+                individualsList[item],\
+                coverageMatrices[item])\
+            for item in range(0,nSTS)]
+
             for indexFilterST in range(0,nSTS):
-                try:
-                    indexST=self.filteredST[indexFilterST] # Get Proper ID for ST
-                    nLoci=self.numLociPerST[indexST-1]
-                    self.appLogger.debug(\
-                        "Iterating over filteredST: {0} ({1}/{2})".format(\
-                            indexST,\
-                            (indexFilterST+1),\
-                            len(self.filteredST)\
-                    ))
-                    # need the "Individual-description relation" file per species tree
-                    # to generate individuals
-                    filepathIndividualsRelation=\
-                        "{0}/tables/{1}.{2:0{3}d}.individuals.csv".format(\
-                            self.output,\
-                            self.projectName,\
-                            indexST,\
-                            self.numSpeciesTreesDigits
+                indexST=self.filteredST[indexFilterST] # Get Proper ID for ST
+                nLoci=nLociList[indexFilterST]
+                self.appLogger.debug("Number of individuals: {0}".format(numIndividualsList[indexFilterST]))
+                self.appLogger.debug("Number of loci: {0}".format(nLoci))
+                indexGT=1
+                threadsToBeRan=nLoci
+                while indexGT < (nLoci+1):
+                    # for indexGT in range(1,(nLoci+1)):
+                    jobs=[]
+                    for item in range(0,min(self.settings.numThreads, threadsToBeRan)):
+                        self.appLogger.debug("WAITING BETWEEN ROUNDS")
+                        progress=((currProcessesRunning*100)*1.0)/(nProcesses+1)
+                        currProcessesRunning+=1
+                        sys.stdout.write("Progress {0:02.1f} %\r".format(progress))
+                        sys.stdout.flush()
+                        time.sleep(0.2)
+                        t = multiprocessing.Process(\
+                            target=self.launchCommand,\
+                            args=(\
+                                referenceList[indexST-1],\
+                                indexST,\
+                                indexGT,\
+                                individualsList[indexFilterST],\
+                                coverageMatrices[indexFilterST])\
                         )
-                    # Parse the file to get individual relation
-                    # is a dictionary
-                    # if ploidy=1: key: indID, content (also a dict): indexST,seqDEscription
-                    # if ploidy=2: key: indID, content (also a dict): indexST,speciesID, mateID1,mateID2
-                    individuals=self.parseIndividualRelationFile(filepathIndividualsRelation)
-                    # I need information for the generation of the coverage MATRIX
-                    # for this ST
-                    numIndividuals=len(individuals.keys())
-                    self.appLogger.debug("Number of individuals: {0}".format(numIndividuals))
-
-                    self.appLogger.debug("Number of loci: {0}".format(nLoci))
-                    coverageMatrix=self.computeCoverageMatrix(\
-                        numIndividuals,nLoci,\
-                        self.experimentCoverageDistro,\
-                        self.individualCoverageDistro,\
-                        self.locusCoverageDistro)
-                    coverageMatrixFilename="{0}/coverage/{1}.{2:0{3}d}.csv".format(\
-                        self.output,\
-                        self.projectName,\
-                        indexST,\
-                        self.numSpeciesTreesDigits\
-                    )
-                    self.writeCoverageMatrixIntoFile(coverageMatrix,coverageMatrixFilename)
-                    # Iterate over the LOCI of this ST
-                    referenceForCurrST=referenceList[(indexST-1)] # get proper index for current INDEXST
-                    barrier=threading.Semaphore(nLoci)
-                    indexGT=1
-                    while indexGT < (nLoci+1):
-                        # for indexGT in range(1,(nLoci+1)):
+                        t.daemon=True
+                        jobs.append(t)
+                        t.start()
+                        indexGT+=1
                         threadsToBeRan=(nLoci+1)-indexGT
-                        jobs=[]
-                        for item in range(0,min(self.settings.numThreads, threadsToBeRan)):
-                            progress=((currProcessesRunning*100)*1.0)/(nProcesses+1)
-                            currProcessesRunning+=1
-                            sys.stdout.write("Progress {0:02.1f} %\r".format(progress))
-                            sys.stdout.flush()
-                            time.sleep(0.2)
-                            t = multiprocessing.Process(\
-                                target=self.launchCommand,\
-                                args=(\
-                                    referenceForCurrST,\
-                                    indexST,\
-                                    indexGT,\
-                                    individuals,\
-                                    coverageMatrix)\
-                            )
-                            t.daemon=True
-                            jobs.append(t)
-                            t.start()
-                            indexGT+=1
-                        for j in jobs:
-                            j.join()
 
-                except Exception as ex:
-                    print "OOOOPS!: \t",ex
-                    exc_type, exc_obj, exc_tb = sys.exc_info()
-                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    print(exc_type, fname, exc_tb.tb_lineno)
-                    sys.exit()
+                    for j in jobs:
+                        j.join()
 
         except ValueError as ve:
             # If there's a wrong ploidy inserted.
@@ -1555,12 +1514,9 @@ class ReadCount:
             # One of the files is not fasta.
             status=False
             message=te
+        except Exception as ex:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            message="{0} | {1} - File: {2} - Line:{3}".format(ex,exc_type, fname, exc_tb.tb_lineno)
+            status=False
         return status,message
-
-# try:
-# except Exception as ex:
-#     print "OOOOPS!: \t",ex
-#     exc_type, exc_obj, exc_tb = sys.exc_info()
-#     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-#     print(exc_type, fname, exc_tb.tb_lineno)
-#     sys.exit()

@@ -5,6 +5,7 @@ import numpy as np
 import random as rnd
 from scipy.stats import  binom,expon,gamma,lognorm,norm,nbinom,poisson,uniform
 
+
 class NGSPhyDistribution:
 
     __relationNumParams=dict({\
@@ -21,15 +22,13 @@ class NGSPhyDistribution:
     })
     __DISTRIBUTIONS=__relationNumParams.keys()
     __value=0
-    __flag=False
     __params=[]
     __distro=""
     __type=None
     __upperLevelDistribution=None
 
-    def __init__(self,type,distroline,upperLevelDistribution,flag):
+    def __init__(self,type,distroline,upperLevelDistribution):
         self.__type=type
-        self.__flag=False
         distroline=distroline.split(":")
         self.__upperLevelDistribution=upperLevelDistribution
         # i depend on another level value
@@ -40,7 +39,6 @@ class NGSPhyDistribution:
                 # distribution has only 1 param and it comes
                 # from the upperLevelDistribution
                 self.__distro=distroline[0].lower()
-                self.__params=self.__upperLevelDistribution.value(1)
             if (len(distroline)==2):
                 # i have name and a parameter,
                 # meaning, first para comes from above
@@ -51,12 +49,18 @@ class NGSPhyDistribution:
                     self.__params=[value,value]
                 else:
                     self.__params=[value,\
-                        distroline[1].split(",")[0]]
+                        float(distroline[1].split(",")[0])]
         else:
             self.__distro=distroline[0].lower()
             self.__params=distroline[1].split(",") or []
         if flag:
             self.coverageDistroCheck()
+
+    def setValue(self,value):
+        self.__value=value
+
+    def setParams(self,params):
+        self.__params=params
 
     def params(self):
         return self.__params
@@ -67,8 +71,9 @@ class NGSPhyDistribution:
     def binom(self,samples):
         #n=number of times tested
         #p=probability
-        n=float(self.__params[0])
-        p=float(self.__params[1])
+        print self.__params
+        n=self.__params[0]
+        p=self.__params[1]
         distro=binom(n,p)
         f=distro.rvs(size=samples)
         self.__value=f
@@ -116,7 +121,7 @@ class NGSPhyDistribution:
         # which approaches the Poisson for large r, but which has larger variance than the Poisson for small r.
         mu=float(self.__params[0])
         r=float(self.__params[1])
-        p=(mu*1.0)/(mu+r)
+        p=(r*1.0)/(r+mu)
         distro=nbinom(r,p)
         f=distro.rvs(size=samples)
         self.__value=f
@@ -189,16 +194,11 @@ class NGSPhyDistribution:
 
     def value(self,samples=1):
         try:
-            index=0; item=self.__params[0]
-            while (item !=0) and (index < len (self.__params)):
-                index+=1
-                item=self.__params[index]
-            # if there is any parameter that's a 0, i cannot sample from that
-            # i forced then all parameters to be 0, then return a list of fixed values
+            for item in self.__params:
+                if item==0:
+                    break
             if item==0:
-                for index in range(0,len(self.__params)):
-                    self.__params[index]=0
-                self.fixed(samples)
+                self.__value=[0]*samples
             else:
                 if self.__distro=="b":
                     self.binom(samples)
@@ -218,7 +218,6 @@ class NGSPhyDistribution:
                     self.poisson(samples)
                 if self.__distro=="u":
                     self.uniform(samples)
-
         except Exception as ex:
             print "OOOOPS!: \t",ex
             exc_type, exc_obj, exc_tb = sys.exc_info()
