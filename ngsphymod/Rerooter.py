@@ -28,12 +28,11 @@ class Rerooter:
             self.tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
         except Exception as ex:
             return False, ex
-
-        print(self.tree.as_ascii_plot())
+        # print(self.tree.as_ascii_plot())
         newroot = self.tree.find_node_with_taxon_label(self.settings.referenceTipLabel)
         if newroot:
             self.tree.reroot_at_edge(newroot.edge, update_bipartitions=False)
-            print(self.tree.as_ascii_plot())
+            # print(self.tree.as_ascii_plot())
         else:
             return False, "{0}\n\t{1}\n\t{2}".format(\
             "Rerooting problem.",\
@@ -42,20 +41,17 @@ class Rerooter:
             )
 
         leaves=[node.taxon.label for node in self.tree.leaf_node_iter() if not node.taxon.label in [self.settings.referenceTipLabel, "1_0_1"]]
-        print(leaves)
+        # print(leaves)
         try:
             mrca=self.tree.mrca(taxon_labels=leaves)
             self.tree.prune_taxa_with_labels([self.settings.referenceTipLabel])
-            print(self.tree.as_ascii_plot())
+            # print(self.tree.as_ascii_plot())
             for item in self.tree.leaf_node_iter():
                 if self.tree.seed_node==item.parent_node:
                     print(item.taxon.label)
                     item.taxon.label="0_0_0"
                     print(item.taxon.label)
-            print(self.tree.as_ascii_plot())
-            
-
-
+            # print(self.tree.as_ascii_plot())
         except Exception as ex:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

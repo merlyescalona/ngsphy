@@ -88,7 +88,7 @@ class SequenceGenerator:
             except:
                 leavesDict[geneFamily]=1
         for item in leavesDict:
-            print(item,leavesDict[item])
+            self.appLogger.debug("{0} - {1}".format(item,leavesDict[item]))
             if not leavesDict[item] % self.settings.ploidy == 0:
                 messageWrong+="{0}\n\t{1}".format(\
                 "The number of gene copies within one of the gene families does not match the ploidy selected for this run.",\
@@ -99,7 +99,7 @@ class SequenceGenerator:
 
     def writeIndelibleControlFile(self):
         self.appLogger.debug("Writing new control file")
-        print self.settings.ngsphyIndelibleControlFilePath
+        self.appLogger.debug("Given INDELible control file: ".format(self.settings.ngsphyIndelibleControlFilePath))
         f=open(self.settings.ngsphyIndelibleControlFilePath,"r")
         lines=f.readlines()
         f.close()
@@ -115,8 +115,6 @@ class SequenceGenerator:
                 modelname=line.split()[1]
 
         newlines=copy.copy(lines)
-        # for item in newlines:
-            # print item
         for item in newlines:
             if item.strip().startswith("[NGSPHY"):
                 break
@@ -128,7 +126,7 @@ class SequenceGenerator:
         newicktree=[ item.strip() for item in newicklines if item.strip()!=""]
         newicktree="".join(newicktree)
         newicktree=newicktree.replace("'","")
-        print(newicktree)
+        # print(newicktree)
         if newicktree[-1]!=";":
             newicktree+=";"
         controllines+=["{0} {1} {2}".format(\

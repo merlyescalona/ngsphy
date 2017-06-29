@@ -228,7 +228,7 @@ class IndividualGenerator:
                     self.appLogger.debug("Output folder: {0}".format(outputFolder))
                     os.makedirs(outputFolder)
                 except OSError as err:
-                    print("OS error: {0}".format(err))
+                    self.appLogger.warning("OS error: {0}".format(err))
                     self.appLogger.debug("Folder {0} exists.".format(outputFolder))
                 # generating and writing mating table
                 self.mate(indexST,indexLOC,matingTable,seqDict)
@@ -265,7 +265,7 @@ class IndividualGenerator:
                     self.appLogger.debug("Output folder: {0}".format(outputFolder))
                     os.makedirs(outputFolder)
                 except OSError as err:
-                    print("OS error: {0}".format(err))
+                    self.appLogger.warning("OS error: {0}".format(err))
                     self.appLogger.debug("Folder {0} exists.".format(outputFolder))
                 # generating and writing mating table
                 self.generateIndividuals(indexST,indexLOC,individualTable,seqDict)
@@ -365,7 +365,7 @@ class IndividualGenerator:
                 self.settings.dataPrefix,\
                 1,\
                 self.numLociPerSpeciesTreeDigits[indexST-1]))
-        print filename
+        self.appLogger.debug("Reading file: {0}".format(filename))
         f=open(filename,"r")
         lines=f.readlines()
         f.close()
@@ -582,5 +582,5 @@ class IndividualGenerator:
                 status=False
         # only changeing the value if dataset has no indels and the value I'm about to change
         # is different from the value it has
-        if not self.settings.indels  and (self.settings.indels==not status):
+        if not self.settings.indels  and (not self.settings.indels== status):
             self.settings.indels=not status
