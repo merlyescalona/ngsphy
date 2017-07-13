@@ -1,0 +1,19 @@
+[TYPE] NUCLEOTIDE 1 // nucleotide simulation using algorithm from method 1
+[SETTINGS]
+  [output] FASTA
+/*
+Generating multi-partitioned datasets is achieved by simply adding more [..]
+statements to [PARTITIONS] blocks (see below). Each partition may contain
+a different [MODEL] or [BRANCHES] block, may have a different length, and may
+use a different tree. The only restriction is that random trees cannot be used
+in the same partition as [BRANCHES] blocks and the different trees must all
+have the same number of taxa (with the same taxa names).
+*/
+[MODEL] m1 // no insertions, no gamma
+  [submodel] HKY 2.5 // HKY with kappa=2.5
+  [statefreq] 0.1 0.2 0.3 0.4 // frequencies for T C A G
+  [deletemodel] NB 0.2 4 // Pascal deletion distribution (q=0.2, r=4)
+  [deleterate] 0.13 // rate of deletion (substitution rate = 1)
+
+[NGSPHYPARTITION] t1 m1 1000
+[NGSPHYEVOLVE] 10 data

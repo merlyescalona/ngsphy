@@ -1,0 +1,16 @@
+ñ[general]
+path=/home/merly/git/ngsphy/test
+project_name=test_wrapper
+ploidy=1
+[data]
+origin=1
+data_prefix = data
+
+[coverage]
+experiment=F:10
+[ngs-read-count]
+error=0.1
+[execution]
+environment = bash
+run = on
+threads=4

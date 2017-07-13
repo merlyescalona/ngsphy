@@ -1,0 +1,72 @@
+section1={\
+  "simphy_folder":"simphyfolder",\
+  "data_prefix":"data"\
+}
+section1={\
+  "sf" :"simphyfolder",\
+  "dp" :"data"\
+}
+section2={\
+  "amplicon":"true",\
+  "rcount ":"100",\
+  "id":"iddefault",\
+  "errfree":"false",\
+  "in":"input.fq",\
+  "len":"150",\
+  "mflen"250:"",\
+  "out":"output",\
+  "paired":"true",\
+  "quiet":"true",\
+  "sdev":"50",\
+  "samout":"true",\
+  "seqSys":"HS25"\
+}
+
+section2={\
+  "amp":"true",\
+  "c":"100",\
+  "d":"iddefault",\
+  "ef" :"false",\
+  "i":"input.fq",\
+  "l":"150",\
+  "m":"250",\
+  "o":"output",\
+  "p":"true",\
+  "q":"true",\
+  "s":"50",\
+  "sam":"true",\
+  "ss":"HS25"\
+}
+
+section2={\
+  "qprof1":"profileR1.txt",\
+  "qprof2":"profileR2.txt",\
+  "amplicon":"true",\
+  "rcount ":"100",\
+  "id":"iddefault",\
+  "errfree":"false",\
+  "in":"input.fq",\
+  "len":"150",\
+  "mflen"250:"",\
+  "out":"output",\
+  "paired":"true",\
+  "quiet":"true",\
+  "sdev":"50",\
+  "samout":"true"\
+}
+section2={\
+  "1":"profileR1.txt",\
+  "2":"profileR2.txt",\
+  "amp":"true",\
+  "c":"100",\
+  "d":"iddefault",\
+  "ef" :"false",\
+  "i":"input.fq",\
+  "l":"150",\
+  "m":"250",\
+  "o":"output",\
+  "p":"true",\
+  "q":"true",\
+  "s":"50",\
+  "sam":"true"\
+}

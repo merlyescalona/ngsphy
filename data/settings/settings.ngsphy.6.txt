@@ -1,0 +1,19 @@
+[general]
+path=/home/merly/git/ngsphy/test
+project_name=test_indelible2
+ploidy=2
+[data]
+origin=3
+indelible_control=/home/merly/git/ngsphy/test/indelible1/control.4.txt
+newick_file=/home/merly/git/ngsphy/test/indelible1/t2.tree
+reference_sequence_file=/home/merly/git/ngsphy/test/test_reference.txt
+reference_tip_label=1_0_0
+[coverage]
+experiment=F:10
+locus=LN:1.5,1
+[ngs-read-count]
+error=0.1
+[execution]
+environment = bash
+run = on
+threads=4

@@ -1,0 +1,37 @@
+paramCorrespondance={\
+  "sf" :"simphy_folder",\
+  "dp" :"data_prefix",\
+  "1":"qprof1",\
+  "2":"qprof2",\
+  "amp":"amplicon",\
+  "c":"rcount ",\
+  "d":"id",\
+  "ef" :"errfree",\
+  "f":"fcov",\
+  "h":"help",\
+  "i":"in",\
+  "ir":"insRate",\
+  "ir2":"insRate2",\
+  "dr":"delRate",\
+  "dr2":"delRate2",\
+  "k":"maxIndel",\
+  "l":"len",\
+  "m":"mflen",\
+  "mp":"matepair",\
+  "M":"cigarM",\
+  "nf":"maskN",\
+  "na":"noALN",\
+  "o":"out",\
+  "p":"paired",\
+  "q":"quiet",\
+  "qU":"maxQ",\
+  "qs":"qShift",\
+  "qL":"minQ",\
+  "qs2":"qShift2",\
+  "rs":"rndSeed",\
+  "s":"sdev",\
+  "sam":"samout",\
+  "sp":"sepProf",\
+  "ss":"seqSys"\
+}
+# the order given in values() is the same order given in keys()
