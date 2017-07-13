@@ -1,0 +1,19 @@
+[general]
+simphy_folder = /home/merly/git/sim-gene-editing/report/data/sge/
+data_prefix = AG_data
+[ngs-reads-art]
+1=profileR1.txt
+2=profileR2.txt
+amp=true
+c=100
+d=iddefault
+ef=false
+l=150
+m=250
+p=true
+q=true
+s=50
+sam=true
+[execution]
+environment=sge
+run=false

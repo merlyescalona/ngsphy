@@ -1,0 +1,12 @@
+[TYPE] NUCLEOTIDE 1
+[SETTINGS]
+    [fastaextension] fasta
+
+[SIMPHY-UNLINKED-MODEL] csSim_unlinked
+    [submodel] GTR $(rd:20,2,4,6,8,16)
+    [statefreq] $(d:1,1,1,1)
+[rates] 0 $(e:10000000) 0
+
+[SIMPHY-PARTITIONS] csSimUnlinked [1 csSim_unlinked 500]
+
+[SIMPHY-EVOLVE] 1 data

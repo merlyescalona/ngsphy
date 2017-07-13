@@ -1,0 +1,18 @@
+[general]
+simphy_folder = test/test_wrapper
+data_prefix = data
+[ngs-reads-art]
+amp=true
+c=100
+d=iddefault
+ef=false
+l=150
+m=250
+p=true
+q=true
+s=50
+sam=true
+[execution]
+environment = bash
+run = on
+threads=2

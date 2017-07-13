@@ -1,0 +1,25 @@
+[general]
+data_prefix = data
+project_name= test_wrapper
+path= /home/merly/git/ngsphy/test/
+ploidy=2
+[data]
+origin=simphy
+[coverage]
+expCov=F:10
+[ngs-reads-art]
+amp=true
+c=100
+d=iddefault
+ef=false
+l=100
+m=250
+p=true
+q=true
+s=50
+sam=true
+ss=HS20
+[execution]
+environment=bash
+run=on
+threads=1

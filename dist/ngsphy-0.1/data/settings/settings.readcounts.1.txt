@@ -1,0 +1,12 @@
+[general]
+simphy_folder = test/test_wrapper
+data_prefix = data
+ploidy=2
+[coverage]
+expCov=F:10
+[read-count]
+error=0.1
+[execution]
+environment = bash
+run = on
+threads=4
