@@ -34,17 +34,13 @@ not_captured
 
 experiment = # Expected coverage for experiment. Follows distribution.
 # Each value sampled will be used for base coverage of a replicate.
-locus =  # Follows distribution.  Expected coverage distribution per locus.
-individual = # Follows distribution.  Expected coverage distribution per individual.
-
-hp locus = # Follows distribution. Parameter that will described shape of a Gamma distribution with mean 1. Used as a multiplier locus-wide.  
+locus = # Follows distribution. Parameter that will described shape of a Gamma distribution with mean 1. Used as a multiplier locus-wide.  
 # Parameters for the alpha shape are sampled per replicate. Gamma is sampled per number of loci.
-hp individual  # Follows distribution. Parameter that will described shape of a Gamma distribution with mean 1. Used as a multiplier individual-wide.  
+individual  # Follows distribution. Parameter that will described shape of a Gamma distribution with mean 1. Used as a multiplier individual-wide.  
 # Parameters for the alpha shape are sampled per replicate. Gamma is sampled per number of individuals.
 
 phylogenetic decay = +[ID,COV_PER]
 # (Species ID, Percentage of coverage related to expected) (If used, at least 1	)
-
 
 [ngs-read-counts]
 error = # Sequencing error rate for the read counts. Fixed for all variable sites.
@@ -55,7 +51,7 @@ reference = # Label of the tip that will be used as reference to describe the va
 # If there is no reference label,  tip 1_0_0 will be used as a reference by default.
 
 [ngs-reads-art]
-all art parameters but I/O and coverage related.
+all art parameters but not I/O and coverage related.
 
 [execution]
 environment = bash | sge | slurm

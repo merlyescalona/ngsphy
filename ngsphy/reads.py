@@ -5,11 +5,19 @@ from coverage import NGSPhyDistribution as ngsphydistro
 import settings as sp
 
 class RunningInfo(object):
+	"""
+	Class for the storage of running time information of ARTIllumina Class
+	Separated to be able to be used by several threads.
+	"""
 	def __init__(self):
 		# self.appLogger=logging.getLogger('sngsw')
 		self.lock = threading.Lock()
 		self.value = []
+
 	def addLine(self, line):
+		"""
+		Adds a line to the running information estructure
+		"""
 		# self.appLogger.debug('Waiting for lock')
 		self.lock.acquire()
 		try:
@@ -20,6 +28,25 @@ class RunningInfo(object):
 			self.lock.release()
 
 class ARTIllumina:
+	"""
+	Class for the generation of Illumina reads with the ART simulator.
+	----------------------------------------------------------------------------
+	Attributes:
+	- CONSTANT: __SHORT_NAMES: all available coded-short parameters of the ART simulator
+	- CONSTANT: __LONG_NAMES: all available  coded parameters of the ART simulator
+
+	Technicallity. Parsing the simulator parameters from the settings file
+	returns all of them into lower cases, in order to be able to compare them
+	was necessarty to create these variable. Special cases are handled separate.
+
+	- CONSTANT: __dLONG_NAMESHORT_NAMES: coded-short parameters of the ART simulator.
+	- CONSTANT: __dLONG_NAMES: coded parameters of the ART simulator
+
+	- params: final parameters used in the read simulation
+	- commands: list of all the generated commands for the call of the ART simulator
+	- numFiles: number of files that will be used for the simulation
+
+	"""
 	__SHORT_NAMES=["sf" ,"dp","ploidy","ofn","1","2","amp","c","d","ef","f","h","i",\
 				"ir","ir2","dr","dr2","k","l","m","mp","M","nf","na",\
 				"o","p","q","qU","qs","qL","qs2","rs","s","sam","sp","ss"]
@@ -36,25 +63,20 @@ class ARTIllumina:
 	commands=[]	 # Init of all the commands that will be generated
 	numFiles=0
 
-	# file path related variables
-	individualsFolderName="individuals"
-	coverageFolderPath=""
-	readsFolderPath=""
-	scriptsFolderPath=""
-
+	individualsFileNameSuffix="individuals"
 
 	def __init__(self,settings):
 		self.appLogger=logging.getLogger('ngsphy')
 		self.appLogger.info('NGS read simulation: ART run started.')
 		self.settings=settings
-		self.numSpeciesTrees=self.settings.parser.getint("general","numspeciestrees")
-		self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
-		self.filteredST=[ int(numST) for numST in self.settings.parser.get("general", "filtered_ST").strip().split(",")]
-		self.numLociPerSpeciesTree=[int(numST) for numST in self.settings.parser.get("general","numLociPerSpeciesTree").split(",")]
-		self.numLociPerSpeciesTreeDigits=[ len(str(item)) for item in self.numLociPerSpeciesTree]
-		cc=self.settings.parser.get("general", "numIndividualsPerSpeciesTree").strip().split(",")
-		self.numIndividualsPerSpeciesTree=[ int(item) for item in cc if not item == ""]
-		self.numIndividualsPerSpeciesTreeDigits=[len(str(item )) for item in self.numIndividualsPerSpeciesTree]
+		self.numReplicates=self.settings.parser.getint("general","numreplicates")
+		self.numReplicateDigits=len(str(self.numReplicates))
+		self.filteredReplicates=[ int(numST) for numST in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
+		self.numLociPerReplicate=[int(numST) for numST in self.settings.parser.get("general","numLociPerReplicate").split(",")]
+		self.numLociPerReplicateDigits=[ len(str(item)) for item in self.numLociPerReplicate]
+		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
+		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
+		self.numIndividualsPerReplicateDigits=[len(str(item )) for item in self.numIndividualsPerReplicate]
 
 		dash=""; par=[]
 		settingsParams=self.settings.parser.items("ngs-reads-art")
@@ -80,69 +102,94 @@ class ARTIllumina:
 				self.params+=["{0}{1}".format(dash,par[0]),par[1]]
 
 		# generating specific folder structure
+		self.settings.coverageFolderPath=os.path.join(self.settings.outputFolderPath,"coverage")
+		self.settings.readsFolderPath=os.path.join(self.settings.outputFolderPath,"reads")
+		self.settings.scriptsFolderPath=os.path.join(self.settings.outputFolderPath,"scripts")
 		self.generateFolderStructure()
-		self.runningInfo=RunningInfo()
+		if (self.settings.runningTimes): self.runningInfo=RunningInfo()
 
 
 	def generateFolderStructure(self):
+		"""
+		Generation of basic output folder structure for this process
+		"""
 		self.appLogger.info("Creating folder structure for [ngs-reads-art]")
-		self.readsFolderPath=os.path.join(self.settings.outputFolderPath,"reads")
-		self.scriptsFolderPath=os.path.join(self.settings.outputFolderPath,"scripts")
-		self.coverageFolderPath=os.path.join(self.settings.outputFolderPath,"coverage")
 		try:
-			os.makedirs(self.readsFolderPath)
-			self.appLogger.info("Generating output folder ({0})".format(self.readsFolderPath))
+			os.makedirs(self.settings.readsFolderPath)
+			self.appLogger.info("Generating output folder ({0})".format(self.settings.readsFolderPath))
 		except:
-			self.appLogger.debug("Output folder exists ({0})".format(self.readsFolderPath))
+			self.appLogger.debug("Output folder exists ({0})".format(self.settings.readsFolderPath))
 
 		try:
-			os.makedirs(self.scriptsFolderPath)
-			self.appLogger.info("Generating output folder ({0})".format(self.scriptsFolderPath))
+			os.makedirs(self.settings.scriptsFolderPath)
+			self.appLogger.info("Generating output folder ({0})".format(self.settings.scriptsFolderPath))
 		except:
-			self.appLogger.debug("Output folder exists ({0})".format(self.scriptsFolderPath))
+			self.appLogger.debug("Output folder exists ({0})".format(self.settings.scriptsFolderPath))
 
 
 	def writeSeedFile(self):
+		"""
+		For the generation of scripts for cluster environments (Execution section,
+		options run: SGE/SLUM)
+		This generates the seed file for the calling of jobs for cluster environments.
+		"""
 		self.appLogger.debug("Start")
-		seedfile="{0}/scripts/{1}.seedfile.txt".format(\
-			self.settings.outputFolderPath,\
-			self.settings.projectName
+		seedfile=os.path.join(\
+			self.settings.scriptsFolderPath,\
+			"{0}.seedfile.txt".format(self.settings.projectName)\
 		)
 		sf=open(seedfile,"w")
-		for indexST in self.filteredST:
-			for indexST in self.filteredST:
-				csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
-					self.settings.outputFolderPath,\
-					self.settings.projectName,\
-					indexST,\
-					self.numSpeciesTreesDigits,\
-					self.individualsFolderName
-				))
+		for indexREP in self.filteredReplicates:
+			for indexREP in self.filteredReplicates:
+				csvfile=os.path.join(\
+					self.outputFolderPath,\
+					"{0}.{1:0{2}d}.{3}.csv".format(\
+						self.settings.projectName,\
+						indexREP,\
+						self.numReplicateDigits\
+						self.individualsFileNameSuffix\
+					)\
+				)
 				# Generation of folder structure
 				d = csv.DictReader(csvfile)
 				self.matingDict = [row for row in d]
 				csvfile.close()
-				for indexLOC in range(1,self.numLociPerSpeciesTree[indexST-1]+1):
+				for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 					for row in self.matingDict:
-						# indexST,indexLOC,indID,speciesID,mateID1,mateID2
-						inputFile="{0}/individuals/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}.fasta".format(\
-							self.settings.outputFolderPath,\
-							row['indexST'],\
-							indexLOC,\
-							self.numLociPerSpeciesTreeDigits[indexST-1],
-							self.settings.projectName,\
-							self.settings.dataPrefix,\
-							row['indID']\
+						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
+						inputFile=os.path.join(\
+							self.settings.individualsFolderPath,\
+							row['indexREP'],\
+							"{0:0{1}d}".format(\
+								indexLOC,\
+							 	self.numLociPerReplicateDigits[indexREP-1]
+							),\
+							"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
+								self.settings.projectName,\
+								row['indexREP'],\
+								indexLOC,\
+								self.numLociPerReplicateDigits[indexREP-1],\
+								self.settings.simphyDataPrefix,\
+								row['indID']\
+							)\
 						)
+
 						# This means, from a multiple (2) sequence fasta file.
-						outputFile="{0}/reads/{1}/{2:0{3}d}/{4}_{1}_{2:0{3}d}_{5}_{6}_R".format(\
-							self.settings.outputFolderPath,\
-							row['indexST'],\
-							indexLOC,\
-							self.numLociPerSpeciesTreeDigits[indexST-1],
-							self.settings.projectName,\
-							self.settings.dataPrefix,\
-							row['indID']\
+						outputFile=os.path.join(\
+							self.settings.readsFolderPath,\
+							row['indexREP'],\
+							"{0:0{1}d}".format(\
+								indexLOC,\
+								self.numLociPerReplicateDigits[indexREP-1]
+							),\
+							"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
+								self.settings.projectName,\
+								row['indexREP'],\
+								indexLOC,\
+								self.numLociPerReplicateDigits[indexREP-1],\
+								self.settings.simphyDataPrefix,\
+								row['indID']\
+							)\
 						)
 						sf.write("{0}\t{1}\n".format(inputFile,outputFile))
 				self.numFiles+=1
@@ -150,15 +197,21 @@ class ARTIllumina:
 		self.appLogger.info("Seed file written...")
 
 	def writeSGEScript(self):
+		"""
+		For the generation of scripts for cluster environments (Execution section,
+		options run: SGE)
+		This generates job script that will be launched in a SGE cluster.
+		"""
 		self.appLogger.debug("Start")
-		jobfile="{0}/scripts/{1}.job.sge.sh".format(\
-			self.settings.outputFolderPath,\
-			self.settings.projectName
+		jobfile=os.path.join(/
+			self.settings.scriptsFolderPath,\
+			"{0}.job.sge.sh".format(self.settings.projectName)\
 		)
+
 		j=open(jobfile,"w")
-		seedfile="{0}/scripts/{1}.seedfile.txt".format(\
-			self.settings.outputFolderPath,\
-			self.settings.projectName
+		seedfile=os.path.join(\
+			self.settings.scriptsFolderPath,\
+			"{0}.seedfile.txt".format(self.settings.project)\
 		)
 
 		inputFile="$inputfile"
@@ -181,15 +234,20 @@ outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,s
 		self.appLogger.info("SGE Job file written ({0})...".format(jobfile))
 
 	def writeSLURMScript(self):
+		"""
+		For the generation of scripts for cluster environments (Execution section,
+		options run: SLURM)
+		This generates job script that will be launched in a SLURM cluster.
+		"""
 		self.appLogger.debug("Start")
-		jobfile="{0}/scripts/{1}.job.slurm.sh".format(\
-			self.settings.outputFolderPath,\
-			self.settings.projectName
+		jobfile=os.path.join(\
+			self.settings.scriptsFolderPath,\
+			"{0}.job.slurm.sh".format(self.settings.projectName)
 		)
 		j=open(jobfile,"w")
-		seedfile="{0}/scripts/{1}.seedfile.txt".format(\
-			self.settings.outputFolderPath,\
-			self.settings.projectName
+		seedfile=os.path.join(\
+			self.settings.scriptsFolderPath,\
+			"{0}.seedfile.txt".format(self.settings.projectName)
 		)
 		inputFile="$inputfile"
 		outputFile="$outputfile"
@@ -213,20 +271,28 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		jobfile.close()
 		self.appLogger.info("SLURM Job file written ({0})...".format(jobfile))
 
-	def retrieveCoverageMatrix(self, indexST):
+	def retrieveCoverageMatrix(self, indexREP):
+		"""
+		Reads coverage matrix for a specific species tree identifier
+		------------------------------------------------------------------------
+		Parameters:
+		- indexREP:specific species tree identifier
+		Returns:
+		- coverage Matrix
+		"""
 		self.appLogger.debug("Retrieving coverage matrix")
 		# coverage matrix per ST - row:indv - col:loci
 		# each cov introduced as parameter is a NGSPhyDistribution
 		coverageMatrixFilename=os.path.join(\
-			self.coverageFolderPath,\
+			self.settings.coverageFolderPath,\
 			"{0}.{1:0{2}d}.coverage.csv".format(\
 				self.settings.projectName,\
-				indexST,\
-				self.numSpeciesTreesDigits\
+				indexREP,\
+				self.numReplicateDigits\
 			)
 		)
 
-		coverageMatrix=np.zeros(shape=(self.numIndividualsPerSpeciesTree[indexST-1], self.numLociPerSpeciesTree[indexST-1]))
+		coverageMatrix=np.zeros(shape=(self.numIndividualsPerReplicate[indexREP-1], self.numLociPerReplicate[indexREP-1]))
 		firstLine=True; counter=0
 		with open(coverageMatrixFilename, 'rb') as csvfile:
 			coveragereader = csv.reader(csvfile, delimiter=',')
@@ -236,63 +302,92 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				else:
 					coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
 					counter+=1
-				if not counter < self.numIndividualsPerSpeciesTree[indexST-1]: break
+				if not counter < self.numIndividualsPerReplicate[indexREP-1]: break
 		return coverageMatrix
 
 	def getCommands(self):
+		"""
+		Generates command lines that will be called to generate the reads
+		"""
 		self.appLogger.debug("Start")
-		for indexST in self.filteredST:
-			csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
-				self.settings.outputFolderPath,\
-				self.settings.projectName,\
-				indexST,\
-				self.numSpeciesTreesDigits,\
-				self.individualsFolderName
-			))
+		for indexREP in self.filteredReplicates:
+			csvfilename=os.path.join(\
+				self.settings.tablesFolderPath,\
+				"{0}.{1:0{2}d}.{3}.csv".format(\
+					self.settings.projectName,\
+					indexREP,\
+					self.numReplicateDigits
+					self.individualsFileNameSuffix
+				)
+			)
+			csvfile=open(csvfilename)
 			# Generation of folder structure
 			d = csv.DictReader(csvfile)
 			self.matingDict = [row for row in d]
 			csvfile.close()
 			nInds=len(self.matingDict)
-			nLoci=self.numLociPerSpeciesTree[indexST-1]
-			coverageMatrix=self.retrieveCoverageMatrix(indexST)
-			for indexLOC in range(1,self.numLociPerSpeciesTree[indexST-1]+1):
+			nLoci=self.numLociPerReplicate[indexREP-1]
+			coverageMatrix=self.retrieveCoverageMatrix(indexREP)
+			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 				for row in self.matingDict:
-					# indexST,indexLOC,indID,speciesID,mateID1,mateID2
-					inputFile="{0}/individuals/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}.fasta".format(\
-						self.settings.outputFolderPath,\
-						int(row['indexST']),\
-						self.numSpeciesTreesDigits,\
-						indexLOC,\
-						self.numLociPerSpeciesTreeDigits[indexST-1],
-						self.settings.projectName,\
-						self.settings.dataPrefix,\
-						int(row['indID']))
+					# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
+					inputFile=os.path.join(\
+						self.settings.individualsFolderPath,\
+						"{0:0{1}d}".format(\
+							int(row['indexREP']),\
+							self.numReplicateDigits
+						),\
+						"{0:0{1}d}".format(\
+							indexLOC,\
+							self.numLociPerReplicateDigits[indexREP-1]\
+						),\
+						"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
+							self.settings.projectName,\
+							int(row['indexREP']),\
+							indexLOC,\
+							self.numLociPerReplicateDigits[indexREP-1],
+							self.settings.simphyDataPrefix,\
+							int(row['indID'])\
+						)\
+					)
 					# This means, from a multiple (2) sequence fasta file.
-					outputFile="{0}/reads/{1:0{2}d}/{3:0{4}d}/{5}_{1}_{3:0{4}d}_{6}_{7}_R".format(\
-						self.settings.outputFolderPath,\
-						int(row['indexST']),\
-						self.numSpeciesTreesDigits,\
-						indexLOC,\
-						self.numLociPerSpeciesTreeDigits[indexST-1],
-						self.settings.projectName,\
-						self.settings.dataPrefix,\
-						int(row['indID'])\
+					outputFile=os.path.join(\
+						self.settings.readsFolderPath,\
+						"{0:0{1}d}".format(\
+							int(row['indexREP']),\
+							self.numReplicateDigits
+						),\
+						"{0:0{1}d}".format(\
+							indexLOC,\
+							self.numLociPerReplicateDigits[indexREP-1]\
+						),\
+						"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
+							self.settings.projectName,\
+							int(row['indexREP']),\
+							indexLOC,\
+							self.numLociPerReplicateDigits[indexREP-1],
+							self.settings.simphyDataPrefix,\
+							int(row['indID'])\
+						)\
 					)
 					coverage=coverageMatrix[int(row['indID'])][indexLOC-1]
 					# Call to ART
 					callParams=["art_illumina"]+self.params+["--fcov",str(coverage),"--in", inputFile,"--out",outputFile]
 					# self.params+=["--in ",inputFile,"--out",outputFile]
 					# print(callParams)
-					self.commands+=[[row['indexST'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
+					self.commands+=[[row['indexREP'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
 
 		self.appLogger.info("Commands have been generated...")
 
 	def writeBashScript(self):
+		"""
+		Generates a bash script with all the command lines used to generate
+		the reads (ART commands)
+		"""
 		self.appLogger.debug("Start")
-		bashfile="{0}/scripts/{1}.sh".format(\
-			self.settings.outputFolderPath,\
-			self.settings.projectName
+		bashfile=os.paht.join(\
+			self.settings.scriptsFolderPath,\
+			"{0}.sh".format(self.settings.projectName)\
 		)
 		j=open(bashfile,"w")
 		for item in self.commands:
@@ -302,6 +397,10 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		j.close()
 
 	def commandLauncher(self, command):
+		"""
+		Launches the execution of the third-party app for the simulation
+		of  NGS reads.
+		"""
 		self.appLogger.debug("Start")
 		ngsMessage="";proc=""
 		try:
@@ -320,29 +419,21 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 			self.appLogger.error(ngsMessage)
 			line=command[0:3]+["-","-",command[4]]
 			raise RuntimeError("\nART execution error. Please verify. Exciting.")
-		self.runningInfo.addLine(line)
+		if (self.settings.runningTimes): self.runningInfo.addLine(line)
 
 
 	def run(self):
+		"""
+		Process flow for the generation of NGS reads
+		"""
 		status=True
-		environment=self.settings.parser.get("execution","environment")
+		environment=self.settings.executionMode
 		# Generating commands
 		try:
 			self.getCommands()
-			if (environment=="sge"):
-				self.appLogger.info("Environment SGE. Writing scripts")
-				self.writeSeedFile()
-				self.writeSGEScript()
-			elif (environment=="slurm"):
-				self.appLogger.info("Environment SLURM. Writing scripts")
-				self.writeSeedFile()
-				self.writeSLURMScript()
-			else:
+			if environment==1:
 				message="ART run has finished succesfully."
-				self.appLogger.info("Environment BASH. Writing scripts")
-				self.writeBashScript()
-				run=self.settings.parser.getboolean("execution","run")
-				if (run):
+				if (self.settings.runART):
 					self.generateFolderStructureNGS()
 					curr=0
 					self.appLogger.info("Running...")
@@ -357,8 +448,19 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 						curr=curr+1
 						while (threading.activeCount()-1)==self.settings.numThreads:
 							time.sleep(0.1)
+					if (self.settings.runningTimes): self.writeRunningInfoIntoFile()
+				else:
+					self.appLogger.info("Environment BASH. Writing scripts")
+					self.writeBashScript()
 
-					self.printRunningInfo()
+			if (environment==2):
+				self.appLogger.info("Environment SGE. Writing scripts")
+				self.writeSeedFile()
+				self.writeSGEScript()
+			if (environment==3):
+				self.appLogger.info("Environment SLURM. Writing scripts")
+				self.writeSeedFile()
+				self.writeSLURMScript()
 
 		except ValueError as verror:
 			status=False
@@ -370,7 +472,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		except RuntimeError as rte:
 			status=False
 			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
-				"Distributon parameter error.",\
+				"Execution error.",\
 				rte,\
 				"Please verify. Exciting.",\
 			)
@@ -378,6 +480,9 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		return status, message
 
 	def generateFolderStructureNGS(self):
+		"""
+		Generation of detail folder structure used for this process
+		"""
 		# iterating over commands to create folders
 		folders=set([])
 		for command in self.commands:
@@ -389,10 +494,13 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 			except:
 				self.appLogger.debug("Output folder exists ({0})".format(item))
 
-	def printRunningInfo(self):
+	def writeRunningInfoIntoFile(self):
+		"""
+		Writes running time information into a file
+		"""
 		outputFile=os.path.join(self.settings.outputFolderPath,"{0}.info".format(self.settings.projectName))
 		f=open(outputFile,"w")
-		f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
+		f.write("indexREP,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
 		for item in self.runningInfo.value:
 			f.write(
 				str(item[0])+","+\

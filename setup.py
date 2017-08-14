@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 def readme():
-    with open('README.md') as f:
+    with open('README.txt') as f:
         return f.read()
 
 setup(name='ngsphy',
-    version='0.1',
-    description='A genome-wide next-generation sequencing simulator from phylogenies',
+    version='1.0.0',
+    description='phylogenomic simulation of NGS data ',
     long_description='',
-    url='https://gitlab.com/merlyescalona/ngsphy',
+    url='https://github.com/merlyescalona/ngsphy',
     author='Merly Escalona',
     author_email='merlyescalona@uvigo.es',
     license='GNU/GPL v3',

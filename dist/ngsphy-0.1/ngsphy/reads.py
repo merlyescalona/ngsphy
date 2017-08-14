@@ -5,11 +5,19 @@ from coverage import NGSPhyDistribution as ngsphydistro
 import settings as sp
 
 class RunningInfo(object):
+	"""
+	Class for the storage of running time information of ARTIllumina Class
+	Separated to be able to be used by several threads.
+	"""
 	def __init__(self):
 		# self.appLogger=logging.getLogger('sngsw')
 		self.lock = threading.Lock()
 		self.value = []
+
 	def addLine(self, line):
+		"""
+		Adds a line to the running information estructure
+		"""
 		# self.appLogger.debug('Waiting for lock')
 		self.lock.acquire()
 		try:
@@ -20,6 +28,29 @@ class RunningInfo(object):
 			self.lock.release()
 
 class ARTIllumina:
+	"""
+	Class for the generation of Illumina reads with the ART simulator.
+	----------------------------------------------------------------------------
+	Attributes:
+	- CONSTANT: __SHORT_NAMES: all available coded-short parameters of the ART simulator
+	- CONSTANT: __LONG_NAMES: all available  coded parameters of the ART simulator
+
+	Technicallity. Parsing the simulator parameters from the settings file
+	returns all of them into lower cases, in order to be able to compare them
+	was necessarty to create these variable. Special cases are handled separate.
+
+	- CONSTANT: __dLONG_NAMESHORT_NAMES: coded-short parameters of the ART simulator.
+	- CONSTANT: __dLONG_NAMES: coded parameters of the ART simulator
+
+	- params: final parameters used in the read simulation
+	- commands: list of all the generated commands for the call of the ART simulator
+	- numFiles: number of files that will be used for the simulation
+	- individualsFolderName: pat that stores the individual FASTA files
+	- coverageFolderPath: path that stores coverage matrices
+	- readsFolderPath: path where reads generated will be stored
+	- scriptsFolderPath: path for the folder that will store the generated scripts
+
+	"""
 	__SHORT_NAMES=["sf" ,"dp","ploidy","ofn","1","2","amp","c","d","ef","f","h","i",\
 				"ir","ir2","dr","dr2","k","l","m","mp","M","nf","na",\
 				"o","p","q","qU","qs","qL","qs2","rs","s","sam","sp","ss"]
@@ -85,6 +116,9 @@ class ARTIllumina:
 
 
 	def generateFolderStructure(self):
+		"""
+		Generation of basic output folder structure for this process
+		"""
 		self.appLogger.info("Creating folder structure for [ngs-reads-art]")
 		self.readsFolderPath=os.path.join(self.settings.outputFolderPath,"reads")
 		self.scriptsFolderPath=os.path.join(self.settings.outputFolderPath,"scripts")
@@ -103,6 +137,11 @@ class ARTIllumina:
 
 
 	def writeSeedFile(self):
+		"""
+		For the generation of scripts for cluster environments (Execution section,
+		options run: SGE/SLUM)
+		This generates the seed file for the calling of jobs for cluster environments.
+		"""
 		self.appLogger.debug("Start")
 		seedfile="{0}/scripts/{1}.seedfile.txt".format(\
 			self.settings.outputFolderPath,\
@@ -150,6 +189,11 @@ class ARTIllumina:
 		self.appLogger.info("Seed file written...")
 
 	def writeSGEScript(self):
+		"""
+		For the generation of scripts for cluster environments (Execution section,
+		options run: SGE)
+		This generates job script that will be launched in a SGE cluster.
+		"""
 		self.appLogger.debug("Start")
 		jobfile="{0}/scripts/{1}.job.sge.sh".format(\
 			self.settings.outputFolderPath,\
@@ -181,6 +225,11 @@ outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,s
 		self.appLogger.info("SGE Job file written ({0})...".format(jobfile))
 
 	def writeSLURMScript(self):
+		"""
+		For the generation of scripts for cluster environments (Execution section,
+		options run: SLURM)
+		This generates job script that will be launched in a SLURM cluster.
+		"""
 		self.appLogger.debug("Start")
 		jobfile="{0}/scripts/{1}.job.slurm.sh".format(\
 			self.settings.outputFolderPath,\
@@ -214,6 +263,14 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		self.appLogger.info("SLURM Job file written ({0})...".format(jobfile))
 
 	def retrieveCoverageMatrix(self, indexST):
+		"""
+		Reads coverage matrix for a specific species tree identifier
+		------------------------------------------------------------------------
+		Parameters:
+		- indexST:specific species tree identifier
+		Returns:
+		- coverage Matrix
+		"""
 		self.appLogger.debug("Retrieving coverage matrix")
 		# coverage matrix per ST - row:indv - col:loci
 		# each cov introduced as parameter is a NGSPhyDistribution
@@ -240,6 +297,9 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		return coverageMatrix
 
 	def getCommands(self):
+		"""
+		Generates command lines that will be called to generate the reads
+		"""
 		self.appLogger.debug("Start")
 		for indexST in self.filteredST:
 			csvfile=open("{0}/tables/{1}.{2:0{3}d}.{4}.csv".format(\
@@ -289,6 +349,10 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		self.appLogger.info("Commands have been generated...")
 
 	def writeBashScript(self):
+		"""
+		Generates a bash script with all the command lines used to generate
+		the reads (ART commands)
+		"""
 		self.appLogger.debug("Start")
 		bashfile="{0}/scripts/{1}.sh".format(\
 			self.settings.outputFolderPath,\
@@ -302,6 +366,10 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		j.close()
 
 	def commandLauncher(self, command):
+		"""
+		Launches the execution of the third-party app for the simulation
+		of  NGS reads.
+		"""
 		self.appLogger.debug("Start")
 		ngsMessage="";proc=""
 		try:
@@ -324,6 +392,9 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 
 
 	def run(self):
+		"""
+		Process flow for the generation of NGS reads
+		"""
 		status=True
 		environment=self.settings.parser.get("execution","environment")
 		# Generating commands
@@ -358,7 +429,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 						while (threading.activeCount()-1)==self.settings.numThreads:
 							time.sleep(0.1)
 
-					self.printRunningInfo()
+					self.writeRunningInfoIntoFile()
 
 		except ValueError as verror:
 			status=False
@@ -378,6 +449,9 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		return status, message
 
 	def generateFolderStructureNGS(self):
+		"""
+		Generation of detail folder structure used for this process
+		"""
 		# iterating over commands to create folders
 		folders=set([])
 		for command in self.commands:
@@ -389,7 +463,10 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 			except:
 				self.appLogger.debug("Output folder exists ({0})".format(item))
 
-	def printRunningInfo(self):
+	def writeRunningInfoIntoFile(self):
+		"""
+		Writes running time information into a file
+		"""
 		outputFile=os.path.join(self.settings.outputFolderPath,"{0}.info".format(self.settings.projectName))
 		f=open(outputFile,"w")
 		f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")

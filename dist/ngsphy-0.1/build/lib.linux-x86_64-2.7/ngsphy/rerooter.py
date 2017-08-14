@@ -4,6 +4,17 @@ import dendropy,logging,os,shutil,sys
 import settings as sp
 
 class Rerooter:
+	"""
+	Class used for the manipulation of gene trees, specifically, to handle
+	the re-rooting and prunning of the given gene tree.
+	----------------------------------------------------------------------------
+	Attributes:
+	- appLogger: logger to store status of the process flow
+	- settings: Settings object withh all the program parameters
+	- tree: final gene tree
+	- outputFilename: filename where the new tree will be stored
+	- outputFilePath: absolute path of the filename where the new tree will be stored
+	"""
 	# general
 	appLoger=None
 	settings=None
@@ -23,6 +34,9 @@ class Rerooter:
 
 
 	def run(self):
+		"""
+		Process flow of the re-rooting and pruninc process
+		"""
 		self.appLogger.debug('Running rerooting')
 		try:
 			self.tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
@@ -40,26 +54,30 @@ class Rerooter:
 			"Please Verify. Exiting"\
 			)
 
-		leaves=[node.taxon.label for node in self.tree.leaf_node_iter() if not node.taxon.label in [self.settings.referenceTipLabel, "1_0_1"]]
+		leaves=[node.taxon.label for node in self.tree.leaf_node_iter() if not node.taxon.label == self.settings.referenceTipLabel]
 		# print(leaves)
 		try:
 			mrca=self.tree.mrca(taxon_labels=leaves)
 			self.tree.prune_taxa_with_labels([self.settings.referenceTipLabel])
-			# print(self.tree.as_ascii_plot())
-			for item in self.tree.leaf_node_iter():
-				if self.tree.seed_node==item.parent_node:
-					# print(item.taxon.label)
-					item.taxon.label="0_0_0"
-					# print(item.taxon.label)
-			# print(self.tree.as_ascii_plot())
+			# It does not matter the naming of the  tips since this process will only
+			# generate haploid individuals
+			# for item in self.tree.leaf_node_iter():
+			# 	if self.tree.seed_node==item.parent_node:
+			# 		item.taxon.label="0_0_0"
+			self.writeTreeIntoFile()
+			self.settings.newickFilePath=self.outputFilePath
 		except Exception as ex:
 			exc_type, exc_obj, exc_tb = sys.exc_info()
 			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
 			message="Rerooter - run: {0} | {1} - File: {2} - Line:{3}".format(ex,exc_type, fname, exc_tb.tb_lineno)
 			return False, message
+
 		return True,""
 
 	def generateFolderStructure(self):
+		"""
+		Generation of basic folder structure for this process
+		"""
 		folder=os.path.join(self.settings.path,self.settings.projectName,"1")
 		try:
 			os.makedirs(folder)
@@ -71,7 +89,10 @@ class Rerooter:
 		except:
 			self.appLogger.debug("File already exists in this location ({0})".format(os.path.joing(folder, "reference.fasta")))
 
-	def writeTree(self):
+	def writeTreeIntoFile(self):
+		"""
+		Writes into a file the resulting tree
+		"""
 		self.tree.write(\
 			path=self.outputFilePath,\
 			schema="newick",\

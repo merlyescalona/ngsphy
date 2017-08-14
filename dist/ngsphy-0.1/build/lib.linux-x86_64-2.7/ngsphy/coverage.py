@@ -4,6 +4,15 @@ import random as rnd
 from scipy.stats import  binom,expon,gamma,lognorm,norm,nbinom,poisson,uniform
 
 class NGSAvailableDistributions:
+	"""
+	Class for the definition of the available distributions for this program.
+	----
+	Attributes:
+	- relationNumParams: Dictionary with the pairing code:number_of_parameters.
+	- distributions: Codes of all the available distributions.
+	- names: Full name of the available distributions.
+	"""
+
 	relationNumParams=dict({\
 		"b":2,#mean,percentages\
 		"e":1,#mean\
@@ -29,7 +38,18 @@ class NGSAvailableDistributions:
 		"p":"Poisson",\
 		"u":"Uniform"\
 	})
+
 class NGSPhyDistributionParser:
+	"""
+	Class for parsing the distribution "words" introduced in the settings file.
+	----------------------------------------------------------------------------
+	Attributes:
+	- __params: to store distribution parameters
+	- __name: to store distribution code name
+	- __dependency: to identify whether the whole word should be taking into
+	account or if the mean (or main) parameter of the distribution depends on
+	previously calculated values.
+	"""
 	__params=[]
 	__name=""
 	__dependency=None
@@ -58,29 +78,60 @@ class NGSPhyDistributionParser:
 
 
 	def setParams(self,params):
+		"""
+		Allows to modify the values of the distribution parameters
+		-----------------------------------------------------------------------
+		- input: params
+		"""
 		self.__params=params
 
 	def getParams(self):
+		"""
+		Returns distribution parameters
+		"""
 		return self.__params
 
 	def printParams(self):
+		"""
+		Prints distribution parameters
+		"""
 		print(self.__params)
 
 	def setName(self,name):
+		"""
+		Allows to modify the code name of the distribution
+		-----------------------------------------------------------------------
+		- input: name
+		"""
 		self.__name=name
 
 	def getName(self):
+		"""
+		Returns distribution parameters
+		"""
 		return self.__name
 
 	def printName(self):
+		"""
+		Prints distribution name
+		"""
 		print(self.__name)
 
 	def asNGSPhyDistribution(self):
+		"""
+		Returns a NGSPhyDistribution object from the parsed distribution word.
+		"""
 		if not self.__dependency:
 			return NGSPhyDistribution(self.__name,self.__params)
 		else: return None
 
 	def validate(self):
+		"""
+		Validates if the input of the distribution word correspond to its definition.
+		Meaning, codename is within the available distribution code names,
+		number of parameters correspond to the selected distribution and the
+		parameters introduced are numbers.
+		"""
 		message="Coverage distribution parsing OK.\n\t"
 		status=True
 		if not self.__name in NGSAvailableDistributions.distributions:
@@ -116,6 +167,13 @@ class NGSPhyDistributionParser:
 		return status, message
 
 class NGSPhyDistribution:
+	"""
+	Class that samples values from the available distributions.
+	----------------------------------------------------------------------------
+	Attributes:
+	- __name: Code name of the distribution
+	- __params: Parameters of the distribution to be sampled.
+	"""
 	__name=None
 	__params=[]
 	def __init__(self,name,params):
@@ -125,6 +183,11 @@ class NGSPhyDistribution:
 		# print(self.__params)
 
 	def value(self,samples=1):
+		"""
+		Samples number of values given from the specific distribution.
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		value=0
 		try:
 			for item in self.__params:
@@ -154,6 +217,11 @@ class NGSPhyDistribution:
 		return value
 
 	def binom(self,samples):
+		"""
+		Sampling from a binomial distribution
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		#n=number of times tested
 		#p=probability
 		n=self.__params[0]
@@ -163,14 +231,29 @@ class NGSPhyDistribution:
 		return f
 
 	def exponential(self,samples):
+		"""
+		Sampling from a exponential distribution
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		f=np.random.exponential(float(self.__params[0]),size=samples)
 		return value
 
 	def fixed(self,samples):
+		"""
+		Fixed values
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		value=[self.__params[0]]*samples
 		return value
 
 	def gamma1(self,samples):
+		"""
+		Sampling from a Gamma distribution with mean 1
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		# E|x| = k.theta (alpha*theta)
 		# If i want  mean=1, theta=E|x|/alpha=1/alpha
 		shape=float(self.__params[0]*1.0)
@@ -181,17 +264,27 @@ class NGSPhyDistribution:
 
 
 	def gamma(self,samples):
-		# The parameterization with alpha and beta is more common in Bayesian statistics,
-		# where the gamma distribution is used as a conjugate prior distribution
-		# for various types of inverse scale (aka rate) parameters, such as the
-		#lambda of an exponential distribution or a Poisson distribution[4]  or for
-		#t hat matter, the beta of the gamma distribution itself.
-		#(The closely related inverse gamma distribution is used as a conjugate
-		# prior for scale parameters, such as the variance of a normal distribution.)
-		# shape, scale = 2., 2. # mean=4, std=2*sqrt(2)
-		# s = np.random.gamma(shape, scale, 1000)
-		# E|x| = k.theta (alpha*theta)
-		# If i want a specific mean, theta=E|x|/alpha
+		"""
+		Sampling from a Gamma distribution with mean 1
+
+		The parameterization with alpha and beta is more common in Bayesian statistics,
+		where the gamma distribution is used as a conjugate prior distribution
+		for various types of inverse scale (aka rate) parameters, such as the
+		lambda of an exponential distribution or a Poisson distribution[4]  or for
+		t hat matter, the beta of the gamma distribution itself.
+		(The closely related inverse gamma distribution is used as a conjugate
+		prior for scale parameters, such as the variance of a normal distribution.)
+		shape, scale = 2., 2. # mean=4, std=2*sqrt(2)
+
+		(Wikipedia: https://en.wikipedia.org/wiki/Gamma_distribution)
+
+		s = np.random.gamma(shape, scale, 1000)
+		E|x| = k.theta (alpha*theta)
+		If i want a specific mean, theta=E|x|/alpha
+		------------------------------------------------------------------------
+
+		- samples: number of values that will be returned.
+		"""
 		shape=float(self.__params[0]*1.0)
 		theta=float(self.__params[1]*1.0)
 		distro=gamma(shape,theta)
@@ -200,7 +293,15 @@ class NGSPhyDistribution:
 
 
 	def lognormal(self,samples):
-		# m=mean, s=sigma - standard deviation
+		"""
+		Sampling from a Log Normal distribution
+
+		Parameters:
+		m=mean
+		s=sigma - standard deviation
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		mean=float(self.__params[0]*1.0)
 		sigma=float(self.__params[1]*1.0)
 		distro=lognorm(mean,sigma)
@@ -208,10 +309,19 @@ class NGSPhyDistribution:
 		return f
 
 	def nbinom(self,samples):
-		# mu= poissonon mean
-		# r controls the deviation from the poisson
-		# This makes the negative binomial distribution suitable as a robust alternative to the Poisson,
-		# which approaches the Poisson for large r, but which has larger variance than the Poisson for small r.
+		"""
+		Sampling from a Negative binomial distribution
+
+		Parameters:
+		mu= poissonon mean
+		r controls the deviation from the poisson
+
+		This makes the negative binomial distribution suitable as a robust
+		alternative to the Poisson, which approaches the Poisson for large r,
+		but which has larger variance than the Poisson for small r.
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		mu=float(self.__params[0])
 		r=float(self.__params[1])
 		p=(r*1.0)/(r+mu)
@@ -220,7 +330,15 @@ class NGSPhyDistribution:
 		return f
 
 	def normal(self,samples):
-		# mean (location) - variance (squared scale)
+		"""
+		Sampling from a Normal distribution
+
+		Parameters:
+		mean (location)
+		variance (squared scale)
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		locMean=float(self.__params[0]*1.0)
 		scaleVariance=float(self.__params[1]*1.0)
 		distro=norm(loc=locMean,scale=scaleVariance)
@@ -228,19 +346,61 @@ class NGSPhyDistribution:
 		return f
 
 	def poisson(self,samples):
+		"""
+		Sampling from a Poisson distribution
+		Parameters:
+		mean
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		l=float(self.__params[0]*1.0)
 		distro=poisson(l)
 		f=distro.rvs(size=samples)
 		return f
 
 	def uniform(self,samples):
-		# mean
+		"""
+		Sampling from a Poisson distribution
+		Parameters:
+		meean
+		------------------------------------------------------------------------
+		- samples: number of values that will be returned.
+		"""
 		mean=float(self.__params[0]*1.0)
 		distro=uniform(mean)
 		f=distro.rvs(size=samples)
 		return f
 
 class CoverageMatrixGenerator:
+	"""
+	Class for the calculation of coverage matrices.
+	Able to intoduced:
+	 	- "genomic noise" for entire datasets.
+		- Variation across individuals and loci.
+		- on/off target effect
+		- coverage decay related to distance to the reference used
+	----------------------------------------------------------------------------
+	Attributes:
+	- OFFTARGET_COVERAGE_FRACTION: Specific for the on/off target effect.
+	- appLogger: Logger object
+	- settings: Settings object withh all the program parameters
+	- alphashapesLocus: parameters (alpha shapes) for the Gamma distribution with
+	mean 1 that will be used as multiplier for across loci coverage variation.
+	- alphashapesIndividuals: parameters (alpha shapes) for the Gamma distribution
+	with mean 1 that will be used as multiplier for across individuals coverage
+	variation.
+	- locusMultiplier: parameters to be used to sample alphashapesLocus.
+	- individualsMultiplier: parameters to be used to sample alphashapesIndividuals.
+	- experiment: expected coverage for a specific replicate (species tree data).
+	- outputFolderPath: folder where coverage matrices will be stored.
+	- numSpeciesTrees: number of species trees.
+	- numLociPerSpeciesTree: number of loci per species tree.
+	- numIndividualsPerSpeciesTree: number of individuals per species tree.
+	- numSpeciesTreesDigits: number of digits needed to represent numSpeciesTrees.
+	- numLociPerSpeciesTreeDigits: number of digits needed to represent.
+	- filteredST: identifier of the species trees that will be used.
+
+	"""
 	OFFTARGET_COVERAGE_FRACTION=0.1
 	appLogger=None
 	settings=None
@@ -259,7 +419,6 @@ class CoverageMatrixGenerator:
 	numIndividualsPerSpeciesTree=[]
 	numSpeciesTreesDigits=0
 	numLociPerSpeciesTreeDigits=[]
-	numIndividualsPerSpeciesTree=[]
 	filteredST=[]
 
 	def __init__(self, settings):
@@ -292,6 +451,9 @@ class CoverageMatrixGenerator:
 		self.generateFolderStructure()
 
 	def generateFolderStructure(self):
+		"""
+		Generation of folder structure needed for the coverage matrices.
+		"""
 		self.appLogger.debug("Coverage folder structure generation...")
 		try:
 			os.makedirs(self.outputFolderPath)
@@ -300,30 +462,24 @@ class CoverageMatrixGenerator:
 			self.appLogger.debug("Output folder exists ({0})".format(self.outputFolderPath))
 
 	def calculate(self):
+		"""
+		Calulation of coverage matrices
+		"""
 		message=""
 		status=True;
 		self.appLogger.debug("Coverage calculations...")
 		for indexST in self.filteredST:
 			nInds=self.numIndividualsPerSpeciesTree[indexST-1]
 			nLoci=self.numLociPerSpeciesTree[indexST-1]
-			# initialCoverage=self.experiment.value(nInds*nLoci)
+			# expectedCoverage=self.experiment.value(nInds*nLoci)
 			val=self.experiment.value(1)
 			# self.appLogger.debug(val)
-			initialCoverage=val*(nInds*nLoci)
-			coverageMatrix=np.matrix(initialCoverage)
+			expectedCoverage=val*(nInds*nLoci)
+			coverageMatrix=np.matrix(expectedCoverage)
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
 			try:
-				# --------------------------------------------------------------
-				# For genomic stochasticity
-				# --------------------------------------------------------------
-				if self.settings.genomicNoise:
-					params=[]
-					for loc in range(0,nLoci):
-						for ind in range(0,nInds):
-							params=[coverageMatrix[ind,loc]]+self.locus.getParams()
-							coverageMatrix[ind,loc]=NGSPhyDistribution(self.locus.getName(),params).value(1)
 				if self.settings.locus:
 					multipliers=self.locusMultiplier[indexST-1]
 					for loc in range(0,nLoci):
@@ -396,6 +552,9 @@ class CoverageMatrixGenerator:
 		return status,message
 
 	def write(self,coverageMatrix,indexST):
+		"""
+		Writing into file the coverage matrix
+		"""
 		self.appLogger.debug("Writing coverage matrix for ST replicate: {0:0{1}d}".format(indexST, self.numSpeciesTreesDigits))
 		filename=os.path.join(self.outputFolderPath,"{0}.{1:0{2}d}.coverage.csv".format(\
 			self.settings.projectName,\

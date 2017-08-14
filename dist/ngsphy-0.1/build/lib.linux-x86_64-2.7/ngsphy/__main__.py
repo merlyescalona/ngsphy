@@ -8,8 +8,9 @@ MIN_VERSION=0
 FIX_VERSION=0
 PROGRAM_NAME="ngsphy.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
+INSTITUTION="University of Vigo, Spain."
 LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
-LINE="-------------------------------------------------------------------------"
+LINE="--------------------------------------------------------------------------------"
 ################################################################################
 # Logger initialization
 APPLOGGER=logging.getLogger('ngsphy')
@@ -26,6 +27,15 @@ APPLOGGER.addHandler(ch)
 ################################################################################
 
 def handlingCmdArguments():
+	"""
+	handlingCmdArguments
+	--------------------
+
+	This function configurates the ArgumentParser with the specific details of
+	this programs.
+
+	Does not take parameters.
+	"""
 	parser = argparse.ArgumentParser(\
 		prog="{0} (v.{1}.{2}.{3})".format(PROGRAM_NAME,VERSION,MIN_VERSION,FIX_VERSION),\
 		formatter_class=argparse.RawDescriptionHelpFormatter,\
@@ -44,7 +54,7 @@ order to produce Illumina NGS data from haploid/diploid individuals.
 For more information about usage and installation please go to the README file
 or to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 			''',\
-		epilog="Version {0}.{1}.{2} (Still under development)\n{3}\n".format(VERSION,MIN_VERSION,FIX_VERSION, LINE),\
+		epilog="Developed by:\n{0}\n{1}\n\nVersion:\t{2}.{3}.{4} (Under development)\n{5}\n".format(AUTHOR,INSTITUTION, VERSION,MIN_VERSION,FIX_VERSION, LINE),\
 		add_help=False
 		)
 	optionalGroup= parser.add_argument_group("{0}Optional arguments{1}".format("\033[1m","\033[0m"))
@@ -78,6 +88,12 @@ or to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 
 ###############################   MAIN   #######################################
 def main():
+	"""
+	main()
+	--------------------
+
+	Entry point of the NGSphy program.
+	"""
 	try:
 		cmdArgs = handlingCmdArguments()
 		prog = ngsphy.NGSphy(cmdArgs)

@@ -1,9 +1,20 @@
-#!/usr/bin/env python
+e#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import dendropy,logging,os,shutil,sys
 import settings as sp
 
 class Rerooter:
+	"""
+	Class used for the manipulation of gene trees, specifically, to handle
+	the re-rooting and prunning of the given gene tree.
+	----------------------------------------------------------------------------
+	Attributes:
+	- appLogger: logger to store status of the process flow
+	- settings: Settings object withh all the program parameters
+	- tree: final gene tree
+	- outputFilename: filename where the new tree will be stored
+	- outputFilePath: absolute path of the filename where the new tree will be stored
+	"""
 	# general
 	appLoger=None
 	settings=None
@@ -21,45 +32,10 @@ class Rerooter:
 			self.outputFilename\
 		)
 
-
-	def run(self):
-		self.appLogger.debug('Running rerooting')
-		try:
-			self.tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
-		except Exception as ex:
-			return False, ex
-		# print(self.tree.as_ascii_plot())
-		newroot = self.tree.find_node_with_taxon_label(self.settings.referenceTipLabel)
-		if newroot:
-			self.tree.reroot_at_edge(newroot.edge, update_bipartitions=False)
-			# print(self.tree.as_ascii_plot())
-		else:
-			return False, "{0}\n\t{1}\n\t{2}".format(\
-			"Rerooting problem.",\
-			"Something might be wrong with the reference label.",\
-			"Please Verify. Exiting"\
-			)
-
-		leaves=[node.taxon.label for node in self.tree.leaf_node_iter() if not node.taxon.label in [self.settings.referenceTipLabel, "1_0_1"]]
-		# print(leaves)
-		try:
-			mrca=self.tree.mrca(taxon_labels=leaves)
-			self.tree.prune_taxa_with_labels([self.settings.referenceTipLabel])
-			# print(self.tree.as_ascii_plot())
-			for item in self.tree.leaf_node_iter():
-				if self.tree.seed_node==item.parent_node:
-					# print(item.taxon.label)
-					item.taxon.label="0_0_0"
-					# print(item.taxon.label)
-			# print(self.tree.as_ascii_plot())
-		except Exception as ex:
-			exc_type, exc_obj, exc_tb = sys.exc_info()
-			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-			message="Rerooter - run: {0} | {1} - File: {2} - Line:{3}".format(ex,exc_type, fname, exc_tb.tb_lineno)
-			return False, message
-		return True,""
-
 	def generateFolderStructure(self):
+		"""
+		Generation of basic folder structure for this process
+		"""
 		folder=os.path.join(self.settings.path,self.settings.projectName,"1")
 		try:
 			os.makedirs(folder)
@@ -67,13 +43,66 @@ class Rerooter:
 		except:
 			self.appLogger.debug("Project folder exists ({0})".format(folder))
 		try:
-			shutil.copyfile(self.settings.referenceSequenceFilePath, os.path.joing(folder, "reference.fasta"))
+			shutil.copyfile(self.settings.ancestralSequenceFilePath, os.path.joing(folder, "ancestral.fasta"))
 		except:
-			self.appLogger.debug("File already exists in this location ({0})".format(os.path.joing(folder, "reference.fasta")))
+			self.appLogger.debug("File already exists in this location ({0})".format(os.path.joing(folder, "ancestral.fasta")))
 
-	def writeTree(self):
+
+	def run(self):
+		"""
+		Process flow of the re-rooting and pruninc process
+		"""
+		self.appLogger.debug('Running rerooting')
+		try:
+			self.tree=dendropy.Tree.get(path=self.settings.geneTreeFile,\
+			 	schema="newick",\
+				preserve_underscores=True)
+		except Exception as ex:
+			return False, ex
+		newroot=self.tree.find_node_with_taxon_label(self.settings.anchorTipLabel)
+		lennewroot=newroot.edge_length
+		if newroot:
+			self.tree.reroot_at_edge(newroot.edge,length1=lennewroot,length2=0, update_bipartitions=True)
+			self.settings.geneTreeFile=self.outputFilePath
+		else:
+			return False, "{0}\n\t{1}\n\t{2}".format(\
+			"Rerooting problem.",\
+			"Something might be wrong with the reference label.",\
+			"Please Verify. Exiting"\
+			)
+
+		return True,""
+
+	def writeTreeIntoFile(self):
+		"""
+		Writes into a file the resulting tree
+		"""
 		self.tree.write(\
 			path=self.outputFilePath,\
 			schema="newick",\
 			suppress_rooting=True\
+			)
+
+	def rechekcPloidyAfterRerooting(self):
+		leaves = [node.taxon.label for node in self.tree if not node.taxon.label==self.settings.anchorTipLabel]
+		labels=dict()
+		for tip in leaves:
+			tmp=tip.strip().split("_")
+			geneFamily="{0}_{1}".format(tmp[0],tmp[1])
+			if not labels[geneFamily]:
+				labels[geneFamily]=1
+			else:
+				labels[geneFamily]+=1
+
+		fail=False
+		for item in labels.keys():
+			if not labels[item] % self.settings.ploidy == 0:
+				fail=True
+				break
+		if fail:
+			return False, "".format(\
+				"Problems for the individual assignment.",\
+				"Number of gene-tree tips per species is not valid for the given ploidy.",\
+				"Please verify. Exiting."
+
 			)

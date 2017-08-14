@@ -13,12 +13,28 @@ except ImportError:
 	from counter import Counter
 
 def getScoreSingle(data):
+	"""
+	Calulates a single Phred score.
+	----------------------------------------------------------------------------
+	Parameters:
+	- data: the data that will be processed
+	Returns:
+	- the Phred score of the given value
+	"""
 	self.appLogger.debug("getScoreSingle(data)")
 	if data!=0:
 		return -10*np.log10(data)
 	else:
 		return 0
 def getScoreMatrix(data):
+	"""
+	Calulates the Phred score of a matrix.
+	----------------------------------------------------------------------------
+	Parameters:
+	- data: the data that will be processed
+	Returns:
+	- the Phred score of the given values
+	"""
 	self.appLogger.debug("getScoreMatrix(data)")
 	value=np.copy(data)
 	with warnings.catch_warnings():
@@ -32,16 +48,25 @@ def getScoreMatrix(data):
 	return value
 
 class RunningInfo:
+	"""
+	Class for the storage of running time information Reads Counts Class
+	Separated to be able to be used by several threads.
+	"""
 	def __init__(self, filename):
 		self.filename=filename
 		# self.appLogger=logging.getLogger('sngsw')
 		self.lock = threading.Lock()
 		self.lock.acquire()
 		f=open(self.filename,"w")
-		f.write("indexST,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
+		f.write("indexREP,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
 		f.close()
 		self.lock.release()
+
+
 	def addLine(self, line):
+		"""
+		Adds a line to the running information estructure
+		"""
 		# self.appLogger.debug('Waiting for lock')
 		self.lock.acquire()
 		try:
@@ -62,153 +87,190 @@ class RunningInfo:
 			self.lock.release()
 
 class ReadCounts:
+	"""
+	Class to generate READ COUNTS of the given dataset
+	----------------------------------------------------------------------------
+	Atributes:
+	- __NUCLEOTIDES: constant array with possible nucleotides characters
+	- appLogger: logger to store status of the process flow
+	- settings: Settings object withh all the program parameters
+	- runningInfo: varible to store timing information of the processes.
+	Structure to be shared across threads.
+	- coverageFolderPath: path of the coverage matrix distribution.
+	- settings.readsFolderPath: path where read count data will be stored.
+	- readcountNoErrorFolderPath: path where true read count data will be stored.
+	- readcountErrorFolderPath: path where sampled read count data will be
+	stored.
+	- numReplicates: number of species tree.
+	- numLociPerReplicates: list with the number of loci per species tree
+	- numIndividualsPerReplicate: list with the number of individuals per
+	species tree.
+	- numReplicateDigits: number of digits that represent numReplicates
+	- numLociPerReplicateDigits: list of the number of digits that represent
+	numLociPerReplicates.
+	- numIndividualsPerReplicateDigits: list of the number of digits that represent
+	numIndividualsPerReplicate.
+	- filteredReplicates: identifiers of the species tree replicates that will be used.
+	"""
+
 	__NUCLEOTIDES=["A","C","G","T"]
 	appLogger=None
+	settings=None
 	runningInfo=None
 	# path related variables
-	coverageFolderPath=""
-	readcountFolderPath=""
-	readcountTrueFolderPath=""
-	readcountSampledFolderPath=""
-	referencesFolderPath=""
+	readcountNoErrorFolderPath=""
+	readcountErrorFolderPath=""
 
-	numSpeciesTrees=None
-	numLociPerSpeciesTree=[]
-	numIndividualsPerSpeciesTree=[]
-	numSpeciesTreesDigits=[]
-	numLociPerSpeciesTreeDigits=[]
-	numIndividualsPerSpeciesTreeDigits=[]
-	filteredST=[]
-
-
+	numReplicates=None
+	numLociPerReplicates=[]
+	numIndividualsPerReplicate=[]
+	numReplicateDigits=[]
+	numLociPerReplicateDigits=[]
+	numIndividualsPerReplicateDigits=[]
+	filteredReplicates=[]
 
 	def __init__(self,settings):
 		self.appLogger=logging.getLogger('ngsphy')
 		self.appLogger.info('Read counts.')
 		self.settings=settings
 
-		self.numSpeciesTrees=self.settings.parser.getint("general", "numspeciestrees")
-		cc=self.settings.parser.get("general", "numLociPerSpeciesTree").strip().split(",")
-		self.numLociPerSpeciesTree=[ int(item) for item in cc if not item ==""]
-		cc=self.settings.parser.get("general", "numIndividualsPerSpeciesTree").strip().split(",")
-		self.numIndividualsPerSpeciesTree=[ int(item) for item in cc if not item == ""]
-		self.numSpeciesTreesDigits=len(str(self.numSpeciesTrees))
-		self.numLociPerSpeciesTreeDigits=[len(str(item)) for item in self.numLociPerSpeciesTree]
-		self.numIndividualsPerSpeciesTreeDigits=[len(str(item )) for item in self.numIndividualsPerSpeciesTree]
-		self.filteredST=[int(item) for item in self.settings.parser.get("general", "filtered_ST").strip().split(",")]
+		self.numReplicates=self.settings.parser.getint("general", "numreplicates")
+		cc=self.settings.parser.get("general", "numLociPerReplicates").strip().split(",")
+		self.numLociPerReplicates=[ int(item) for item in cc if not item ==""]
+		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
+		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
+		self.numReplicateDigits=len(str(self.numReplicates))
+		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicates]
+		self.numIndividualsPerReplicateDigits=[len(str(item )) for item in self.numIndividualsPerReplicate]
+		self.filteredReplicates=[int(item) for item in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
 
-		# Generating folder structure
-		infoFile="{0}/{1}.info".format(
-			self.settings.outputFolderPath,\
-			self.settings.projectName
-		)
-		self.runningInfo=RunningInfo(infoFile)
-		self.appLogger.info("File with timings of the [ngs-read-count] per loci can be find on:\t{0}".format(infoFile))
+		if(self.settings.runningTimes):
+			# Generating folder structure
+			infoFile=os.path.join(\
+				self.settings.outputFolderPath,\
+				"{0}.info".format(self.settings.projectName)\
+			)
+			self.runningInfo=RunningInfo(infoFile)
+			self.appLogger.info("File with timings of the [ngs-read-counts] per loci can be find on:\t{0}".format(infoFile))
 
 		# naming variables for shorter codeline
-		self.coverageFolderPath="{0}/coverage".format(self.settings.outputFolderPath)
-		self.readcountFolderPath="{0}/reads".format(self.settings.outputFolderPath)
-		self.readcountTrueFolderPath="{0}/reads/true".format(self.settings.outputFolderPath)
-		self.readcountSampledFolderPath="{0}/reads/sampled".format(self.settings.outputFolderPath)
-		self.referencesFolderPath="{0}/refereces".format(self.settings.outputFolderPath)
-
+		self.readcountNoErrorFolderPath=os.path.join(\
+			self.settings.readsFolderPath,"no_error"\
+		)
+		self.readcountErrorFolderPath=os.path.join(\
+			self.settings.readsFolderPath,"with_error"\
+		)
 		self.generateFolderStructureGeneral()
 
-	"""
-	@function:
-		generateFolderStructureGeneral(self)
-	@description:
-		Generates basic folder structure needed for Read Count option.
-		This includes:
-			- reads
-			- reads/true
-			- reads/sampled
-			- refereces
-	"""
 	def generateFolderStructureGeneral(self):
+		"""
+		Generates basic folder structure needed for Read Count option.
+		This includes the folders:
+		- reads
+		- reads/true
+		- reads/sampled
+		- refereces
+		"""
 		self.appLogger.debug("generateFolderStructureGeneral(self)")
-		# Checking output path
-		self.appLogger.info("Creating folder structure for [ngs-read-count]")
+		self.appLogger.info("Creating folder structure for [ngs-read-counts]")
 		try:
-			os.makedirs(self.readcountFolderPath)
-			self.appLogger.info("Generating output folder ({0})".format(self.readcountFolderPath))
+			os.makedirs(self.settings.readsFolderPath)
+			self.appLogger.info("Generating output folder ({0})".format(\
+				self.settings.readsFolderPath))
 		except:
-			self.appLogger.debug("Output folder exists ({0})".format(self.readcountFolderPath))
+			self.appLogger.debug("Output folder exists ({0})".format(\
+				self.settings.readsFolderPath))
 		try:
-			os.makedirs(self.readcountTrueFolderPath)
-			self.appLogger.info("Generating output folder ({0})".format(self.readcountTrueFolderPath))
+			os.makedirs(self.readcountNoErrorFolderPath)
+			self.appLogger.info("Generating output folder ({0})".format(\
+				self.readcountNoErrorFolderPath))
 		except:
-			self.appLogger.debug("Output folder exists ({0})".format(self.readcountTrueFolderPath))
+			self.appLogger.debug("Output folder exists ({0})".format(\
+				self.readcountNoErrorFolderPath))
 		try:
-			os.makedirs(self.readcountSampledFolderPath)
-			self.appLogger.info("Generating output folder ({0})".format(self.readcountSampledFolderPath))
+			os.makedirs(self.readcountErrorFolderPath)
+			self.appLogger.info("Generating output folder ({0})".format(\
+				self.readcountErrorFolderPath))
 		except:
-			self.appLogger.debug("Output folder exists ({0})".format(self.readcountSampledFolderPath))
+			self.appLogger.debug("Output folder exists ({0})".format(\
+				self.readcountErrorFolderPath))
 		try:
-			os.makedirs(self.referencesFolderPath)
-			self.appLogger.info("Generating output folder ({0})".format(self.referencesFolderPath))
+			os.makedirs(self.refAllelesFolderPath)
+			self.appLogger.info("Generating output folder ({0})".format(\
+				self.refAllelesFolderPath))
 		except:
-			self.appLogger.debug("Output folder exists ({0})".format(self.referencesFolderPath))
+			self.appLogger.debug("Output folder exists ({0})".format(\
+				self.refAllelesFolderPath))
 
-	"""
-	@function:
-		generateFolderStructureDetail(self)
-	@description:
+	def generateFolderStructureDetail(self):
+		"""
 		Generates detailed folder structure needed for Read Count option.
 		This includes:
-			- Replicate folders  (as many as species tree replicates)
-			- true/sampled folder per replicate.
-				- These folders will contain the VCF files (true and sampled)
-	"""
-	def generateFolderStructureDetail(self):
+		- Replicate folders  (as many as species tree replicates)
+		- true/sampled folder per replicate.
+		- These folders will contain the VCF files (true and sampled)
+		"""
 		self.appLogger.debug("generateFolderStructureDetail(self)")
-		for i in range(0,len(self.filteredST)):
-			indexST=self.filteredST[i]
-			trueFolder="{0}/{1:0{2}d}".format(\
-				self.readcountTrueFolderPath,\
-				indexST,\
-				self.numSpeciesTreesDigits)
-			self.appLogger.debug("{0}|{1}".format(i, self.filteredST[i]))
-			sampledFolder="{0}/{1:0{2}d}".format(\
-				self.readcountSampledFolderPath,\
-				indexST,\
-				self.numSpeciesTreesDigits)
-			references="{0}/{1:0{2}d}".format(\
-				self.referencesFolderPath,\
-				indexST,\
-				self.numSpeciesTreesDigits)
+		for i in range(0,len(self.filteredReplicates)):
+			indexREP=self.filteredReplicates[i]
+			self.appLogger.debug("{0}|{1}".format(i, self.filteredReplicates[i]))
+			noErrorFolder=os.path.join(\
+				self.readcountNoErrorFolderPath,\
+				"{0:0{1}d}".format(indexREP,self.numReplicateDigits)\
+			)
+			errorFolder=os.path.join(\
+				self.readcountErrorFolderPath,\
+				"{0:0{1}d}".format(indexREP,self.numReplicateDigits)\
+			)
+			ref_alleles=os.path.join(\
+				self.refAllelesFolderPath,\
+				"{0:0{1}d}".format(indexREP,self.numReplicateDigits)\
+			)
+
 			try:
-				os.makedirs(trueFolder)
-				self.appLogger.info("Generating output folder ({0})".format(trueFolder))
+				os.makedirs(noErrorFolder)
+				self.appLogger.info("Generating output folder ({0})".format(noErrorFolder))
 			except:
-				self.appLogger.debug("Output folder exists ({0})".format(trueFolder))
+				self.appLogger.debug("Output folder exists ({0})".format(noErrorFolder))
 			try:
-				os.makedirs(sampledFolder)
-				self.appLogger.info("Generating output folder ({0})".format(sampledFolder))
+				os.makedirs(errorFolder)
+				self.appLogger.info("Generating output folder ({0})".format(errorFolder))
 			except:
-				self.appLogger.debug("Output folder exists ({0})".format(sampledFolder))
+				self.appLogger.debug("Output folder exists ({0})".format(errorFolder))
 			try:
-				os.makedirs(references)
-				self.appLogger.info("Generating output folder ({0})".format(references))
+				os.makedirs(ref_alleles)
+				self.appLogger.info("Generating output folder ({0})".format(ref_alleles))
 			except:
-				self.appLogger.debug("Output folder exists ({0})".format(references))
+				self.appLogger.debug("Output folder exists ({0})".format(ref_alleles))
 
 
-	def retrieveCoverageMatrix(self, indexST):
+	def retrieveCoverageMatrix(self, indexREP):
+		"""
+		Reads coverage matrix for a specific species tree identifier
+		------------------------------------------------------------------------
+		Parameters:
+		- indexREP:specific species tree identifier
+		Returns:
+		- coverage Matrix
+		"""
 		self.appLogger.debug("Retrieving coverage matrix")
 		# coverage matrix per ST - row:indv - col:loci
 		# each cov introduced as parameter is a NGSPhyDistribution
 		coverageMatrixFilename=os.path.join(\
-			self.coverageFolderPath,\
+			self.settings.coverageFolderPath,\
 			"{0}.{1:0{2}d}.coverage.csv".format(\
 				self.settings.projectName,\
-				indexST,\
-				self.numSpeciesTreesDigits\
+				indexREP,\
+				self.numReplicateDigits\
 			)
 		)
-
-		coverageMatrix=np.zeros(shape=(self.numIndividualsPerSpeciesTree[indexST-1], self.numLociPerSpeciesTree[indexST-1]))
-		firstLine=True; counter=0
+		coverageMatrix=np.zeros(\
+			shape=(\
+				self.numIndividualsPerReplicate[indexREP-1],\
+				self.numLociPerReplicates[indexREP-1]\
+			)\
+		)
+		firstLine=NOError; counter=0
 		with open(coverageMatrixFilename, 'rb') as csvfile:
 			coveragereader = csv.reader(csvfile, delimiter=',')
 			for row in coveragereader:
@@ -217,62 +279,74 @@ class ReadCounts:
 				else:
 					coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
 					counter+=1
-				if not counter < self.numIndividualsPerSpeciesTree[indexST-1]: break
+				if not counter < self.numIndividualsPerReplicate[indexREP-1]: break
 		return coverageMatrix
 
 
-	"""
-	@function:
-		parseReferenceList(self, filename)
-	@description:
+	def parseReferenceAllelesList(self, filename):
+		"""
 		Used to parse referenceList, file with format: STID,SPID,TIPID
-	@intput:
-		filename: path of the referenceList file.
-		There's only ONE file with the relation of the references
+		-----------------------------------------------------------------------
+		Parameters:
+		- filename: path of the referenceList file.
+		There's only ONE file with the relation of the ref_alleles
 		If "None" inputted (file is missing) then reference by default is 1_0_0
 		for all species tree replicates.
-	@output:
-		output: list. each element of the list is a triplet (REPLICATEID,SPID,LOCID,GENEID)
-	"""
-	def parseReferenceList(self, filename):
-		self.appLogger.debug("parseReferenceList(self, filename)")
+		Returns:
+		- output: list. each element of the list is a triplet
+				(REPLICATEID,SPID,LOCID,GENEID)
+		"""
+		self.appLogger.debug("parseReferenceAllelesList(self, filename)")
 		referenceList=[]
 		if filename:
 			# There's a file
 			filepath=os.path.abspath(filename)
 			f=open(filepath,"r")
-			lines=f.readline()
 			lines=f.readlines()
 			f.close()
-			for index in range(0, len(lines)):
-				d=lines[index].strip().split(",")
-				try:
-					referenceList+=[(d[0],d[1],d[2],d[3])]
-				except IndexError as ie:
-					self.appLogger.warning("Parsing reference list. "+\
-						"A default reference has been introduced.\n"+\
-						"Replicate index: {0}".format(\
-						(index+1)
-					))
+			lines=[line.strip().split(",") for line in lines]
+			lines=sorted(lines, key=lambda x:x[1])
+			skipped=False
+			message="Parsing reference list. "+\
+				"A default reference has been introduced.\n"+\
+				"Replicate index:"
+
+			index=0; itemIndex=0
+			while (index < len(lines)) and (itemIndex < self.numReplicates):
+				d=lines[index]
+				if  (int(d[0]) == (itemIndex+1)) and (not "" in d):
+					try:
+						referenceList+=[(d[0],d[1],d[2],d[3])]
+					except IndexError as ie:
+						skipped=NOError
+					index+=1
+				else: skipped=NOError
+
+				if skipped:
+					self.appLogger.warning("{0}{1}".format(message,(index+1)))
 					referenceList+=[(index+1,1,0,0)]
+					skipped=False
+				itemIndex+=1
+
+			if (itemIndex < self.numReplicates):
+			    for i in range(self.numReplicates):
+			        print([i+1,1,0,0])
 		else:
 			# iterate get a list with same decription for all species trees
-			for item in range(0,self.numSpeciesTrees):
+			for item in range(0,self.numReplicates):
 				referenceList+=[(item+1,1,0,0)]
 		return referenceList
 
-	"""
-	@function:
-		extractTrueVariantsPositions(self,filename)
-	@description:
+	def extractNOErrorVariantsPositions(self, filename):
+		"""
 		Extract true variant positions from the MSA file used as input
-	@intput:
-		filename: MSA fasta file from where to extract the variable positions
-	@output:
-		dictionary. indices=variable sites, content=variable nucleotide set
-	"""
-	def extractTrueVariantsPositions(self, filename):
-		self.appLogger.debug("extractTrueVariantsPositions(self, filename)")
+		------------------------------------------------------------------------
+		Parameters:
+		- filename: MSA fasta file from where to extract the variable positions
+		Returns:
+		- dictionary. indices=variable sites, content=variable nucleotide set
+		"""
+		self.appLogger.debug("extractNOErrorVariantsPositions(self, filename)")
 		filepath=os.path.abspath(filename)
 		lines=[];variants=dict();seqDescriptions=[]
 		numTotalSeqs=0;lenSeq=0; matrix=None
@@ -288,7 +362,12 @@ class ReadCounts:
 			seq=lines[1] # lines[0] will be a description
 			lenSeqs=len(seq.strip())
 		else:
-			raise TypeError("File has a wrong file format.\n{}\nPlease check. Exiting.".format(filepath))
+			message="{0}\n{1}\n{2}\n".format(\
+				"File has a wrong file format.",\
+				filepath,\
+				"Please check. Exiting."
+			)
+			raise TypeError(message)
 			# If I get here, function run is over - goes back to  run()
 
 		for item in lines:
@@ -317,20 +396,18 @@ class ReadCounts:
 				variants[str(indexCol)]=c.keys()
 		return variants
 
-	"""
-	@function:
-		parseIndividualRelationFile(self,filename)
-	@description:
+	def parseIndividualRelationFile(self,filename):
+		"""
 		Parses "Individual-description relation" file per species tree
 		in order to obtain information on how sequences from INDELible
 		are related. Generated within NGSPhy.
-	@intput:
-		filename: path for the Individual-description relation file
-	@output:
-		if ploidy=1:	returns a dict. key: indID,content: dict(indexST,seqDEscription)
-		if ploidy=2:	returns a dict. key: indID,content: dict(indexST,speciesID, mateID1,mateID2)
-	"""
-	def parseIndividualRelationFile(self,filename):
+		------------------------------------------------------------------------
+		Parameters:
+		- filename: path for the Individual-description relation file
+		Returns:
+		- if ploidy=1:	returns a dict. key: indID,content: dict(indexREP,speciesID,locusID, geneID)
+		- if ploidy=2:	returns a dict. key: indID,content: dict(indexREP,speciesID,locusID, mateID1,mateID2)
+		"""
 		self.appLogger.debug("parseIndividualRelationFile(self,filename)")
 		individuals=dict()
 		if (self.settings.ploidy>0 and self.settings.ploidy<=2):
@@ -339,15 +416,15 @@ class ReadCounts:
 			if (self.settings.ploidy==1):
 				for row in d:
 					individuals[str(row["indID"])] = {\
-						"indexST":row["indexST"],\
+						"indexREP":row["indexREP"],\
 						"speciesID":row["speciesID"],\
 						"locusID":row["locusID"],\
 						"geneID":row["geneID"]}
 			if (self.settings.ploidy==2):
-				# indexST,indID,speciesID,mateID1,mateID2
+				# indexREP,indID,speciesID,mateID1,mateID2
 				for row in d:
 					individuals[str(row["indID"])] = {\
-						"indexST":row["indexST"],\
+						"indexREP":row["indexREP"],\
 						"speciesID":row["speciesID"],\
 						"locusID":row["locusID"],\
 						"mateID1":row["mateID1"],\
@@ -355,49 +432,50 @@ class ReadCounts:
 			csvfile.close()
 		else:
 			# There has been a verification in Settings class, but just in case.
-			raise ValueError("Ploidy assigned is incorrect. Please verify. Exciting.")
+			message="\n\t{0}\n\t{1}".format(\
+				"Ploidy assigned is incorrect.",\
+				"Please verify. Exciting."
+			)
+			raise ValueError(message)
 		return individuals
 
-	"""
-	@function:
-		getDepthCoveragePerIndividual(self, numVarSites,startingCoverage):
-	@description:
+	def getDepthCoveragePerIndividual(self, numVarSites,startingCoverage):
+		"""
 		Compute coverage per individuals
 		since the value for SNPS is fixed to a Negative Binomial distribution
 		I iterate over the number of variants for this specific locus and
 		since everythime i hit play! (called value()) I'll sample a new value
 		from the previously set distribution, i'll then get a random value from a
 		negative bionmial distribution with mean max-coverage
-	@intput:
-		numVariableSites: number of variable sites
-		startingCoverage: starting value to calculate coverage
-	@output:
-		list of values that correspond to the coverage per each snp of the MSA
-	"""
-	def getDepthCoveragePerIndividual(self, numVarSites,startingCoverage):
+		------------------------------------------------------------------------
+		Parameters:
+		- numVariableSites: number of variable sites
+		- startingCoverage: starting value to calculate coverage
+		Returns:
+		- list of values that correspond to the coverage per each snp of the MSA
+		"""
 		self.appLogger.debug(\
-			"getDepthCoveragePerIndividual(self, numVarSites,startingCoverage) - ({},{})".format(\
+			"{} - ({},{})".format(\
+				"getDepthCoveragePerIndividual(self, numVarSites,startingCoverage)"
 				numVarSites,\
-				startingCoverage
-			))
+				startingCoverage\
+			)\
+		)
 		distro=ngsphydistro("nb",[startingCoverage,startingCoverage])
 		DP=distro.value(numVarSites)
 		return DP
 
-
-	"""
-	@function:
-		getHaploidIndividualSequence(self,msa,ind)
-	@description:
-		Extract individuals "ind" sequence(s) from MSA dictionary
-	@intput:
-		msa: dictionary
-		ind: dict(indexST,seqDEscription)
-	@output:
-		sequence of the individual
-	"""
 	def getHaploidIndividualSequence(self,msa,ind):
-		# ind: [indID,indexST,seqDescription]
+		"""
+		Extract individuals "ind" sequence(s) from MSA dictionary
+		------------------------------------------------------------------------
+		Parameters:
+		- msa: dictionary
+		- ind: dict(indexREP,seqDEscription)
+		Returns:
+		- sequence of the individual
+		"""
+		# ind: [indID,indexREP,seqDescription]
 		self.appLogger.debug("getHaploidIndividualSequence(self,msa,ind)")
 		seqSize=len(msa["{0}_{1}".format(str(1),str(0))][str(0)]['sequence'])
 		fullInd=None; speciesID=None; tipID=None; tmp=None
@@ -409,19 +487,16 @@ class ReadCounts:
 		fullInd=[item for item in tmp]
 		return fullInd
 
-	"""
-	@function:
-		getDiploidIndividualSequence(self,msa,ind)
-	@description:
-		Extract individuals "ind" sequence(s) from MSA dictionary
-	@intput:
-		msa: dictionary
-		ind: dict(indexST,speciesID, mateID1,mateID2)
-	@output:
-		matrix: 2 x seqLength - representing the sequence of the individual
-	"""
 	def getDiploidIndividualSequence(self,msa,ind):
-		# ind:[indID, indexST,speciesID, mateID1,mateID2]
+		"""
+		Extract individuals "ind" sequence(s) from MSA dictionary
+		Parameters:
+		- msa: dictionary
+		- ind: dict(indexREP,speciesID, mateID1,mateID2)
+		Returns:
+		- matrix: 2 x seqLength - representing the sequence of the individual
+		"""
+		# ind:[indID, indexREP,speciesID, mateID1,mateID2]
 		self.appLogger.debug("getDiploidIndividualSequence(self,msa,ind)")
 		seqSize=len(msa["1_0"][str(0)]['sequence'])
 		fullInd=None;  tmp=None
@@ -438,33 +513,32 @@ class ReadCounts:
 		return fullInd
 
 
-	"""
-	@function:
-		computeHaploid(indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP)
-	@description:
+	def computeHaploid(self,indexREP,indexGT,msa,individuals,refAllelesFilePath,\
+		referenceSeqFull,variableSites,DP):
+		"""
 		compute the READ COUNT for the specic ploidy
-	@intput:
-		indexST: species tree id
-		indexGT: locus/gene tree id
-		msa: parsed multiple sequence alignent file (dictionary)
-		individuals: parsed individual-description relation file (dictionary)
-		referenceFilepath: where the reference is written.
-		referenceSeqFull: reference sequence as is
-		variableSites: dictionary. keys: variable positions. content: variable nucleotide set
-		DP: variable sites coverage
-	@result:
-		get a file written in the STreplicate folder (true/sampled)
-	"""
-	def computeHaploid(self,indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP):
-		self.appLogger.debug("computeHaploid(msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP)")
+		------------------------------------------------------------------------
+		Parameters:
+		- indexREP: species tree id
+		- indexGT: locus/gene tree id
+		- msa: parsed multiple sequence alignent file (dictionary)
+		- individuals: parsed individual-description relation file (dictionary)
+		- refAllelesFilePath: where the reference is written.
+		- referenceSeqFull: reference sequence as is
+		- variableSites: dictionary. keys: variable positions. content: variable nucleotide set
+		- DP: variable sites coverage
+		Returns:
+		- get a file written in the STreplicate folder (true/sampled)
+		"""
+		self.appLogger.debug("computeHaploid(...)")
 		nInds=len(individuals)
 		nVarSites=len(variableSites.keys())
 		# Getting the proper indices of the variable sites
 		variableSitesPositionIndices=np.sort([int(pos) for pos in variableSites.keys()])
 		alt=dict();  altInds=dict()
-		rcsTrue=dict();rcsSampled=dict()
+		rcsNOError=dict();rcsWErrors=dict()
 		HTGeneral=dict();HLGeneral=dict();ADGeneral=dict()
-		HTGeneralSampled=dict();HLGeneralSampled=dict();ADGeneralSampled=dict()
+		HTGeneralWErrors=dict();HLGeneralWErrors=dict();ADGeneralWErrors=dict()
 		for pos in variableSites.keys():
 			alt[pos]=[]; altInds[pos]=[]
 		for pos in variableSitesPositionIndices:
@@ -472,118 +546,92 @@ class ReadCounts:
 		for index in range(0,nInds):
 			indexIND=str(index)
 			HTGeneral[indexIND]=[];HLGeneral[indexIND]=[];ADGeneral[indexIND]=[]
-			HTGeneralSampled[indexIND]=[];
-			HLGeneralSampled[indexIND]=[];ADGeneralSampled[indexIND]=[]
-			rcsTrue[indexIND]=[];rcsSampled[indexIND]=[]
+			HTGeneralWErrors[indexIND]=[];
+			HLGeneralWErrors[indexIND]=[];ADGeneralWErrors[indexIND]=[]
+			rcsNOError[indexIND]=[];rcsWErrors[indexIND]=[]
 		########################################################
 		# TRUE
 		########################################################
 		# iterate over individuals
 
-		self.appLogger.debug("True")
+		self.appLogger.debug("NOError")
 		altInd=copy.copy(alt)
 		for indIndex in range(0,nInds):
 			indexIND=str(indIndex)
-			self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
-				indexST, indexGT,
-				indIndex,(indIndex+1),nInds))
+			self.appLogger.debug(\
+				"\tReplicate tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
+					indexREP,\
+					indexGT,\
+					indIndex,\
+					(indIndex+1),\
+					nInds)\
+				)
 			ind=individuals[indexIND]
 			individualSeq=self.getHaploidIndividualSequence(msa,ind)
 			# individualSeq[202]+="**"
 			# AD per individual different if true/sampledInd
-			ADTrue,ADSampled=self.getAllelicDepthPerHaploidIndividual(\
+			ADNOErrors,ADWErrors=self.getAllelicDepthPerHaploidIndividual(\
 				individualSeq,variableSitesPositionIndices,DP[indIndex])
-			rcTrue,rcSampled=self.getReadCountPerIndividual(\
-				ADTrue,ADSampled,variableSitesPositionIndices)
+			rcNOError,rcWErrors=self.getReadCountPerIndividual(\
+				ADNOErrors,ADWErrors,variableSitesPositionIndices)
 			altInd=self.getAltUpdatedPerIndividual(\
-				referenceSeqFull,altInd,ADSampled)
-			HTTrue=self.gettingHaplotype(\
+				referenceSeqFull,altInd,ADWErrors)
+			HTNOError=self.gettingHaplotype(\
 				referenceSeqFull,individualSeq,alt,variableSitesPositionIndices)
-			HLTrue=self.haplotypeLikehood(\
-				rcTrue,variableSitesPositionIndices,0)
-			rcsTrue[indexIND]=rcTrue
-			rcsSampled[indexIND]=rcSampled
-			ADGeneral[indexIND]=ADTrue
-			ADGeneralSampled[indexIND]=ADSampled
-			HTGeneral[indexIND]=HTTrue
-			HLGeneral[indexIND]=HLTrue
-
+			HLNOError=self.haplotypeLikehood(\
+				rcNOError,variableSitesPositionIndices,0)
+			rcsNOError[indexIND]=rcNOError
+			rcsWErrors[indexIND]=rcWErrors
+			ADGeneral[indexIND]=ADNOErrors
+			ADGeneralWErrors[indexIND]=ADWErrors
+			HTGeneral[indexIND]=HTNOError
+			HLGeneral[indexIND]=HLNOError
 
 		# here corresponds to the INDEXST that is going to be written
 		self.writeVCFFile(\
-			indexST,indexGT,\
-			referenceFilepath, referenceSeqFull,\
+			indexREP,indexGT,\
+			refAllelesFilePath, referenceSeqFull,\
 			alt,variableSitesPositionIndices,\
 			HTGeneral,HLGeneral,\
-			ADGeneral,DP,True)
+			ADGeneral,DP,NOError)
 
 		########################################################
-		# Sampled
+		# With errors
 		########################################################
-		self.appLogger.debug("Sampled")
+		self.appLogger.debug("With errors")
 		for indIndex in range(0,nInds):
 			indexIND=str(indIndex)
 			self.appLogger.info("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
 			ind=individuals[indexIND]
 			individualSeq=self.getHaploidIndividualSequence(msa,ind)
-			HTGeneralSampled[indexIND]=self.gettingHaplotype(\
+			HTGeneralWErrors[indexIND]=self.gettingHaplotype(\
 				referenceSeqFull,individualSeq,\
 				altInd, variableSitesPositionIndices)
-			HLGeneralSampled[indexIND]=self.haplotypeLikehood(\
-				rcsSampled[indexIND],\
+			HLGeneralWErrors[indexIND]=self.haplotypeLikehood(\
+				rcsWErrors[indexIND],\
 				variableSitesPositionIndices,\
 				self.settings.seqerror)
 
 		self.writeVCFFile(
-			indexST,indexGT,\
-			referenceFilepath, referenceSeqFull,\
+			indexREP,indexGT,\
+			refAllelesFilePath, referenceSeqFull,\
 			altInd,variableSitesPositionIndices,\
-			HTGeneralSampled,HLGeneralSampled,\
-			ADGeneralSampled,DP,False)
-		# f=open("test_run.hap.txt","a")
-		# for indexIND in range(0,nInds):
-		#	 for indVar in range(0,len(variableSitesPositionIndices)):
-		#		 pos=variableSitesPositionIndices[indVar]
-		#		 indexIND=str(indexIND)
-		#		 f.write("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16},{17},{18},{19},{20}".format(\
-		#			 indexST,\
-		#			 indexGT,\
-		#			 indexIND,\
-		#			 indVar,\
-		#			 ADGeneral[indexIND][0,indVar],\
-		#			 ADGeneral[indexIND][1,indVar],\
-		#			 ADGeneral[indexIND][2,indVar],\
-		#			 ADGeneral[indexIND][3,indVar],\
-		#			 ADGeneralSampled[indexIND][0,indVar],\
-		#			 ADGeneralSampled[indexIND][1,indVar],\
-		#			 ADGeneralSampled[indexIND][2,indVar],\
-		#			 ADGeneralSampled[indexIND][3,indVar],\
-		#			 HLGeneral[indexIND][0,indVar],\
-		#			 HLGeneral[indexIND][1,indVar],\
-		#			 HLGeneral[indexIND][2,indVar],\
-		#			 HLGeneral[indexIND][3,indVar],\
-		#			 HLGeneralSampled[indexIND][0,indVar],\
-		#			 HLGeneralSampled[indexIND][1,indVar],\
-		#			 HLGeneralSampled[indexIND][2,indVar],\
-		#			 HLGeneralSampled[indexIND][3,indVar]
-		#		 ))
-		#	 f.close()
+			HTGeneralWErrors,HLGeneralWErrors,\
+			ADGeneralWErrors,DP,False)
 
-	"""
-	@function:
-		haplotypeLikehood(self,variantsRC,observed,variableSites,error):
-	@description:
-		computes log10-scaled haplotype likelihood per variable site
-	@intput:
-		readcount:
-		variableSitesPositionIndices:
-		error:
-	@output:
-		GL: dictionary.
-			keys: positons.
-			content: log10-scaled likelihood for the specific variable site
-	"""
 	def haplotypeLikehood(self,variantsRC,variableSitesPositionIndices,error):
+		"""
+		computes log10-scaled haplotype likelihood per variable site
+		------------------------------------------------------------------------
+		Parameters:
+		- variantsRC: read count pairs of the variable positions
+		- variableSitesPositionIndices: indices of the variable sites position
+		- error: sequence error
+		Returns:
+		- GL: dictionary.
+		- keys: positons.
+		- content: log10-scaled likelihood for the specific variable site
+		"""
 		self.appLogger.debug("haplotypeLikehood(self,variantsRC,observed,variableSites,error)")
 		nVariants=len(variableSitesPositionIndices)
 		HL=np.ones(shape=(4,nVariants), dtype=np.float)
@@ -612,20 +660,18 @@ class ReadCounts:
 			value[infs]=-300
 		return value
 
-	"""
-	@function:
-		gettingHaplotype(self,ref,seq,alt, variableSitesPositionIndices):
-	@description:
-		get haplotype for the given ref-seq-alt triplet
-	@intput:
-		ref: reference sequence
-		seq: individual sequnece
-		alt: dictionary with alternative alleles per variable position
-		variableSitesPositionIndices: variableSites
-	@output:
-		GT: dictionary. keys: positons. content: haplotype for the specific variable site
-	"""
 	def gettingHaplotype(self,ref,seq,alt, variableSitesPositionIndices):
+		"""
+		get haplotype for the given ref-seq-alt triplet
+		------------------------------------------------------------------------
+		Parameters:
+		- ref: reference sequence
+		- seq: individual sequnece
+		- alt: dictionary with alternative alleles per variable position
+		- variableSitesPositionIndices: variableSites
+		Returns:
+		- GT: dictionary. keys: positons. content: haplotype for the specific variable site
+		"""
 		self.appLogger.debug("gettingHaplotype(self,ref,seq,alt, variableSitesPositionIndices)")
 		GT=dict()
 		# init variantsRC
@@ -647,22 +693,20 @@ class ReadCounts:
 					GT[iv]=3
 		return copy.copy(GT)
 
-	"""
-	@function:
-		getAltUpdatedPerIndividual(self,ref,alt,AD)
-	@description:
-		update general alternative alleles list
-	@intput:
-		referenceSeq: reference sequence
-		alt: dictionary. current alternative allele list per variant
-		AD: allelic depth matrix
-	@output:
-		newAlt: dictionary. keys: positions. content: alt alleles corresponding to that position
-	"""
 	def getAltUpdatedPerIndividual(self,ref,alt,AD):
+		"""
+		update general alternative alleles list
+		------------------------------------------------------------------------
+		Parameters:
+		- referenceSeq: reference sequence
+		- alt: dictionary. current alternative allele list per variant
+		- AD: allelic depth matrix
+		Return:
+		- newAlt: dictionary. keys: positions. content: alt alleles corresponding to that position
+		"""
 		self.appLogger.debug("getAltUpdatedPerIndividual(self,ref,alt,AD)")
 		# update alt values
-		# Sampled - ALT is a DICT
+		# With errors - ALT is a DICT
 		# altUpdate is going to be a dict too
 		altUpdated=dict()
 		for item in alt.keys(): altUpdated[item]=[]
@@ -681,27 +725,25 @@ class ReadCounts:
 			altUpdated[str(sortedAltKeys[index])]+=list(np.sort(list(newAlt)))
 		return altUpdated
 
-	"""
-	@function:
-		getReadCountPerIndividual(self,ADTrue,ADSampled, variableSitesPositionIndices)
-	@description:
+	def getReadCountPerIndividual(self,ADNOErrors,ADWErrors, variableSitesPositionIndices):
+		"""
 		generates list of read counts per variant per individual
-	@intput:
-		ADTrue: True allelic depth
-		ADSampled: Sampled allelic depth
-		variableSitesPositionIndices: position of the variable sites
-	@output:
-		RCTrue, RCSampled.
-	"""
-	def getReadCountPerIndividual(self,ADTrue,ADSampled, variableSitesPositionIndices):
-		self.appLogger.debug("getReadCountPerIndividual(self,ADTrue,ADSampled, variableSitesPositionIndices)")
+		------------------------------------------------------------------------
+		Parameters:
+		- ADNOErrors: NOError allelic depth
+		- ADWErrors: With errors allelic depth
+		- variableSitesPositionIndices: position of the variable sites
+		Return:
+		- RCNOError, RCWErrors.
+		"""
+		self.appLogger.debug("getReadCountPerIndividual(self,ADNOErrors,ADWErrors, variableSitesPositionIndices)")
 		nVariants=len(variableSitesPositionIndices)
-		rcTrue=dict();rcSampled=dict()
+		rcNOError=dict();rcWErrors=dict()
 		# init variantsRC
 		for indexVar in range(0,nVariants):
 			indexConverted=str(variableSitesPositionIndices[indexVar])
-			rcTrue[indexConverted]=[]
-			rcSampled[indexConverted]=[]
+			rcNOError[indexConverted]=[]
+			rcWErrors[indexConverted]=[]
 		# getting read count
 		for indexVar in range(0,nVariants):
 			for indexNuc in range(0,4):
@@ -709,29 +751,27 @@ class ReadCounts:
 					warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 					nuc=[self.__NUCLEOTIDES[indexNuc]]
 					indexConverted=str(variableSitesPositionIndices[indexVar])
-					val=ADTrue[indexNuc,indexVar]
-					rcTrue[indexConverted]+=nuc*val
-					val=ADSampled[indexNuc,indexVar]
-					rcSampled[indexConverted]+=nuc*val
-		return rcTrue, rcSampled
+					val=ADNOErrors[indexNuc,indexVar]
+					rcNOError[indexConverted]+=nuc*val
+					val=ADWErrors[indexNuc,indexVar]
+					rcWErrors[indexConverted]+=nuc*val
+		return rcNOError, rcWErrors
 
-	"""
-	@function:
-		getAllelicDepthPerHaploidIndividual(self,fullInd,variableSites,DP)
-	@description:
-		Generate allelic depth per individual per site
-	@intput:
-		individualSequence: sequence of the individual
-		variableSitesPositionIndices: position of the variable sites
-		DP: coverage of the variable sites
-	@output:
-		ADTrue, ADSampled.
-	"""
 	def getAllelicDepthPerHaploidIndividual(self,individualSeq,variableSitesPositionIndices,DP):
+		"""
+		Generate allelic depth per individual per site
+		------------------------------------------------------------------------
+		Parameters:
+		- individualSequence: sequence of the individual
+		- variableSitesPositionIndices: position of the variable sites
+		- DP: coverage of the variable sites
+		Returns:
+		- ADNOErrors, ADWErrors.
+		"""
 		self.appLogger.debug("getAllelicDepthPerHaploidIndividual(self,fullInd,variableSites,DP)")
 		nVariants=len(variableSitesPositionIndices)
-		ADTrue=np.zeros(shape=(4,nVariants), dtype=np.int)
-		ADSampled=np.zeros(shape=(4,nVariants), dtype=np.int)
+		ADNOErrors=np.zeros(shape=(4,nVariants), dtype=np.int)
+		ADWErrors=np.zeros(shape=(4,nVariants), dtype=np.int)
 		self.appLogger.debug("Starting to iterate over the variants")
 		# There was a problem in this block related to low coverage, error
 		# and possible substitutions.
@@ -744,8 +784,8 @@ class ReadCounts:
 			finalRC=[indNucs]*(posCoverage)
 			counter=Counter(finalRC)
 			# TRUE READ count
-			ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
-			ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
+			ADNOErrors[0,indexVar]=counter["A"];ADNOErrors[1,indexVar]=counter["C"]
+			ADNOErrors[2,indexVar]=counter["G"];ADNOErrors[3,indexVar]=counter["T"]
 			# SAMPLE READ COUNT - need to know error distribution
 			errorDistro=ngsphydistro("b",[posCoverage,self.settings.seqerror])
 			errorD=errorDistro.value(1)[0]
@@ -755,7 +795,7 @@ class ReadCounts:
 			# I have some positions (at least 1) that is an error
 			# errorD= array with coded error nucleotides that will be modified
 			if (errorD>0):
-				errorChoices=np.random.choice(possibleNucs, int(errorD), replace=True)
+				errorChoices=np.random.choice(possibleNucs, int(errorD), replace=NOError)
 				maxAvailablePositions=posCoverage
 				if not ((posCoverage % 2) == 0): maxAvailablePositions=posCoverage-1
 				if maxAvailablePositions == 0:  maxAvailablePositions=posCoverage
@@ -766,36 +806,34 @@ class ReadCounts:
 					finalRC[posToChange]=errorChoices[item]
 			counter=Counter(finalRC)
 			# if any of the nucleotides does not have a counter retrieving it will be 0
-			ADSampled[0,indexVar]=counter["A"];ADSampled[1,indexVar]=counter["C"]
-			ADSampled[2,indexVar]=counter["G"];ADSampled[3,indexVar]=counter["T"]
-		return ADTrue,ADSampled
+			ADWErrors[0,indexVar]=counter["A"];ADWErrors[1,indexVar]=counter["C"]
+			ADWErrors[2,indexVar]=counter["G"];ADWErrors[3,indexVar]=counter["T"]
+		return ADNOErrors,ADWErrors
 
-	"""
-	@function:
-		id(indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP)
-	@description:
+	def computeDiploid(self,indexREP,indexGT,msa,individuals,refAllelesFilePath,referenceSeqFull,variableSites,DP):
+		"""
 		compute the READ COUNT for the specic ploidy
-	@intput:
-		indexST: species tree id
-		indexGT: locus/gene tree id
-		msa: parsed multiple sequence alignent file (dictionary)
-		individuals: parsed individual-description relation file (dictionary)
-		referenceSeqFull: reference sequence as is
-		variableSites: dictionary. keys: variable positions. content: variable nucleotide set
-		DP: variable sites coverage
-	@result:
-		get a file written in the STreplicate folder (true/sampled)
-	"""
-	def computeDiploid(self,indexST,indexGT,msa,individuals,referenceFilepath,referenceSeqFull,variableSites,DP):
-		self.appLogger.debug("computeDiploid(self,indexST,indexGT,msa,individuals,referenceSeqFull,variableSites,DP)")
+		------------------------------------------------------------------------
+		Parameters:
+		- indexREP: species tree id
+		- indexGT: locus/gene tree id
+		- msa: parsed multiple sequence alignent file (dictionary)
+		- individuals: parsed individual-description relation file (dictionary)
+		- referenceSeqFull: reference sequence as is
+		- variableSites: dictionary. keys: variable positions. content: variable nucleotide set
+		- DP: variable sites coverage
+		Returns:
+		- get a file written in the STreplicate folder (true/sampled)
+		"""
+		self.appLogger.debug("computeDiploid(...)")
 		nInds=len(individuals)
 		nVarSites=len(variableSites.keys())
 		# Getting the proper indices of the variable sites
 		variableSitesPositionIndices=np.sort([int(pos) for pos in variableSites.keys()])
 		alt=dict();  altInds=dict()
-		rcsTrue=dict();rcsSampled=dict()
+		rcsNOError=dict();rcsWErrors=dict()
 		GTGeneral=dict();GLGeneral=dict();ADGeneral=dict()
-		GTGeneralSampled=dict();GLGeneralSampled=dict();ADGeneralSampled=dict()
+		GTGeneralWErrors=dict();GLGeneralWErrors=dict();ADGeneralWErrors=dict()
 		for pos in variableSites.keys():
 			alt[pos]=[]; altInds[pos]=[]
 		for pos in variableSitesPositionIndices:
@@ -803,104 +841,103 @@ class ReadCounts:
 		for index in range(0,nInds):
 			indexIND=str(index)
 			GTGeneral[indexIND]=[];GLGeneral[indexIND]=[];ADGeneral[indexIND]=[]
-			GTGeneralSampled[indexIND]=[];
-			GLGeneralSampled[indexIND]=[];ADGeneralSampled[indexIND]=[]
-			rcsTrue[indexIND]=[];rcsSampled[indexIND]=[]
+			GTGeneralWErrors[indexIND]=[];
+			GLGeneralWErrors[indexIND]=[];ADGeneralWErrors[indexIND]=[]
+			rcsNOError[indexIND]=[];rcsWErrors[indexIND]=[]
 		########################################################
 		# DIPLOID TRUE
 		########################################################
 		# iterate over individuals
-		self.appLogger.debug("True")
+		self.appLogger.debug("NOError")
 		altInd=copy.copy(alt)
 		for indIndex in range(0,nInds):
-			GTTrue=dict()
+			GTNOError=dict()
 			indexIND=str(indIndex)
 			self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
-				indexST, indexGT,
+				indexREP, indexGT,
 				indIndex,(indIndex+1),nInds))
 			ind=individuals[indexIND]
 			individualSeq=self.getDiploidIndividualSequence(msa,ind)
-			ADTrue,ADSampled=self.getAllelicDepthPerDiploidIndividual(\
+			ADNOErrors,ADWErrors=self.getAllelicDepthPerDiploidIndividual(\
 				individualSeq,variableSitesPositionIndices,DP[indIndex])
-			rcTrue,rcSampled=self.getReadCountPerIndividual(\
-				ADTrue,ADSampled,variableSitesPositionIndices)
+			rcNOError,rcWErrors=self.getReadCountPerIndividual(\
+				ADNOErrors,ADWErrors,variableSitesPositionIndices)
 			altInd=self.getAltUpdatedPerIndividual(\
-				referenceSeqFull,altInd,ADSampled)
-			GTTrueS0=self.gettingHaplotype(
+				referenceSeqFull,altInd,ADWErrors)
+			GTNOErrorS0=self.gettingHaplotype(
 				referenceSeqFull,individualSeq[0,:],\
 				alt, variableSitesPositionIndices
 			)
-			GTTrueS1=self.gettingHaplotype(
+			GTNOErrorS1=self.gettingHaplotype(
 				referenceSeqFull,individualSeq[1,:],\
 				alt, variableSitesPositionIndices
 			)
 			for item in variableSitesPositionIndices:
-				GTTrue[str(item)]=[GTTrueS0[str(item)],GTTrueS1[str(item)]]
-			GLTrue=self.genotypeLikehood(\
-				rcTrue,variableSitesPositionIndices,0)
-			rcsTrue[indexIND]=rcTrue
-			rcsSampled[indexIND]=rcSampled
-			ADGeneral[indexIND]=ADTrue
-			ADGeneralSampled[indexIND]=ADSampled
-			GTGeneral[indexIND]=GTTrue
-			GLGeneral[indexIND]=GLTrue
+				GTNOError[str(item)]=[GTNOErrorS0[str(item)],GTNOErrorS1[str(item)]]
+			GLNOError=self.genotypeLikehood(\
+				rcNOError,variableSitesPositionIndices,0)
+			rcsNOError[indexIND]=rcNOError
+			rcsWErrors[indexIND]=rcWErrors
+			ADGeneral[indexIND]=ADNOErrors
+			ADGeneralWErrors[indexIND]=ADWErrors
+			GTGeneral[indexIND]=GTNOError
+			GLGeneral[indexIND]=GLNOError
 
 		# here corresponds to the INDEXST that is going to be written
 		self.writeVCFFile(\
-			indexST,indexGT,\
-			referenceFilepath, referenceSeqFull,\
+			indexREP,indexGT,\
+			refAllelesFilePath, referenceSeqFull,\
 			alt,variableSitesPositionIndices,\
 			GTGeneral,GLGeneral,\
-			ADGeneral,DP,True)
+			ADGeneral,DP,NOError)
 
 		########################################################
 		# DIPLOID SAMPLED
 		########################################################
-		self.appLogger.debug("Sampled")
+		self.appLogger.debug("With errors")
 		for indIndex in range(0,nInds):
-			GTSampled=dict()
+			GTWErrors=dict()
 			indexIND=str(indIndex)
 			self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
-				indexST, indexGT,
+				indexREP, indexGT,
 				indIndex,(indIndex+1),nInds))
 			ind=individuals[indexIND]
 			individualSeq=self.getDiploidIndividualSequence(msa,ind)
-			GTSampledS0=self.gettingHaplotype(
+			GTWErrorsS0=self.gettingHaplotype(
 				referenceSeqFull,individualSeq[0,:],\
 				altInd, variableSitesPositionIndices
 			)
-			GTSampledS1=self.gettingHaplotype(
+			GTWErrorsS1=self.gettingHaplotype(
 				referenceSeqFull,individualSeq[1,:],\
 				altInd, variableSitesPositionIndices
 			)
 			for item in variableSitesPositionIndices:
-				GTSampled[str(item)]=[GTSampledS0[str(item)],GTSampledS1[str(item)]]
-			GLSampled=self.genotypeLikehood(\
-				rcsSampled[indexIND],\
+				GTWErrors[str(item)]=[GTWErrorsS0[str(item)],GTWErrorsS1[str(item)]]
+			GLWErrors=self.genotypeLikehood(\
+				rcsWErrors[indexIND],\
 				variableSitesPositionIndices,\
 				self.settings.seqerror)
-			GTGeneralSampled[indexIND]=GTSampled
-			GLGeneralSampled[indexIND]=GLSampled
+			GTGeneralWErrors[indexIND]=GTWErrors
+			GLGeneralWErrors[indexIND]=GLWErrors
 
 		self.writeVCFFile(
-			indexST,indexGT,\
-			referenceFilepath, referenceSeqFull,\
+			indexREP,indexGT,\
+			refAllelesFilePath, referenceSeqFull,\
 			altInd,variableSitesPositionIndices,\
-			GTGeneralSampled,GLGeneralSampled,\
-			ADGeneralSampled,DP,False)
+			GTGeneralWErrors,GLGeneralWErrors,\
+			ADGeneralWErrors,DP,False)
 
-	"""
-	@function:
-	 genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error):
-	@description:
-		compute the genotype likelihoods of a specific ngs-read-count set
-	@intput:
-		variantsRC:
-		variableSitesPositionIndices:
-		erro
-	@output:
-	"""
 	def genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error):
+		"""
+		compute the genotype likelihoods of a specific ngs-read-counts set
+		------------------------------------------------------------------------
+		Parameters:
+		- variantsRC:
+		- variableSitesPositionIndices:
+		- error
+		Returns:
+		- Genotype likelihoods for the given variable positions and error
+		"""
 		self.appLogger.debug("genotypeLikehood(self, variantsRC,variableSitesPositionIndices,error)")
 		nVariants=len(variableSitesPositionIndices)
 		GL=dict();GLout=dict() # Initialization of genotypeLikehood variable
@@ -941,17 +978,12 @@ class ReadCounts:
 					GLout[str(indexVar)][gen]=np.log10(value)
 		return GL
 
-	"""
-	@function:
-		def getAllPossibleGenotypes(self):
-	@description:
-		Generates all the possible genotypes
-	@intput:
-
-	@output:
-		returns a dictionary. key: positions. content [A1,A2]
-	"""
 	def getAllPossibleGenotypes(self):
+		"""
+		Generates all the possible genotypes
+		------------------------------------------------------------------------
+		returns a dictionary. key: positions. content [A1,A2]
+		"""
 		self.appLogger.debug("getAllPossibleGenotypes(self)")
 		possibleGenotypes=[]
 		for pos1 in self.__NUCLEOTIDES:
@@ -959,19 +991,17 @@ class ReadCounts:
 				possibleGenotypes+=[[pos1,pos2]]
 		return possibleGenotypes
 
-	"""
-	@function:
-		getPossibleGenotypesPerVariableSite(self,ref,alt, variableSitesPositionIndices):
-	@description:
-		get the genotypes for a specfic position
-	@intput:
-		ref
-		alt
-		variableSitesPositionIndices
-	@output:
-		returns a dictionary. key: positions. content [A1,A2]
-	"""
 	def getPossibleGenotypesPerVariableSite(self,ref,alt, variableSitesPositionIndices):
+		"""
+		get the genotypes for a specfic position
+		------------------------------------------------------------------------
+		intput:
+			ref
+			alt
+			variableSitesPositionIndices
+		output:
+			returns a dictionary. key: positions. content [A1,A2]
+		"""
 		self.appLogger.debug("getPossibleGenotypesPerVariableSite(self,ref,alt, variableSites)")
 		self.appLogger.debug("Getting genotypes")
 		possibleGenotypes=dict();elems=dict()
@@ -1002,23 +1032,21 @@ class ReadCounts:
 		return ordered
 
 
-	"""
-	@function:
-		getAllelicDepthPerDiploidIndividual(self,fullInd,variableSites,DP)
-	@description:
-		Generate allelic depth per individual per site
-	@intput:
-		individualSequence: sequence of the individual
-		variableSitesPositionIndices: position of the variable sites
-		DP: coverage of the variable sites
-	@output:
-		ADTrue, ADSampled.
-	"""
 	def getAllelicDepthPerDiploidIndividual(self,individualSeq,variableSitesPositionIndices,DP):
+		"""
+		Generate allelic depth per individual per site
+		------------------------------------------------------------------------
+		intput:
+			individualSequence: sequence of the individual
+			variableSitesPositionIndices: position of the variable sites
+			DP: coverage of the variable sites
+		output:
+			ADNOErrors, ADWErrors.
+		"""
 		self.appLogger.debug("getAllelicDepthPerDiploidIndividual(self,fullInd,variableSitesPositionIndices,DP)")
 		nVariants=len(variableSitesPositionIndices)
-		ADTrue=np.zeros(shape=(4,nVariants), dtype=np.int)
-		ADSampled=np.zeros(shape=(4,nVariants), dtype=np.int)
+		ADNOErrors=np.zeros(shape=(4,nVariants), dtype=np.int)
+		ADWErrors=np.zeros(shape=(4,nVariants), dtype=np.int)
 		self.appLogger.debug("Starting to iterate over the variants")
 		# There was a problem in this block related to low coverage, error
 		# and possible substitutions.
@@ -1035,8 +1063,8 @@ class ReadCounts:
 			finalRC+=[indNucStrand2]*(posCoverage-diploidCoverage)
 			counter=Counter(finalRC)
 			# TRUE READ count
-			ADTrue[0,indexVar]=counter["A"];ADTrue[1,indexVar]=counter["C"]
-			ADTrue[2,indexVar]=counter["G"];ADTrue[3,indexVar]=counter["T"]
+			ADNOErrors[0,indexVar]=counter["A"];ADNOErrors[1,indexVar]=counter["C"]
+			ADNOErrors[2,indexVar]=counter["G"];ADNOErrors[3,indexVar]=counter["T"]
 			# SAMPLE READ COUNT - need to know error distribution
 			errorDistro=ngsphydistro("b",[posCoverage,self.settings.seqerror])
 			errorD=errorDistro.value(1)[0]
@@ -1046,7 +1074,7 @@ class ReadCounts:
 			# I have some positions (at least 1) that is an error
 			# errorD= array with coded error nucleotides that will be modified
 			if (errorD>0):
-				errorChoices=np.random.choice(possibleNucs, int(errorD), replace=True)
+				errorChoices=np.random.choice(possibleNucs, int(errorD), replace=NOError)
 				maxAvailablePositions=posCoverage
 				if not ((posCoverage % 2) == 0): maxAvailablePositions=posCoverage-1
 				if maxAvailablePositions == 0:  maxAvailablePositions=posCoverage
@@ -1057,28 +1085,26 @@ class ReadCounts:
 					finalRC[posToChange]=errorChoices[item]
 			counter=Counter(finalRC)
 			# if any of the nucleotides does not have a counter retrieving it will be 0
-			ADSampled[0,indexVar]=counter["A"];ADSampled[1,indexVar]=counter["C"]
-			ADSampled[2,indexVar]=counter["G"];ADSampled[3,indexVar]=counter["T"]
-		return ADTrue,ADSampled
+			ADWErrors[0,indexVar]=counter["A"];ADWErrors[1,indexVar]=counter["C"]
+			ADWErrors[2,indexVar]=counter["G"];ADWErrors[3,indexVar]=counter["T"]
+		return ADNOErrors,ADWErrors
 
 
-	"""
-	@function:
-		formatIndividualDataForVCF(self,ref,alt,variableSites,HT,HL,AD,DP):
-	@description:
-		gets single individual data formated as a GT:GL:AD:DP VCF column
-	@intput:
-		reference sequence
-		alternative alleles
-		variableSitesPositionIndices
-		haplotype
-		likelihood
-		allelic depth
-		read depth
-	@output:
-		string column with information in format: GT:GL:AD:DP
-	"""
 	def formatIndividualDataForVCF(self,ref,alt,variableSitesPositionIndices,HT,HL,AD,DP):
+		"""
+		gets single individual data formated as a GT:GL:AD:DP VCF column
+		------------------------------------------------------------------------
+		intput:
+			reference sequence
+			alternative alleles
+			variableSitesPositionIndices
+			haplotype
+			likelihood
+			allelic depth
+			read depth
+		output:
+			string column with information in format: GT:GL:AD:DP
+		"""
 		self.appLogger.debug("formatIndividualDataForVCF(self,ref,alt,variableSitesPositionIndices,HT,HL,AD,DP)")
 		nVariants=len(variableSitesPositionIndices)
 		nInds=len(HT.keys())
@@ -1119,18 +1145,16 @@ class ReadCounts:
 
 		return allVariants
 
-	"""
-		@function:
-			codifySequences(self,seq):
-		@description:
-			codify nucleotidic sequence in numbers
-			A=0,C=1,G=2,T=3
-		@input:
-			seq: nucleotidic sequence (containing only ACGT)
-		@output:
-			codified nucleotidic sequence in numbers
-	"""
 	def codifySequences(self,seq):
+		"""
+		codify nucleotidic sequence in numbers
+		A=0,C=1,G=2,T=3
+		------------------------------------------------------------------------
+		input:
+			seq: nucleotidic sequence (containing only ACGT)
+		output:
+			codified nucleotidic sequence in numbers
+		"""
 		# self.appLogger.debug("codifySequences(self,ref)")
 		codedRef=[]
 		for item in seq:
@@ -1140,28 +1164,26 @@ class ReadCounts:
 			if "T"==item: codedRef+=[3]
 		return np.array(codedRef)
 
-	"""
-	@function:
-		writeVCFFile(self, indexST,indexGT,REF,alt,variableSitesPositionIndices,HT,HL,AD,DP,flag):
-	@description:
+	def writeVCFFile(self, indexREP,indexGT,refAllelesFilePath,REF,alt,variableSitesPositionIndices,HT,HL,AD,DP,flag):
+		"""
 		gets single individual data formated as a GT:GL:AD:DP VCF column
-	@intput:
-		indexST
-		indexGT
-		referenceFilepath
-		reference sequence
-		alternative alleles
-		variableSitesPositionIndices
-		haplotype
-		likelihood
-		allelic depth
-		read depth
-		flag: to indicate whether is true o sampled what's being written
-	@output:
-		string column with information in format: GT:GL:AD:DP
-	"""
-	def writeVCFFile(self, indexST,indexGT,referenceFilepath,REF,alt,variableSitesPositionIndices,HT,HL,AD,DP,flag):
-		self.appLogger.debug("writeVCFFile(self, indexST,indexGT,REF,alt,variableSites,HT,HL,AD,DP,flag)")
+		------------------------------------------------------------------------
+		intput:
+			indexREP
+			indexGT
+			refAllelesFilePath
+			reference sequence
+			alternative alleles
+			variableSitesPositionIndices
+			haplotype
+			likelihood
+			allelic depth
+			read depth
+			flag: to indicate whether is true o sampled what's being written
+		output:
+			string column with information in format: GT:GL:AD:DP
+		"""
+		self.appLogger.debug("writeVCFFile(self, indexREP,indexGT,REF,alt,variableSites,HT,HL,AD,DP,flag)")
 		# flag is either true or sampled
 		nInds=len(HT.keys())
 		if flag:
@@ -1172,9 +1194,9 @@ class ReadCounts:
 			"##fileformat=VCFv4.0",\
 			"##fileDate",\
 			datetime.datetime.now(),\
-			"##source=ngsphy.py",
+			"##source=ngsphy",
 			"##reference",\
-			referenceFilepath
+			refAllelesFilePath
 		)
 		formatLines="{0}\n{1}\n{2}\n{3}".format(
 			"##FORMAT=<ID=GT,Number=1,Type=Integer,Description=\"Genotype\">",\
@@ -1187,18 +1209,18 @@ class ReadCounts:
 		# filename, file_extension = os.path.splitext('/path/to/somefile.ext')
 		headerCols=["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"]+indnames
 		# CHROM
-		numGeneTreeDigits=len(str(self.numLociPerSpeciesTree[(indexST-1)]))
-		chromName="ST.{0:0{1}d}.GT.{2:0{3}d}".format(indexST,\
-			self.numSpeciesTreesDigits,\
+		numGeneTreeDigits=len(str(self.numLociPerReplicates[(indexREP-1)]))
+		chromName="REP.{0:0{1}d}.GT.{2:0{3}d}".format(indexREP,\
+			self.numReplicateDigits,\
 			indexGT,\
 			numGeneTreeDigits)
 		# POS
 		nVariants=len(variableSitesPositionIndices)
 		POS=[(item+1) for item in variableSitesPositionIndices]
 		# ID
-		ID=["ST.{0:0{1}d}.GT.{2:0{3}d}.ID.{4}".format(\
-			indexST,\
-			self.numSpeciesTreesDigits,\
+		ID=["REP.{0:0{1}d}.GT.{2:0{3}d}.ID.{4}".format(\
+			indexREP,\
+			self.numReplicateDigits,\
 			indexGT,
 			numGeneTreeDigits,\
 			ID) for ID in range(1, (nVariants+1))]
@@ -1213,29 +1235,31 @@ class ReadCounts:
 		# format
 		FORMAT=["GT:GL:AD:DP"]*nVariants
 		# extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
-		nLoci=self.numLociPerSpeciesTree[indexST-1]
+		nLoci=self.numLociPerReplicates[indexREP-1]
 		numGeneTreeDigits=len(str(nLoci))
 		allVariants=self.formatIndividualDataForVCF(\
 			REF,alt,variableSitesPositionIndices,HT,HL,AD,DP)
 		outfile=""
 		# flag true=true  - Flag false= sampled
 		if flag:
-			outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}_TRUE.vcf".format(\
-				self.readcountTrueFolderPath,\
-				self.settings.dataPrefix,
-				indexST,\
-				self.numSpeciesTreesDigits,\
-				indexGT,\
-				numGeneTreeDigits\
+			outfile=os.path.join(
+				self.readcountNoErrorFolderPath,\
+				"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+				"{0}_{1:0{2}d}_{3:0{4}d}_NOERROR.vcf".format(\
+					self.settings.simphyDataPrefix,\
+					indexREP,self.numReplicateDigits,\
+					indexGT,numGeneTreeDigits\
+				)\
 			)
 		else:
-			outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}.vcf".format(\
-				self.readcountSampledFolderPath,\
-				self.settings.dataPrefix,
-				indexST,\
-				self.numSpeciesTreesDigits,\
-				indexGT,\
-				numGeneTreeDigits\
+			outfile=os.path.join(
+				self.readcountNoErrorFolderPath,\
+				"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+				"{0}_{1:0{2}d}_{3:0{4}d}.vcf".format(\
+					self.settings.simphyDataPrefix,\
+					indexREP,self.numReplicateDigits,\
+					indexGT,numGeneTreeDigits\
+				)\
 			)
 
 
@@ -1250,7 +1274,9 @@ class ReadCounts:
 		maxLenIndName=max(colWidths[9], maxLenIndName)
 		headerWidths=[maxLenIndName]*len(indnames)
 		headerWidths=colWidths+headerWidths
-		headerFields=["{0:{1}s}".format(headerCols[indexField],headerWidths[indexField]) for indexField in range(0,len(headerCols))]
+		headerFields=["{0:{1}s}".format(\
+			headerCols[indexField],headerWidths[indexField])\
+			for indexField in range(0,len(headerCols))]
 		filevcf=open(outfile, 'a')
 		filevcf.write("{0}\n{1}\n{2}\n".format(\
 			header,\
@@ -1277,27 +1303,25 @@ class ReadCounts:
 			filevcf.write(line)
 		filevcf.close()
 
-	"""
-	@function:
-		getColWidhts(self,chromName,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT,allVariants, variableSitesPositionIndices):
-	@description:
-		get string widht of the columns to format the VCF outpu
-	@intput:
-		chromName: data column
-		POS: data column
-		ID: data column
-		REF: data column
-		ALT: data column
-		QUAL: data column
-		FILTER: data column
-		INFO: data column
-		FORMAT: data column
-		allVariants: data column
-		variableSitesPositionIndices: data column
-	@output:
-		list with the leghts of the columns that are going to be written in the VCF file
-	"""
 	def getColWidhts(self,chromName,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT,allVariants, variableSitesPositionIndices):
+		"""
+		get string widht of the columns to format the VCF output
+		------------------------------------------------------------------------
+		Parameters:
+		- chromName: data column
+		- POS: data column
+		- ID: data column
+		- REF: data column
+		- ALT: data column
+		- QUAL: data column
+		- FILTER: data column
+		- INFO: data column
+		- FORMAT: data column
+		- allVariants: data column
+		- variableSitesPositionIndices: data column
+		Returns:
+		- list with the leghts of the columns that are going to be written in the VCF file
+		"""
 		self.appLogger.debug("getColWidhts(self,chromName,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT,allVariants, variableSites)")
 		#CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT
 		sizeChrom=len(chromName)
@@ -1316,73 +1340,83 @@ class ReadCounts:
 		sizeInds=max(tmpInds)
 		return [sizeChrom,sizePOS,sizeID,sizeREF,sizeALT,sizeQUAL,sizeFILTER,sizeINFO,sizeFORMAT,sizeInds]
 
-	"""
-	@function:
-		writeReference(self,indexST,indexGT,referenceSpeciesID,referenceLocusID,referenceTipID,referenceSeqFull):
-	@description:
+	def writeReference(self,indexREP,indexGT,referenceSpeciesID,referenceLocusID,referenceTipID,referenceSeqFull):
+		"""
 		write reference sequence file separately
-	@intput:
-		indexST: index of the species tree to which it belongs
-		indexGT: index of the gene tree to which it belongs
-		referenceSpeciesID: species ID to which the reference belongs within a MSA file
-		referenceTipID:  tip ID to which the reference belongs within a species in a MSA file
-		referenceSeqFull: nucleotidic sequence
-	@output:
-		filepath where the reference will be written.
-	"""
-	def writeReference(self,indexST,indexGT,referenceSpeciesID,referenceLocusID,referenceTipID,referenceSeqFull):
-		self.appLogger.debug(" writeReference(self,indexST,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):")
-		referenceFilepath="{0}/{3:{4}}/{1}_{2}_REF_{3:0{4}d}_{5:0{6}d}.fasta".format(\
-			self.referencesFolderPath,\
-			self.settings.projectName,\
-			self.settings.dataPrefix,\
-			indexST,\
-			self.numSpeciesTreesDigits,\
-			indexGT,\
-			len(str(self.numLociPerSpeciesTree[(indexST-1)]))\
+		------------------------------------------------------------------------
+		Parameters:
+		- indexREP: index of the species tree to which it belongs
+		- indexGT: index of the gene tree to which it belongs
+		- referenceSpeciesID: species ID to which the reference belongs within a MSA file
+		- referenceTipID:  tip ID to which the reference belongs within a species in a MSA file
+		- referenceSeqFull: nucleotidic sequence
+		Returns:
+		- filepath where the reference will be written.
+		"""
+		self.appLogger.debug(" writeReference(self,indexREP,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):")
+		refAllelesFilePath=os.path.join(\
+			self.refAllelesFolderPath,\
+			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+			"{0}_REF_{1}_{2}.fasta".format(\
+				self.settings.projectName,\
+				indexREP,
+				indexGT\
+			)\
 		)
 		description=">REFERENCE:{0}:ST.{1:{2}}:GT.{3:{4}}:{5}_{6}_{7}".format(\
-			self.settings.dataPrefix,\
-			indexST,\
-			self.numSpeciesTreesDigits,\
-			self.numLociPerSpeciesTree[(indexST-1)],\
-			len(str(self.numLociPerSpeciesTree[(indexST-1)])),\
+			self.settings.simphyDataPrefix,\
+			indexREP,\
+			self.numReplicateDigits,\
+			self.numLociPerReplicates[(indexREP-1)],\
+			len(str(self.numLociPerReplicates[(indexREP-1)])),\
 			referenceSpeciesID,\
 			referenceLocusID,\
 			referenceTipID\
 		)
-		f=open(referenceFilepath,"w")
+		f=open(refAllelesFilePath,"w")
 		f.write("{0}\n{1}\n".format(\
 			description,\
 			"".join(referenceSeqFull)
 		))
-		return referenceFilepath
+		return refAllelesFilePath
 
 
 
-	def launchCommand(self, referenceForCurrST, indexST,indexGT, individuals,coverageMatrix):
+	def launchCommand(self, referenceForCurrST, indexREP,indexGT, individuals,coverageMatrix):
+		"""
+		Launches the execution ogf the RC computation.
+		------------------------------------------------------------------------
+		Parameters:
+		- referenceForCurrST: reference for current species tree replicate, the
+		 one that  will be processed
+		- indexREP: proper identifier of the species tree replicete
+		- indexGT: proper identifier of the gene tree
+		- individuals: number of individuals
+		- coverageMatrix: coverage matrix
+		"""
 		try:
-			self.appLogger.debug("launchCommand(self, referenceList, indexST,indexGT, individuals,coverageMatrix")
+			self.appLogger.debug("launchCommand(...)")
 			tStartTime=datetime.datetime.now()
 			numIndividuals=len(individuals.keys())
-			nLoci=self.numLociPerSpeciesTree[indexST-1]
+			nLoci=self.numLociPerReplicates[indexREP-1]
 			self.appLogger.debug("Iterating over nLoci: {0}/{1}".format(indexGT,nLoci))
 			numGeneTreeDigits=len(str(nLoci))
-			filepathLoc="{0}/{1}/{2:0{3}d}/{4}_{5:0{6}d}_TRUE.fasta".format(\
+			filepathLoc=os.path.join(\
 				self.settings.path,\
 				self.settings.projectName,\
-				indexST,\
-				self.numSpeciesTreesDigits,\
-				self.settings.dataPrefix,\
-				indexGT,\
-				numGeneTreeDigits\
-			)
+				"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+				"{0}_{1:0{2}d}_TRUE.fasta".format(\
+					self.settings.simphyDataPrefix,\
+					indexGT,\
+					numGeneTreeDigits
+				)\
+
 			# dictionary. indices=variable sites, content=variable nucleotide set
-			variableSites=self.extractTrueVariantsPositions(filepathLoc)
+			variableSites=self.extractNOErrorVariantsPositions(filepathLoc)
 			nVarSites=len(variableSites.keys())
 			self.appLogger.debug(\
 				"Species tree: {0}\t Locus: {1}\t - Found [{2}] variable sites.".format(\
-					indexST,\
+					indexREP,\
 					indexGT,\
 					nVarSites))
 			# Parse MSA files - dictionary[speciesID][tipID]
@@ -1395,14 +1429,16 @@ class ReadCounts:
 				referenceLocusID=str(referenceForCurrST[2])
 				referenceTipID=str(referenceForCurrST[3])
 				referenceSeqFull=msa[tag][referenceTipID]['sequence']
-				referenceFilepath=self.writeReference(\
-					indexST,indexGT,\
+				refAllelesFilePath=self.writeReference(\
+					indexREP,indexGT,\
 					referenceSpeciesID,referenceLocusID,referenceTipID,\
 					referenceSeqFull)
 				# Coverage per SNP is the same for both true/sampled dataset
-				self.appLogger.info("Species tree: {0}\t Locus: {1}\t - Getting coverage per individual per variant".format(\
-					indexST,\
-					indexGT
+				self.appLogger.info("{0} {1}\t Locus: {2}\t - {3}".format(\
+					"Replicate:",\
+					indexREP,\
+					indexGT,\
+					"Getting coverage per individual per variant"\
 				))
 				DP=[self.getDepthCoveragePerIndividual(\
 						nVarSites,\
@@ -1411,46 +1447,56 @@ class ReadCounts:
 						]
 				if self.settings.ploidy==1:
 					self.computeHaploid(\
-						indexST,indexGT,\
+						indexREP,indexGT,\
 						msa,individuals,\
-						referenceFilepath,referenceSeqFull,\
+						refAllelesFilePath,referenceSeqFull,\
 						variableSites,DP)
 				if self.settings.ploidy==2:
 					self.computeDiploid(\
-						indexST,indexGT,\
+						indexREP,indexGT,\
 						msa,individuals,\
-						referenceFilepath,referenceSeqFull,\
+						refAllelesFilePath,referenceSeqFull,\
 						variableSites,DP)
 				tEndTime=datetime.datetime.now()
 				ETA=(tEndTime-tStartTime).total_seconds()
-				# row['indexST'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
-				outfile="{0}/{2:0{3}d}/{1}_{2:0{3}d}_{4:0{5}d}*".format(\
-								self.readcountTrueFolderPath,\
-								self.settings.dataPrefix,
-								indexST,\
-								self.numSpeciesTreesDigits,\
-								indexGT,\
-								numGeneTreeDigits\
-							)
-				line=[indexST,indexGT,"-",filepathLoc,ETA,"-",outfile]
-				self.runningInfo.addLine(line)
+				# row['indexREP'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
+				if(self.settings.runningTimes):
+					outfile=os.path.join(
+						self.readcountNoErrorFolderPath,\
+						"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+						"{0}_{1:0{2}d}_{3:0{4}d}*".format(
+							self.settings.simphyDataPrefix,\
+							indexREP,\
+							self.numReplicateDigits,\
+							indexGT,\
+							numGeneTreeDigits\
+						)\
+					)
+					line=[indexREP,indexGT,"-",filepathLoc,ETA,"-",outfile]
+	 				self.runningInfo.addLine(line)
 		except KeyboardInterrupt:
 			message="{0}{1}Thread has been interrupted!{2}\n".format("\033[91m","\033[1m","\033[0m")
 			raise KeyboardInterrupt(message)
 
 	def run(self):
+		"""
+		Process flow for the generation of read counts
+		------------------------------------------------------------------------
+		Returns:
+		- Boolean indating whether process has finished correctly or not.
+		"""
 		self.appLogger.debug("run(self)")
-		status=True;	message="Read counts finished ok."
+		status=NOError;	message="Read counts finished ok."
 		self.appLogger.debug( "Run - read count")
 		try:
 			# generating folder structure for this part
 			self.generateFolderStructureDetail()
 			# Get list of reference sequences
-			referenceList=self.parseReferenceList(self.settings.readCountsReferenceFilePath)
-			nSTS=len(self.filteredST)
+			referenceList=self.parseReferenceAllelesList(self.settings.readCountsReferenceAllelesFile)
+			nSTS=len(self.filteredReplicates)
 			# iterate over the "iterable" species trees / filtered STs
 			self.appLogger.info("Running...")
-			nProcesses=sum([self.numLociPerSpeciesTree[item-1] for item in self.filteredST])
+			nProcesses=sum([self.numLociPerReplicates[item-1] for item in self.filteredReplicates])
 			currProcessesRunning=1
 			pool=multiprocessing.Pool(self.settings.numThreads)
 
@@ -1458,23 +1504,23 @@ class ReadCounts:
 				"{0}/tables/{1}.{2:0{3}d}.individuals.csv".format(\
 				self.settings.outputFolderPath,\
 				self.settings.projectName,\
-				indexST,\
-				self.numSpeciesTreesDigits)\
-			for indexST in self.filteredST]
+				indexREP,\
+				self.numReplicateDigits)\
+			for indexREP in self.filteredReplicates]
 
 			individualsList=[self.parseIndividualRelationFile(singlefile) for singlefile in filepathIndividualsRelations]
 			numIndividualsList=[len(item.keys()) for item in individualsList]
-			coverageMatrices=[self.retrieveCoverageMatrix(indexST) for indexST in self.filteredST]
-			nLociList=[self.numLociPerSpeciesTree[item-1] for item in self.filteredST]
+			coverageMatrices=[self.retrieveCoverageMatrix(indexREP) for indexREP in self.filteredReplicates]
+			nLociList=[self.numLociPerReplicates[item-1] for item in self.filteredReplicates]
 			ARGS=[(referenceList[item],\
-				self.filteredST[item],\
+				self.filteredReplicates[item],\
 				nLociList[item],\
 				individualsList[item],\
 				coverageMatrices[item])\
 			for item in range(0,nSTS)]
 
 			for indexFilterST in range(0,nSTS):
-				indexST=self.filteredST[indexFilterST] # Get Proper ID for ST
+				indexREP=self.filteredReplicates[indexFilterST] # Get Proper ID for ST
 				nLoci=nLociList[indexFilterST]
 				self.appLogger.debug("Number of individuals: {0}".format(numIndividualsList[indexFilterST]))
 				self.appLogger.debug("Number of loci: {0}".format(nLoci))
@@ -1492,13 +1538,13 @@ class ReadCounts:
 						t = multiprocessing.Process(\
 							target=self.launchCommand,\
 							args=(\
-								referenceList[indexST-1],\
-								indexST,\
+								referenceList[indexREP-1],\
+								indexREP,\
 								indexGT,\
 								individualsList[indexFilterST],\
 								coverageMatrices[indexFilterST])\
 						)
-						t.daemon=True
+						t.daemon=NOError
 						jobs.append(t)
 						t.start()
 						indexGT+=1
@@ -1524,6 +1570,7 @@ class ReadCounts:
 		except Exception as ex:
 			exc_type, exc_obj, exc_tb = sys.exc_info()
 			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-			message="\n\tUnexpected: {0} | {1} - File: {2} - Line:{3}".format(ex,exc_type, fname, exc_tb.tb_lineno)
+			message="\n\tUnexpected: {0} | {1} - File: {2} - Line:{3}".format(\
+				ex,exc_type, fname, exc_tb.tb_lineno)
 			status=False
 		return status,message

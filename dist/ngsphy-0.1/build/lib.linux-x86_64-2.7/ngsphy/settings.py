@@ -7,7 +7,95 @@ elif (sys.version_info>=(3,0)):
 	import configparser as cp
 
 class Settings:
-	"""This class parses and verifies that the settings file is correct."""
+	"""
+	This class parses and verifies that the settings file is correct.
+	----------------------------------------------------------------------------
+	Attributes:
+
+	General
+	-------
+	- originMode: Represents where the input data comes from. Has 3 different values.
+	(1) when using the output of a SimPhy run. (2) when using a single gene tree
+	with a random root/reference sequence and (3) when using a single gene tree with a
+	specific root/reference sequence.
+	- ploidy: This is to identify whether the user wants to generate haploid or
+	diploid individuals from the sequences given/generated. Not all ploidies are
+	accepted for all oriiginModes. Please verify the external documentation for a
+	detail explanation.
+	- projectName: Name of the project that will be created or the SimPhy project
+	that is introduced.
+	- path: indicates where the project folder is/will be created.
+	- outputFolderName: Name of the folder that will be used to store the generated
+	data. Goes under the projectName folder and, has a dafult name of "output"
+	- outputFolderPath: absolute path of the output folder.
+	- dataPrefix: Prefix of the sequences. If generated within NGSphy, default is
+	"ngsphydata", otherwise, this informations is parsed from the settings
+	file and will have to correspond, to the prefix given to SimPhy.
+
+
+	- simphyProjectPath: Related to OriginMode=1. Corresponds to the absolute path
+	of the SimPhy project.
+	- filterSimphy:  Related to OriginMode=1. Using species tree distributions.
+	Allows the user to filter out from the program execution, those species tree
+	replicates that do not match the given ploify to the number of individuals
+	per species to be able to generate individuals according to the given ploidy.
+
+
+	- ngsphyIndelibleControlFilePath: Related to OriginMode in [2,3]. Path
+	to the modified INDELible control file.
+	- newickFilePath: Related to OriginMode=2. Path to the gene tree file in
+	Newick format. Must contain a single tree. Name of the file without extension
+	must match the name of the tree within the control file.
+	- evolve: Related to OriginMode=2. To handle evolve parameters of the control
+	file.
+	- partition: Related to OriginMode=2. To handle partition parameters of the
+	control file.
+
+
+	- referenceSequenceFilePath: Related to OriginMode=3. Path to the reference
+	sequene file where the root/reference sequence is.
+	- referenceTipLabel: Related to OriginMode=3. Label of the tip that will be
+	used as reference/root.
+
+	- seqerror: Related to NGSMode=1. sequencing error that will be used for the read counts.
+	- readCountsReferenceFilePath: Related to NGSMode=1. Path to the file that contains all the
+	information (SpeciesTreeIdentifier, Species, Locus, Gene) needed to
+	select a sequence and use it as a reference to generate the read counts.
+
+	- ngsmode: Variable that identifies which ngsmode will be used.
+
+	- ontarget: Parameter related to coverage. Only possible with originMode=1.
+	When emulating Targeted-sequencing, represents the fraction of the loci that
+	will be considered as on-target.
+	- offtarget: Parameter related to coverage.  Only possible with originMode=1.
+	When emulating Targeted-sequencing, represents the fraction of the loci that
+	will be considered as on-target.
+	- notcaptured: Parameter related to coverage.  Only possible with originMode=1.
+	When emulating Targeted-sequencing, represents the fraction of the on-target
+	loci that will not be sequece, coverage == 0.
+	- experiment: Parameter related to coverage. Value for the expected coverage.
+	Parameterization can be based on a distribution or a fixed value.
+	- individual: Parameter related to coverage. Expected coverage multiplier. Hyper
+	parameter. Value used here can be based on a distribution or a fixed value.
+	Value sampled will be used as the alpha shape of a Gamma distribution with
+	mean = 1.
+	- locus: Parameter related to coverage. Expected coverage multiplier. Hyper
+	parameter. Value used here can be based on a distribution or a fixed value.
+	Value sampled will be used as the alpha shape of a Gamma distribution with
+	mean = 1.
+	- phylogeneticDecay: Parameter related to coverage. This parameters is to
+	represent the possible coverage decay due to the distance of the species
+	to the reference sequence within the given tree.
+	Is a list of pairs, where the first element is the species identifier and
+	the second, is the fraction of coverage that the species will keep.
+
+	- numSpeciesTrees: number of species tree replicates.
+	- numLociPerSpeciesTree: digits used to represente the numSpeciesTrees
+	- outgroup: to indicate whether the data has an outgroup.
+	- indels: Indicates whether the sequences (given or generated) contain
+	indels. Important for ngsmode=1 (ReadCounts), because this mode does not
+	handle sequence with indels.
+	"""
 	# General
 	originMode=1
 	ploidy=1
@@ -33,7 +121,6 @@ class Settings:
 	seqerror=0
 	readCountsReferenceFilePath=""
 
-	# ngsart
 	ngsmode=0
 
 	# coverage
@@ -43,7 +130,6 @@ class Settings:
 	experiment=None
 	individual=None
 	locus=None
-	genomicNoise=None
 	phylogeneticDecay=dict()
 
 	numSpeciesTrees=0
@@ -51,6 +137,8 @@ class Settings:
 	outgroup=False
 	indels=False
 
+
+	__NUCLEOTIDES=["A","C","G","T"]
 	def __init__(self,filename):
 		# If I've got this far, then filename is a correct file
 		self.settingsFile=os.path.abspath(filename)
@@ -61,7 +149,15 @@ class Settings:
 		self.parser.read(self.settingsFile)
 
 	def checkArgs(self):
-		self.appLogger.debug("Check argumentss")
+		"""
+		Checks the existence and validity of the settings introduced in the
+		settings file per section and option.s
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
+		self.appLogger.debug("Check arguments")
 		allGood=True
 		parserMessageCorrect="All parameters are correct."
 		parserMessageWrong="Settings - Problem found! "
@@ -112,11 +208,21 @@ class Settings:
 
 		# Checking execution section and options
 		self.checkSectionExecution(parserMessageCorrect,parserMessageWrong)
+		self.addOutgroupInfoToSettings()
 		# Exit here
 		self.appLogger.info(self.formatSettingsMessage())
+
 		return allGood,parserMessageCorrect
 
 	def checkSectionGeneral(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks the General section of the settings, regarding general paths,
+		project name and ploidy.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		self.appLogger.debug("Section General")
 		# Check GENERAL SECTION
 		if not self.parser.has_section("general"):
@@ -190,6 +296,14 @@ class Settings:
 		return True,parserMessageCorrect
 
 	def checkSectionData(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks Data section of the settings file, regarding origin and parameters
+		related to each origin mode.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		self.appLogger.debug("Section Data")
 		if (self.parser.has_section("data")):
 			if (self.parser.has_option("data","origin")):
@@ -350,6 +464,8 @@ class Settings:
 							"Please verify. Exiting."\
 						)
 						return False, parserMessageWrong
+					statusSeq,messageSeq=self.correctContentReferenceSequence()
+					if not statusSeq: return statusSeq, messageSeq
 				else:
 					parserMessageWrong+="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(\
 						"[data] section: Origin mode (",self.originMode,") selected but invalid option.",\
@@ -370,6 +486,10 @@ class Settings:
 						"Please verify. Exiting."\
 					)
 					return False, parserMessageWrong
+				if not self.ploidy ==1:
+					self.ploidy=1
+					self.parser.set("general","ploidy","1")
+					self.appLogger.warning("Ploidy value must be 1 for this mode. Modified. Check documentation for further details. Continue.")
 		else:
 			parserMessageWrong+="\n\t\n\t{0}\n\t{1}\n\t{2}".format(\
 				"[data] section is missing. This section is required.",\
@@ -381,6 +501,14 @@ class Settings:
 
 
 	def checkSectionNGSReadsArt(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks NGS-reads-ART section of the settings file, regarding parameters
+		of the NGS simulation with ART
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		########################################################################
 		# BLOCK: NGS-READS-ART
 		########################################################################
@@ -412,12 +540,19 @@ class Settings:
 		return True, parserMessageCorrect
 
 	def checkSectionReadCount(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks read counts  section of the settings file, regarding parameters
+		of the read counts process.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		########################################################################
 		# BLOCK: READ COUNT
 		########################################################################
 		message=parserMessageCorrect
 		if (self.parser.has_section("ngs-read-count")):
-			self.readcount=True
 			if not self.parser.has_option("ngs-read-count", "error"):
 				self.appLogger.warning("[ngs-read-count] section. Sequencing error rate for this run is being considered as 0.")
 				self.parser.set("ngs-read-count", "error","0")
@@ -431,17 +566,34 @@ class Settings:
 				self.readCountsReferenceFilePath=None
 			else:
 				self.readCountsReferenceFilePath=os.path.abspath(self.parser.get("ngs-read-count","reference"))
+				fileOk=os.path.exists(self.readCountsReferenceFilePath) and os.path.isfile(self.readCountsReferenceFilePath)
+				if not fileOk:
+					status=False
+					message="\n\t{0}\n\t{1}\n\t{2}".format(\
+						"[ngs-read-count] section.",\
+						"Reference file does not exist or path is incorrect.",\
+						"Please verify. Exiting.")
 		else:
 			# No ngs-read-count section
-			self.readcount=False
-			message="[ngs-read-count] section. Not available."
+			status=False
+			message="\n\t{0}\n\t{1}".format(\
+				"[ngs-read-count] section is missing.",\
+				"Please verify. Exiting.")
 
-		return self.readcount,message
+		return status,message
 
 	########################################################################
 	# BLOCK: Coverage
 	########################################################################
 	def checkSectionCoverage(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks coverage section of the settings file, regarding parameters that
+		model the coverage variation within the execution
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		self.appLogger.debug("Checking coverage")
 		message=parserMessageCorrect
 		expCov=None;indCov=None;locCov=None;
@@ -589,6 +741,14 @@ class Settings:
 		return True, message
 
 	def checkSectionExecution(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks execution section of the settings file, regarding parameters
+		of the general execution of the programs, type, threading...
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		########################################################################
 		# BLOCK: Execution
 		########################################################################
@@ -646,6 +806,13 @@ class Settings:
 
 
 	def checkIndelibleControlFile(self,parserMessageCorrect,parserMessageWrong):
+		"""
+		Checks indelible control file according to the modifications for this program.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		self.appLogger.debug("checkIndelibleControlFile(self,parserMessageCorrect,parserMessageWrong)")
 		f=open(self.ngsphyIndelibleControlFilePath,"r")
 		lines=f.readlines()
@@ -717,6 +884,14 @@ class Settings:
 		return True, parserMessageCorrect
 
 	def checkSimPhyProjectValid(self):
+		"""
+		Verifies that the data given as input from a SimPhy project is complete
+		and correct
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		matingArgsMessageWrong="SimPhy project is not valid."
 		matingArgsMessageCorrect="SimPhy project is valid."
 		# List all the things in the project directory
@@ -748,7 +923,7 @@ class Settings:
 		simphyfiles=((command in fileList) and (params in fileList) and(db in fileList))
 		# check if  command, db, params files
 		if not simphyfiles:
-			matingArgsMessageWrong+="\n\tSimPhy files do not exist. Please verify. Exiting."
+			matingArgsMessageWrong+="\n\tOne of the mandatory SimPhy files does not exist. Please verify. Exiting."
 			return False, matingArgsMessageWrong
 		# check how many of them are dirs
 
@@ -769,6 +944,15 @@ class Settings:
 
 
 	def checkLabelFormatInTree(self):
+		"""
+		Verifies that the data given in gene tree format follows the formatting
+		rules given. Specifically, that the labels of the tree are in the
+		<SpeciesID_LocusID_IndividualID> format.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		self.appLogger.debug("Checking labels")
 		messageCorrect="Labels of the tree are correct"
 		messageWrong="INDELible control file - Something's wrong!\n\t"
@@ -791,6 +975,14 @@ class Settings:
 		return True, messageCorrect
 
 	def checkReferenceTipLabelInTree(self):
+		"""
+		Verifies that the parameter given to select a root sequence is within
+		the gene tree given.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
 		# checking if label in the given tree
 		self.appLogger.debug("Checking if label in the given tree")
 		messageCorrect="Labels of the tree are correct"
@@ -806,6 +998,9 @@ class Settings:
 		return True, messageCorrect
 
 	def formatSettingsMessage(self):
+		"""
+		Prints all the settings.
+		"""
 		message="Settings:\n"
 		sections=self.parser.sections()
 		for sec in sections:
@@ -822,3 +1017,25 @@ class Settings:
 					if int(param[1])==2: extra="(Diploid individuals)"
 				message+="\t\t{0}\t:\t{1} {2}\n".format(param[0],param[1],extra)
 		return message
+
+	def correctContentReferenceSequence(self):
+		"""
+		Verifies content of the reference sequence file for nucleotides only.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean, message: the status of the process and the message related to
+		such status
+		"""
+		status=True; message=""
+		referenceDict=msatools.parseMSAFileWithDescriptions(self.referenceSequenceFilePath)
+		reference=referenceDict[0]
+		for item in reference:
+			if not item.uppercase() in self.__NUCLEOTIDES:
+				status=False
+				message="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(
+					"[data] section: Origin mode (",self.originMode,") selected but invalid option.",\
+					"Reference sequence should be a nucleotidic sequence, but some other characters exist..",\
+					"Please verify. Exiting."\
+					)
+				break
+		return status, message

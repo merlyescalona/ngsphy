@@ -8,24 +8,35 @@ MIN_VERSION=0
 FIX_VERSION=0
 PROGRAM_NAME="ngsphy.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
+INSTITUTION="University of Vigo, Spain."
 LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
-LINE="-------------------------------------------------------------------------"
+LINE="--------------------------------------------------------------------------------"
 ################################################################################
 # Logger initialization
 APPLOGGER=logging.getLogger('ngsphy')
-logging.basicConfig(format="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s",\
-	datefmt="%d/%m/%Y %I:%M:%S %p",\
-	filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
-		os.getcwd(),datetime.datetime.now(),PROGRAM_NAME[0:-3].upper()),\
-	filemode='a',\
-	level=logging.DEBUG)
 ch = logging.StreamHandler()
 loggerFormatter=lf.MELoggingFormatter(fmt="%(asctime)s - %(levelname)s:\t%(message)s",datefmt="%d/%m/%Y %I:%M:%S %p")
 ch.setFormatter(loggerFormatter)
 APPLOGGER.addHandler(ch)
 ################################################################################
+def createLogFile():
+	logging.basicConfig(format="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s",\
+		datefmt="%d/%m/%Y %I:%M:%S %p",\
+		filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
+			os.getcwd(),datetime.datetime.now(),PROGRAM_NAME[0:-3].upper()),\
+		filemode='a',\
+		level=logging.DEBUG)
 
 def handlingCmdArguments():
+	"""
+	handlingCmdArguments
+	--------------------
+
+	This function configurates the ArgumentParser with the specific details of
+	this programs.
+
+	Does not take parameters.
+	"""
 	parser = argparse.ArgumentParser(\
 		prog="{0} (v.{1}.{2}.{3})".format(PROGRAM_NAME,VERSION,MIN_VERSION,FIX_VERSION),\
 		formatter_class=argparse.RawDescriptionHelpFormatter,\
@@ -35,16 +46,16 @@ def handlingCmdArguments():
   NGSphy
 ================================================================================
 \033[0m
-NGSphy is a tool designed specifically as an addendum to SimPhy
-(https://github.com/adamallo/SimPhy) - a phylogenomic simulator of gene, locus
-and species trees that considers incomplete lineage sorting, gene duplication
-and loss and horizontal gene transfer - which is able to use SimPhy's output in
-order to produce Illumina NGS data from haploid/diploid individuals.
+NGSphy is a Python open-source tool for the genome-wide simulation of NGS data
+(read counts or Illumina reads) obtained from thousands of gene families evolving
+under a common species tree, with multiple haploid and/or diploid individuals per
+species, where sequencing coverage (depth) heterogeneity can vary among
+individuals and loci, including off-target loci and phylogenetic decay effects.
 
 For more information about usage and installation please go to the README file
 or to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 			''',\
-		epilog="Version {0}.{1}.{2} (Still under development)\n{3}\n".format(VERSION,MIN_VERSION,FIX_VERSION, LINE),\
+		epilog="Developed by:\n{0}\n{1}\n\nVersion:\t{2}.{3}.{4} (Under development)\n{5}\n".format(AUTHOR,INSTITUTION, VERSION,MIN_VERSION,FIX_VERSION, LINE),\
 		add_help=False
 		)
 	optionalGroup= parser.add_argument_group("{0}Optional arguments{1}".format("\033[1m","\033[0m"))
@@ -67,8 +78,13 @@ or to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 		tmpArgs = parser.parse_args()
 		if (tmpArgs.help): parser.print_help()
 		sys.stdout("\n{}\n".format(LINE))
+		# Checks if the log level debug is chosen it will also print the debug file
+		if tmpArgs.log==LOG_LEVEL_CHOICES[0]:
+			createLogFile()
 	except:
-		message="{0}\n{1}\n{2}\n".format("Something happened while parsing the arguments.", "Please verify. Exiting.", LINE)
+		message="{0}\n{1}\n{2}\n".format(\
+			"Something happened while parsing the arguments.",\
+			 "Please verify. Exiting.", LINE)
 		APPLOGGER.error(message)
 		parser.print_help()
 		sys.exit(-1)
@@ -78,6 +94,12 @@ or to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
 
 ###############################   MAIN   #######################################
 def main():
+	"""
+	main()
+	--------------------
+
+	Entry point of the NGSphy program.
+	"""
 	try:
 		cmdArgs = handlingCmdArguments()
 		prog = ngsphy.NGSphy(cmdArgs)

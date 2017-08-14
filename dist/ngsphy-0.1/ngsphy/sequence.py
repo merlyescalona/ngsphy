@@ -7,6 +7,22 @@ from msatools import *
 from select import select
 
 class SequenceGenerator:
+	"""
+	Class for the generation of genome sequences from gene trees
+	----------------------------------------------------------------------------
+	Attributes:
+	- appLogger: logger to store status of the process flow
+	- settings: Settings object withh all the program parameters
+	- newIndelibleReferenceSequence: path of the reference.txt file that will be
+	 used to call the sequence simulator INDELible.
+	- newIndelibleFilePath: path of the control file that will be used to call
+	the sequence simulator INDELible
+	- output: path where the output of the INDELible execution will be stored
+	- evolve: default parameters of the [EVOLVE] section of the INDELible control
+	file
+	- partition: parameters of the [PARTITION] section of the INDELible control
+	file
+	"""
 	appLoger=None
 	settings=None
 
@@ -17,8 +33,6 @@ class SequenceGenerator:
 	evolve=[1,"ngsphydata_1"]
 	partition=[]
 
-	numGTs=0
-	numGTDigits=0
 
 	def __init__(self,settings):
 		self.appLogger=logging.getLogger('ngsphy')
@@ -28,8 +42,18 @@ class SequenceGenerator:
 		self.newIndelibleFilePath=os.path.join(self.settings.path,self.settings.projectName,"1","control.txt")
 		self.newIndelibleReferenceSequence=os.path.join(self.settings.path,self.settings.projectName,"1","reference.fasta")
 
+		if self.settings.originMode==3: # INDELible + reference
+			self.settings.newickFilePath=os.path.join(\
+				self.settings.outputFolderPath,\
+				"ngsphy.tree"\
+			)
+
 
 	def run(self):
+		"""
+		Process flow for the generation of genome sequences from a gene tree
+		and an evolutionary model
+		"""
 		self.generateFolderStructure()
 		# check naming of the leaves
 		# adding extra information on presence of outgroup
@@ -47,6 +71,9 @@ class SequenceGenerator:
 		return True, "Run finished"
 
 	def generateFolderStructure(self):
+		"""
+		Generation of a folder structure for this process.
+		"""
 		self.appLogger.info("Creating folder structure for INDELible run")
 		try:
 			os.makedirs(os.path.join(self.settings.path,self.settings.projectName))
@@ -61,49 +88,16 @@ class SequenceGenerator:
 			self.appLogger.debug("Data folder exists ({0})".format(os.path.join(self.settings.path,self.settings.projectName,"1")))
 
 
-	def addOutgroupInfoToSettings(self):
-		self.appLogger.debug("Outgroup")
-		tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
-		leaves=[ node.taxon.label for node in tree.leaf_node_iter()]
-		item=""
-		for item in leaves:
-			if item == "0_0_0": break
-		if item=="0_0_0":
-			self.settings.outgroup=True
-			self.settings.parser.set("general","outgroup","on")
-		else:
-			self.settings.parser.set("general","outgroup","off")
-
-	def checkPloidyTreeRelation(self):
-		self.appLogger.debug("Checking ploidy - num tips relation")
-		messageCorrect="Ploidy and number of gene copies per gene family match properly."
-		messageWrong="INDELible control file - Something's wrong!\n\t"
-		tree=dendropy.Tree.get(path=self.settings.newickFilePath, schema="newick",preserve_underscores=True)
-		leaves=[]
-		if self.settings.outgroup:
-			leaves=[ node.taxon.label for node in tree.leaf_node_iter() if not node.taxon.label =="0_0_0"]
-		else:
-			leaves=[ node.taxon.label for node in tree.leaf_node_iter()]
-		leavesSplit=[ item.split("_") for item in leaves]
-		leavesDict=dict()
-		for tip in leavesSplit:
-			geneFamily="_".join(tip[0:2])
-			try:
-				val=leavesDict[geneFamily]
-				leavesDict[geneFamily]+=1
-			except:
-				leavesDict[geneFamily]=1
-		for item in leavesDict:
-			self.appLogger.debug("{0} - {1}".format(item,leavesDict[item]))
-			if not leavesDict[item] % self.settings.ploidy == 0:
-				messageWrong+="{0}\n\t{1}".format(\
-				"The number of gene copies within one of the gene families does not match the ploidy selected for this run.",\
-				"Please verify. Exiting."\
-				)
-				return False,messageWrong
-		return True, messageCorrect
-
 	def copyReferenceSequenceToOutputFolder(self):
+		"""
+		In order to generate genome sequences all the required files must be
+		in the same folder where INDELible is going to be ran. Hence, the need
+		of copying the given reference file to the directory where data will
+		be stored.
+		-----------------------------------------------------------------------
+		Returns:
+		- boolean. Indicates the status of the process.
+		"""
 		# making sure there's only one sequence, and only one sequence will be written to the
 		# reference.fasta file
 		# that sequence will be the first from the file if there are more than 1 sequence
@@ -136,6 +130,10 @@ class SequenceGenerator:
 
 
 	def writeIndelibleControlFile(self):
+		"""
+		Writes the modified INDELible control file into the appropriate
+		directory to be able, afterwards, to run INDELible properly.
+		"""
 		self.appLogger.debug("Writing new control file")
 		self.appLogger.debug("Given INDELible control file: ".format(\
 			self.settings.ngsphyIndelibleControlFilePath))
@@ -219,6 +217,12 @@ class SequenceGenerator:
 		f.close()
 
 	def runIndelible(self):
+		"""
+		Launches a thread with the INDELible command.
+		------------------------------------------------------------------------
+		Returns:
+		- boolean. Indicates status of the process
+		"""
 		self.appLogger.debug("Running...")
 		self.settings.parser.set("general","numLociPerSpeciesTree","1")
 		self.settings.parser.set("general", "filtered_ST", "1")
@@ -236,6 +240,9 @@ class SequenceGenerator:
 		return True, "INDELible's run has finished."
 
 	def indelibleLauncher(self):
+		"""
+		Generates a subprocess that handles the calling to INDELible
+		"""
 		indelibleMessage="INDELible run has finished";proc=""
 		lines=[]
 		try:
@@ -266,9 +273,12 @@ class SequenceGenerator:
 			"\nFor more information about this error please run the following commands separately:\n"+\
 			"\n\tcd {0}\n\tindelible\n".format(self.output)
 			raise RuntimeError(indelibleMessage)
-		self.printRunningInfo(lines)
+		self.writeRunningInfoIntoFile(lines)
 
-	def printRunningInfo(self, lines):
+	def writeRunningInfoIntoFile(self, lines):
+		"""
+		Writes the information about timing into a file.
+		"""
 		outputFile="{0}/{1}.indelible.info".format(
 			self.settings.outputFolderPath,\
 			self.settings.projectName
