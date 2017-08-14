@@ -1,3 +1,10 @@
+Version 0.2.2
+    log file only available when using debug log level. running time files
+    outputted only as asked.
+Version 0.2.1
+    added new input mode.
+Version 0.2.0
+    getting ready version. Renamed output folders.
 Version 0.1.9
     In-line documentation
 Version 0.1.8
