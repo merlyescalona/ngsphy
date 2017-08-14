@@ -7,6 +7,10 @@ University of Vigo, Spain ([http://darwin.uvigo.es](http://darwin.uvigo.es))
 ## About NGSphy
 NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (read counts or Illumina reads) obtained from thousands of gene families evolving under a common species tree, with multiple haploid and/or diploid individuals per species, where sequencing coverage (depth) heterogeneity can vary among individuals and loci, including off-target loci and phylogenetic decay effects.
 
+## Documentation
+
+The documentation is available [here](doc/ngsphy.manual.v1.pdf)
+
 ## Citation
 
 If you use NGSphy, please cite:
@@ -54,5 +58,3 @@ If you use NGSphy, please cite:
     - CSV
 - log files
 - bash scripts
-
-More information in the manual. Soon in the wiki.
