@@ -1,4 +1,4 @@
-e#!/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import dendropy,logging,os,shutil,sys
 import settings as sp
@@ -83,7 +83,7 @@ class Rerooter:
 			suppress_rooting=True\
 			)
 
-	def rechekcPloidyAfterRerooting(self):
+	def recheckPloidyAfterRerooting(self):
 		leaves = [node.taxon.label for node in self.tree if not node.taxon.label==self.settings.anchorTipLabel]
 		labels=dict()
 		for tip in leaves:

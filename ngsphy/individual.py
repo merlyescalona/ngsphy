@@ -25,7 +25,6 @@ class IndividualAssignment:
 	appLogger=None
 	settings=None
 	output=""
-	settings.tablesFolderPath=""
 	numReplicates=0
 	numReplicateDigits=0
 	numLociPerReplicate=[]
@@ -55,7 +54,7 @@ class IndividualAssignment:
 		self.numLociPerReplicate=[0]*self.numReplicates
 		self.numLociPerReplicateDigits=[0]*self.numReplicates
 		########################################################################
-		if self.settings.inputmode in < 4 :
+		if self.settings.inputmode < 4 :
 			# this is like this, because for this to work it is necessary that
 			# sequences had been generated, and it is in the SequenceGenerator
 			# that the numLociPerReplicate option is set up.
@@ -101,7 +100,7 @@ class IndividualAssignment:
 				"numLociPerReplicate",\
 				",".join([str(a) for a in self.numLociPerReplicate]))
 			self.printSimPhyConfiguration()
-		else:c
+		else:
 			return False, "{0}\n\t{1}\n\t{2}".format(\
 				"Individual Assignment process."
 				"Something is wrong with the input.",\
@@ -496,7 +495,7 @@ class IndividualAssignment:
 		indexFilename=os.path.join(\
 			self.settings.tablesFolderPath,\
 			"{0}.{1:0{2}d}.individuals.csv".format(\
-				self.settings.projectName\
+				self.settings.projectName,\
 				indexREP,\
 				self.numReplicateDigits\
 			)\

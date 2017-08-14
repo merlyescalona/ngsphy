@@ -124,7 +124,7 @@ class Settings:
 
 	# coverage
 	ontarget=1
-	offtarget={"loci":0; "coverage":1}
+	offtarget={"loci":0, "coverage":1}
 	notcaptured=0
 	experiment=None
 	individual=None
@@ -256,7 +256,8 @@ class Settings:
 				parserMessageWrong="\n\t{0}\n\t{1}\n\t{2}".format(\
 					"Ploidy value is out of range.",\
 					"Value must be in [1,2].",\
-					"Please verify. Exiting."
+					"Please verify. Exiting."\
+				)
 				return False, parserMessageWrong
 
 		if (self.parser.has_option("general","path")):
@@ -653,7 +654,8 @@ class Settings:
 							"Please verify. Exiting"\
 							)
 
-					if (self.offtarget["loci"] < 0 and self.offtarget["loci"] > 1) and (self.offtarget["coverage"] < 0 and self.offtarget["coverage"] > 1)
+					if (self.offtarget["loci"] < 0 and self.offtarget["loci"] > 1) and \
+						(self.offtarget["coverage"] < 0 and self.offtarget["coverage"] > 1):
 						return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 							"[coverage] block: offtarget option invalid.",\
 							"One or both values are out of range",\
@@ -860,7 +862,7 @@ class Settings:
 		such status
 		"""
 		self.appLogger.debug("checkIndelibleControlFile(self,parserMessageCorrect,parserMessageWrong)")
-		self.indelibleControlFile,"r")
+		f=open(self.indelibleControlFile,"r")
 		lines=f.readlines()
 		f.close()
 		# keeping only lines with content
@@ -970,7 +972,7 @@ class Settings:
 		if not simphyfiles:
 			message="\n\t{0}\n\t{1}".format(\
 				"One of the mandatory SimPhy files does not exist.",\
-				"Please verify. Exiting."
+				"Please verify. Exiting.")
 			return False, message
 		# check how many of them are dirs
 

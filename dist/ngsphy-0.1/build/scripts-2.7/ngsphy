@@ -1,6 +1,0 @@
-#!/bin/bash
-if [ $# -eq 0 ]; then
-    python -m ngsphy -h
-else
-	python -m ngsphy $@
-fi

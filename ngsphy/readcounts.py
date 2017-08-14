@@ -456,7 +456,7 @@ class ReadCounts:
 		"""
 		self.appLogger.debug(\
 			"{} - ({},{})".format(\
-				"getDepthCoveragePerIndividual(self, numVarSites,startingCoverage)"
+				"getDepthCoveragePerIndividual(self, numVarSites,startingCoverage)",\
 				numVarSites,\
 				startingCoverage\
 			)\
@@ -1408,8 +1408,9 @@ class ReadCounts:
 				"{0}_{1:0{2}d}_TRUE.fasta".format(\
 					self.settings.simphyDataPrefix,\
 					indexGT,\
-					numGeneTreeDigits
+					numGeneTreeDigits\
 				)\
+			)
 
 			# dictionary. indices=variable sites, content=variable nucleotide set
 			variableSites=self.extractNOErrorVariantsPositions(filepathLoc)

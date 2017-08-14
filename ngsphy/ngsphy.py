@@ -76,42 +76,36 @@ class NGSphy:
     			self.generateFolderStructure()
     			# Settings exist and are ok.
     			# reroot-tree
-    			if self.settings.inputmode ==3:
-    				# reroot tree
-    				self.rerooter=rr.Rerooter(self.settings)
-    				status, message=self.rerooter.run()
-    				if not status: self.ending(status, message)
-    				self.settings.geneTreeFile=self.rerooter.geneTreeFile
-                    status,message=self.rerooter.rechekcPloidyAfterRerooting()
-    				if not status: self.ending(status, message)
-
-
-    			# Generate sequences
-    			if self.settings.inputmode < 4:
-    				self.appLogger.info("Running sequence generator")
-    				self.seqGenerator=sg.SequenceGenerator(self.settings)
+                if self.settings.inputmode == 3:
+                    self.rerooter=rr.Rerooter(self.settings)
+                    status, message=self.rerooter.run()
+                    if not status: self.ending(status,message)
+                    self.settings.geneTreeFile=self.rerooter.geneTreeFile
+                    status, message= self.rerooter.recheckPloidyAfterRerooting()
+                    if not status: self.ending(status, message)
+                # Generate sequences
+                if self.settings.inputmode < 4:
+                    self.appLogger.info("Running sequence generator")
+                    self.seqGenerator=sg.SequenceGenerator(self.settings)
+                    # only copying ancestral sequences if the mode needs it
                     if(self.settings.inputmode >1):
-                        # only copying ancestral sequences if the mode needs it
-                		statusRefSeq,messageRefSeq=self.seqGenerator.copyAncestralSequenceToOutputFolder()
+                        statusRefSeq,messageRefSeq=self.seqGenerator.copyAncestralSequenceToOutputFolder()
                         if not statusRefSeq: return statusRefSeq,messageRefSeq
-    				indelibleStatus,indelibleMessage=self.seqGenerator.run()
-    				if not (indelibleStatus): self.ending(indelibleStatus, indelibleMessage)
-
-                # recheck num taxa per species and new tree if inputmode==23
-				# Generate Individuals (plody independency)
-				self.indGenerator=ig.IndividualAssignment(self.settings)
-				matingOk,matingMessage=self.indGenerator.checkArgs()
-				self.settings.indels=not self.indGenerator.checkFilesForIndels()
-				if not matingOk: self.ending(matingOk,matingMessage)
-				self.indGenerator.iteratingOverReplicates()
-
-    			if self.settings.ngsmode>0:
-    				self.appLogger.debug("Checking for Coverage. ")
-    				covGenerator=coverage.CoverageMatrixGenerator(self.settings)
-    				status,message=covGenerator.calculate()
-    				if not status: self.ending(status,message)
-    				# Have to calculate coverage
-
+                    indelibleStatus,indelibleMessage=self.seqGenerator.run()
+                    if not (indelibleStatus): self.ending(indelibleStatus, indelibleMessage)
+                # Generate Individuals (plody independency)
+                self.indGenerator=ig.IndividualAssignment(self.settings)
+                matingOk,matingMessage=self.indGenerator.checkArgs()
+                self.settings.indels=not self.indGenerator.checkFilesForIndels()
+                if not matingOk: self.ending(matingOk,matingMessage)
+                self.indGenerator.iteratingOverReplicates()
+                # now checking NGS MODE
+                if self.settings.ngsmode>0:
+                    # Have to calculate coverage
+                	self.appLogger.debug("Checking for Coverage. ")
+                	covGenerator=coverage.CoverageMatrixGenerator(self.settings)
+                	status,message=covGenerator.calculate()
+                	if not status: self.ending(status,message)
     			# After this I'll have generated the individuals and folder structure
     			if self.settings.ngsmode==1:
     				self.appLogger.info("NGS Illumina reads - ART mode")
@@ -139,8 +133,7 @@ class NGSphy:
     	except Exception as ex:
     		exc_type, exc_obj, exc_tb = sys.exc_info()
     		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-
-    		message="\n\t{0} {1} | {2} - File: {3} - Line:{4}\n\t{5}"format(\
+    		message="\n\t{0} {1} | {2} - File: {3} - Line:{4}\n\t{5}".format(\
                 "ngsphy (main): Something is wrong.",\
                 ex,exc_type,\
     			fname, exc_tb.tb_lineno,\

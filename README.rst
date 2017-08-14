@@ -1,14 +1,16 @@
-# NGSphy
+NGSphy
+=====
 
 © 2017 Merly Escalona (<merlyescalona@uvigo.es>), Sara Rocha, David Posada
 
 University of Vigo, Spain ([http://darwin.uvigo.es](http://darwin.uvigo.es))
 
-## About NGSphy
+About NGSphy
+============
 NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (read counts or Illumina reads) obtained from thousands of gene families evolving under a common species tree, with multiple haploid and/or diploid individuals per species, where sequencing coverage (depth) heterogeneity can vary among individuals and loci, including off-target loci and phylogenetic decay effects.
 
-## Citation
-
+Citation
+============
 If you use NGSphy, please cite:
 
 - Escalona, M, Rocha S and Posada D. *NGSphy: phylogenomic simulation of NGS data*. Submitted.
@@ -23,9 +25,11 @@ If you use NGSphy, please cite:
     - Fletcher, W and Yang Z. (2009) *INDELible: A flexible simulator of biological sequence evolution*. Molecular Biology and Evolution. 26 (8): 1879–88.
     - Sukumaran, J and Holder MT. (2010). *DendroPy: A Python library for phylogenetic computing*. Bioinformatics 26: 1569-1571.
 
-## Input/output files
+Input/output files
+============
 
-### Input
+Input
+--------
 
 [Single gene-tree scenario]
 
@@ -41,7 +45,8 @@ If you use NGSphy, please cite:
 - SimPhy output
 - reference allele file (optional)
 
-### Output files
+Output files
+--------
 - NGS reads:
     - FASTQ
     - ALN

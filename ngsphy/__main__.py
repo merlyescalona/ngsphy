@@ -53,7 +53,7 @@ species, where sequencing coverage (depth) heterogeneity can vary among
 individuals and loci, including off-target loci and phylogenetic decay effects.
 
 For more information about usage and installation please go to the README file
-or to the wiki page https://gitlab.com/merlyescalona/ngsphy/wikis/home
+or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 			''',\
 		epilog="Developed by:\n{0}\n{1}\n\nVersion:\t{2}.{3}.{4} (Under development)\n{5}\n".format(AUTHOR,INSTITUTION, VERSION,MIN_VERSION,FIX_VERSION, LINE),\
 		add_help=False

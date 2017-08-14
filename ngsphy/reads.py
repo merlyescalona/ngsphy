@@ -146,7 +146,7 @@ class ARTIllumina:
 					"{0}.{1:0{2}d}.{3}.csv".format(\
 						self.settings.projectName,\
 						indexREP,\
-						self.numReplicateDigits\
+						self.numReplicateDigits,\
 						self.individualsFileNameSuffix\
 					)\
 				)
@@ -203,7 +203,7 @@ class ARTIllumina:
 		This generates job script that will be launched in a SGE cluster.
 		"""
 		self.appLogger.debug("Start")
-		jobfile=os.path.join(/
+		jobfile=os.path.join(\
 			self.settings.scriptsFolderPath,\
 			"{0}.job.sge.sh".format(self.settings.projectName)\
 		)
@@ -316,8 +316,8 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				"{0}.{1:0{2}d}.{3}.csv".format(\
 					self.settings.projectName,\
 					indexREP,\
-					self.numReplicateDigits
-					self.individualsFileNameSuffix
+					self.numReplicateDigits,\
+					self.individualsFileNameSuffix\
 				)
 			)
 			csvfile=open(csvfilename)
