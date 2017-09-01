@@ -9,7 +9,7 @@ NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (
 
 ## Documentation
 
-The documentation is available [here](doc/ngsphy.manual.v1.pdf)
+The documentation is available [here](doc/ngsphy.manual.pdf)
 
 ## Citation
 
