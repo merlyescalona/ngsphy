@@ -1,3 +1,5 @@
+[![PyPI version](https://badge.fury.io/py/ngsphy.svg)](https://badge.fury.io/py/ngsphy)
+
 # NGSphy
 
 © 2017 Merly Escalona (<merlyescalona@uvigo.es>), Sara Rocha, David Posada
