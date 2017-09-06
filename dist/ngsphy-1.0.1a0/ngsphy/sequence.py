@@ -40,11 +40,11 @@ class SequenceGenerator:
 		self.appLogger=logging.getLogger('ngsphy')
 		self.appLogger.debug('INDELible run')
 		self.settings=settings
-		self.settings.alignmentsFolderPath=os.path.join(self.settings.alignmentsFolderPath,"1")
+		self.settings.alignmentsFolderPath=os.path.join(self.settings.basepath,"1")
 		self.newIndelibleControlFilePath=os.path.join(\
-			self.settings.alignmentsFolderPath,"control.txt")
+			self.settings.alignmentsFolderPath,"1","control.txt")
 		self.newIndelibleAncestralSequence=os.path.join(\
-			self.settings.alignmentsFolderPath,"ancestral.fasta")
+			self.settings.alignmentsFolderPath,"1","ancestral.fasta")
 
 		if self.settings.inputmode ==1:
 			self.programCommand="indelible"
@@ -75,12 +75,12 @@ class SequenceGenerator:
 		"""
 		self.appLogger.info("Creating folder structure for INDELible run")
 		try:
-			os.makedirs(os.path.join(self.settings.alignmentsFolderPath))
+			os.makedirs(os.path.join(self.settings.alignmentsFolderPath,"1"))
 			self.appLogger.info("Generating data folder ({0})".format(\
-				os.path.join(self.settings.alignmentsFolderPath)))
+				os.path.join(self.settings.alignmentsFolderPath,"1")))
 		except:
 			self.appLogger.debug("Data folder exists ({0})".format(\
-				os.path.join(self.settings.alignmentsFolderPath)))
+				os.path.join(self.settings.alignmentsFolderPath,"1")))
 
 
 	def copyAncestralSequenceToOutputFolder(self):
@@ -132,8 +132,8 @@ class SequenceGenerator:
 		"""
 		self.appLogger.debug("Writing new control file")
 		self.appLogger.debug("Given INDELible control file: ".format(\
-			self.settings.indelibleControlFile))
-		f=open(self.settings.indelibleControlFile,"r")
+			self.settings.ngsphyIndelibleControlFilePath))
+		f=open(self.settings.ngsphyIndelibleControlFilePath,"r")
 		lines=f.readlines()
 		f.close()
 		newlines=copy.copy(lines)
@@ -269,7 +269,7 @@ class SequenceGenerator:
 			"\nFor more information about this error please run the following commands separately:\n"+\
 			"\n\tcd {0}\n\tindelible\n".format(self.settings.alignmentsFolderPath)
 			raise RuntimeError(indelibleMessage)
-		if (self.settings.runningTimes): self.writeRunningInfoIntoFile(lines)
+		if (self.runnning_times): self.writeRunningInfoIntoFile(lines)
 
 	def writeRunningInfoIntoFile(self, lines):
 		"""

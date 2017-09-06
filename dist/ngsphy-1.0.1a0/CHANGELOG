@@ -1,16 +1,3 @@
-Version 1.0.2
-    bug fixes:
-        - checking existence of INDELible control file: path generated was badly formatted.
-        - checking branch lengths of the trees now works fine.
-        - the streams to check the dependencies of the third-party software now work fine.
-        - for the sequence generation, I was using a wrong variable name for settings, now works fine
-        - dendropy depency was missing in some files
-        - removed the extra folder generated in alignments
-        - error writing VCF files, all files were written in the no_error folder. fixed.
-Version 1.0.1
-    pypi registration
-Version 1.0.0
-    structured as packaged and github push
 Version 0.2.2
     log file only available when using debug log level. running time files
     outputted only as asked.

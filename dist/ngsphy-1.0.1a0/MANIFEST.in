@@ -1,0 +1,6 @@
+include README.rst
+include CHANGELOG
+include LICENSE.txt
+include CONTRIBUTORS.txt
+recursive-include data/ *.txt *.tree *.zip
+recursive-include doc/ *.md

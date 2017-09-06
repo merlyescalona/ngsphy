@@ -1,1 +1,0 @@
-simphy -rs 2 -rl f:10 -sb ln:-15,1 -st u:200000,20000000 -sl f:5 -so f:1 -sp f:100000 -su e:10000000 -si f:6 -hh ln:1.2,1 -hl ln:1.4,1 -hg f:200 -v 1 -o test_wrapper -cs 6656 -om 1 -od 1 -op 1 -oc 1 -on 1 

@@ -1,0 +1,17 @@
+[general]
+path=/home/user/
+output_folder_name=NGSphy_output
+ploidy=1
+[data]
+inputmode=3
+gene_tree_file=/home/myuser/my_gene_tree.tree
+anchor_sequence_file=/home/myuser/my_anchor.fasta
+anchor_tip_label=1_0_0
+indelible_control_file=/home/myuser/my_control_indelible.txt
+[ngs-read-counts]
+read_counts_error=0.1
+reference_alleles_file=/home/myuser/my_reference_alleles.txt
+[execution]
+environment = bash
+run = on
+threads=4

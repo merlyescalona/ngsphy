@@ -1,5 +1,5 @@
  #!/usr/bin/home/python
-import argparse,copy,datetime,dendropy,logging,os,sys, sqlite3
+import argparse,copy,datetime,logging,os,sys, sqlite3
 import numpy as np
 import random as rnd
 import settings as sp
@@ -107,6 +107,7 @@ class IndividualAssignment:
 				"Please verify. Exiting."\
 			)
 		self.settings.parser.set("general","filtered_replicates",",".join([str(a) for a in self.filteredReplicates]))
+		self.addOutgroupInfoToSettings()
 		return True, message
 
 	def generateFolderStructure(self):
@@ -455,20 +456,14 @@ class IndividualAssignment:
 			# if description=="6_0_0":
 				# print indID,outputFolder
 			seq=seqDict[description]
-			des=">{0}:{1:0{2}d}:{3:0{4}d}:{5}:{6}:{7}".format(
-				self.settings.projectName,\
-				indexREP,\
-				self.numReplicateDigits,\
-				indexLOC,\
-				self.numLociPerReplicateDigits[indexREP-1],\
-				self.settings.simphyDataPrefix,\
-				indID,\
-				description[1:len(description)]\
+			des=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}".format(self.settings.projectName,\
+				indexREP,indexLOC,self.settings.simphyDataPrefix,indID,description[1:len(description)],\
+				self.numReplicateDigits,self.numLociPerReplicateDigits[indexREP-1]\
 			)
 			indFilename=os.path.join(\
 				outputFolder,\
+				self.settings.projectName,\
 				"{0}_{1:0{2}d}_{3:0{4}d}_{5}_{6}.fasta".format(\
-					self.settings.projectName,\
 					indexREP,\
 					self.numReplicateDigits,\
 					indexLOC,\

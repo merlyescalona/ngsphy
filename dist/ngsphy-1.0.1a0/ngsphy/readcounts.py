@@ -102,12 +102,12 @@ class ReadCounts:
 	- readcountErrorFolderPath: path where sampled read count data will be
 	stored.
 	- numReplicates: number of species tree.
-	- numLociPerReplicate: list with the number of loci per species tree
+	- numLociPerReplicates: list with the number of loci per species tree
 	- numIndividualsPerReplicate: list with the number of individuals per
 	species tree.
 	- numReplicateDigits: number of digits that represent numReplicates
 	- numLociPerReplicateDigits: list of the number of digits that represent
-	numLociPerReplicate.
+	numLociPerReplicates.
 	- numIndividualsPerReplicateDigits: list of the number of digits that represent
 	numIndividualsPerReplicate.
 	- filteredReplicates: identifiers of the species tree replicates that will be used.
@@ -122,7 +122,7 @@ class ReadCounts:
 	readcountErrorFolderPath=""
 
 	numReplicates=None
-	numLociPerReplicate=[]
+	numLociPerReplicates=[]
 	numIndividualsPerReplicate=[]
 	numReplicateDigits=[]
 	numLociPerReplicateDigits=[]
@@ -135,14 +135,15 @@ class ReadCounts:
 		self.settings=settings
 
 		self.numReplicates=self.settings.parser.getint("general", "numreplicates")
-		cc=self.settings.parser.get("general", "numLociPerReplicate").strip().split(",")
-		self.numLociPerReplicate=[ int(item) for item in cc if not item ==""]
+		cc=self.settings.parser.get("general", "numLociPerReplicates").strip().split(",")
+		self.numLociPerReplicates=[ int(item) for item in cc if not item ==""]
 		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
 		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
 		self.numReplicateDigits=len(str(self.numReplicates))
-		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicate]
+		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicates]
 		self.numIndividualsPerReplicateDigits=[len(str(item )) for item in self.numIndividualsPerReplicate]
 		self.filteredReplicates=[int(item) for item in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
+
 		if(self.settings.runningTimes):
 			# Generating folder structure
 			infoFile=os.path.join(\
@@ -194,12 +195,12 @@ class ReadCounts:
 			self.appLogger.debug("Output folder exists ({0})".format(\
 				self.readcountErrorFolderPath))
 		try:
-			os.makedirs(self.settings.refAllelesFolderPath)
+			os.makedirs(self.refAllelesFolderPath)
 			self.appLogger.info("Generating output folder ({0})".format(\
-				self.settings.refAllelesFolderPath))
+				self.refAllelesFolderPath))
 		except:
 			self.appLogger.debug("Output folder exists ({0})".format(\
-				self.settings.refAllelesFolderPath))
+				self.refAllelesFolderPath))
 
 	def generateFolderStructureDetail(self):
 		"""
@@ -222,7 +223,7 @@ class ReadCounts:
 				"{0:0{1}d}".format(indexREP,self.numReplicateDigits)\
 			)
 			ref_alleles=os.path.join(\
-				self.settings.refAllelesFolderPath,\
+				self.refAllelesFolderPath,\
 				"{0:0{1}d}".format(indexREP,self.numReplicateDigits)\
 			)
 
@@ -266,10 +267,10 @@ class ReadCounts:
 		coverageMatrix=np.zeros(\
 			shape=(\
 				self.numIndividualsPerReplicate[indexREP-1],\
-				self.numLociPerReplicate[indexREP-1]\
+				self.numLociPerReplicates[indexREP-1]\
 			)\
 		)
-		firstLine=True; counter=0
+		firstLine=NOError; counter=0
 		with open(coverageMatrixFilename, 'rb') as csvfile:
 			coveragereader = csv.reader(csvfile, delimiter=',')
 			for row in coveragereader:
@@ -317,9 +318,9 @@ class ReadCounts:
 					try:
 						referenceList+=[(d[0],d[1],d[2],d[3])]
 					except IndexError as ie:
-						skipped=True
+						skipped=NOError
 					index+=1
-				else: skipped=True
+				else: skipped=NOError
 
 				if skipped:
 					self.appLogger.warning("{0}{1}".format(message,(index+1)))
@@ -592,7 +593,7 @@ class ReadCounts:
 			refAllelesFilePath, referenceSeqFull,\
 			alt,variableSitesPositionIndices,\
 			HTGeneral,HLGeneral,\
-			ADGeneral,DP,True)
+			ADGeneral,DP,NOError)
 
 		########################################################
 		# With errors
@@ -609,7 +610,7 @@ class ReadCounts:
 			HLGeneralWErrors[indexIND]=self.haplotypeLikehood(\
 				rcsWErrors[indexIND],\
 				variableSitesPositionIndices,\
-				self.settings.readCountsError)
+				self.settings.seqerror)
 
 		self.writeVCFFile(
 			indexREP,indexGT,\
@@ -786,7 +787,7 @@ class ReadCounts:
 			ADNOErrors[0,indexVar]=counter["A"];ADNOErrors[1,indexVar]=counter["C"]
 			ADNOErrors[2,indexVar]=counter["G"];ADNOErrors[3,indexVar]=counter["T"]
 			# SAMPLE READ COUNT - need to know error distribution
-			errorDistro=ngsphydistro("b",[posCoverage,self.settings.readCountsError])
+			errorDistro=ngsphydistro("b",[posCoverage,self.settings.seqerror])
 			errorD=errorDistro.value(1)[0]
 			errorPositions=[]
 			# need to know possible nucleotides to substitute my position with error
@@ -794,7 +795,7 @@ class ReadCounts:
 			# I have some positions (at least 1) that is an error
 			# errorD= array with coded error nucleotides that will be modified
 			if (errorD>0):
-				errorChoices=np.random.choice(possibleNucs, int(errorD), replace=True)
+				errorChoices=np.random.choice(possibleNucs, int(errorD), replace=NOError)
 				maxAvailablePositions=posCoverage
 				if not ((posCoverage % 2) == 0): maxAvailablePositions=posCoverage-1
 				if maxAvailablePositions == 0:  maxAvailablePositions=posCoverage
@@ -888,7 +889,7 @@ class ReadCounts:
 			refAllelesFilePath, referenceSeqFull,\
 			alt,variableSitesPositionIndices,\
 			GTGeneral,GLGeneral,\
-			ADGeneral,DP,True)
+			ADGeneral,DP,NOError)
 
 		########################################################
 		# DIPLOID SAMPLED
@@ -915,7 +916,7 @@ class ReadCounts:
 			GLWErrors=self.genotypeLikehood(\
 				rcsWErrors[indexIND],\
 				variableSitesPositionIndices,\
-				self.settings.readCountsError)
+				self.settings.seqerror)
 			GTGeneralWErrors[indexIND]=GTWErrors
 			GLGeneralWErrors[indexIND]=GLWErrors
 
@@ -1065,7 +1066,7 @@ class ReadCounts:
 			ADNOErrors[0,indexVar]=counter["A"];ADNOErrors[1,indexVar]=counter["C"]
 			ADNOErrors[2,indexVar]=counter["G"];ADNOErrors[3,indexVar]=counter["T"]
 			# SAMPLE READ COUNT - need to know error distribution
-			errorDistro=ngsphydistro("b",[posCoverage,self.settings.readCountsError])
+			errorDistro=ngsphydistro("b",[posCoverage,self.settings.seqerror])
 			errorD=errorDistro.value(1)[0]
 			errorPositions=[]
 			# need to know possible nucleotides to substitute my position with error
@@ -1186,9 +1187,9 @@ class ReadCounts:
 		# flag is either true or sampled
 		nInds=len(HT.keys())
 		if flag:
-			self.appLogger.debug("Writing VCF file (no_error)")
+			self.appLogger.debug("Writing VCF file (true)")
 		else:
-			self.appLogger.debug("Writing VCF file (with_error)")
+			self.appLogger.debug("Writing VCF file (sampled)")
 		header="{0}\n{1}={2}\n{3}\n{4}={5}".format(\
 			"##fileformat=VCFv4.0",\
 			"##fileDate",\
@@ -1208,7 +1209,7 @@ class ReadCounts:
 		# filename, file_extension = os.path.splitext('/path/to/somefile.ext')
 		headerCols=["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"]+indnames
 		# CHROM
-		numGeneTreeDigits=len(str(self.numLociPerReplicate[(indexREP-1)]))
+		numGeneTreeDigits=len(str(self.numLociPerReplicates[(indexREP-1)]))
 		chromName="REP.{0:0{1}d}.GT.{2:0{3}d}".format(indexREP,\
 			self.numReplicateDigits,\
 			indexGT,\
@@ -1234,7 +1235,7 @@ class ReadCounts:
 		# format
 		FORMAT=["GT:GL:AD:DP"]*nVariants
 		# extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
-		nLoci=self.numLociPerReplicate[indexREP-1]
+		nLoci=self.numLociPerReplicates[indexREP-1]
 		numGeneTreeDigits=len(str(nLoci))
 		allVariants=self.formatIndividualDataForVCF(\
 			REF,alt,variableSitesPositionIndices,HT,HL,AD,DP)
@@ -1252,7 +1253,7 @@ class ReadCounts:
 			)
 		else:
 			outfile=os.path.join(
-				self.readcountErrorFolderPath,\
+				self.readcountNoErrorFolderPath,\
 				"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
 				"{0}_{1:0{2}d}_{3:0{4}d}.vcf".format(\
 					self.settings.simphyDataPrefix,\
@@ -1354,7 +1355,7 @@ class ReadCounts:
 		"""
 		self.appLogger.debug(" writeReference(self,indexREP,indexGT,referenceSpeciesID,referenceTipID,referenceSeqFull):")
 		refAllelesFilePath=os.path.join(\
-			self.settings.refAllelesFolderPath,\
+			self.refAllelesFolderPath,\
 			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
 			"{0}_REF_{1}_{2}.fasta".format(\
 				self.settings.projectName,\
@@ -1366,8 +1367,8 @@ class ReadCounts:
 			self.settings.simphyDataPrefix,\
 			indexREP,\
 			self.numReplicateDigits,\
-			self.numLociPerReplicate[(indexREP-1)],\
-			len(str(self.numLociPerReplicate[(indexREP-1)])),\
+			self.numLociPerReplicates[(indexREP-1)],\
+			len(str(self.numLociPerReplicates[(indexREP-1)])),\
 			referenceSpeciesID,\
 			referenceLocusID,\
 			referenceTipID\
@@ -1397,11 +1398,12 @@ class ReadCounts:
 			self.appLogger.debug("launchCommand(...)")
 			tStartTime=datetime.datetime.now()
 			numIndividuals=len(individuals.keys())
-			nLoci=self.numLociPerReplicate[indexREP-1]
+			nLoci=self.numLociPerReplicates[indexREP-1]
 			self.appLogger.debug("Iterating over nLoci: {0}/{1}".format(indexGT,nLoci))
 			numGeneTreeDigits=len(str(nLoci))
 			filepathLoc=os.path.join(\
-				self.settings.basepath,\
+				self.settings.path,\
+				self.settings.projectName,\
 				"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
 				"{0}_{1:0{2}d}_TRUE.fasta".format(\
 					self.settings.simphyDataPrefix,\
@@ -1485,7 +1487,7 @@ class ReadCounts:
 		- Boolean indating whether process has finished correctly or not.
 		"""
 		self.appLogger.debug("run(self)")
-		status=True;	message="Read counts finished ok."
+		status=NOError;	message="Read counts finished ok."
 		self.appLogger.debug( "Run - read count")
 		try:
 			# generating folder structure for this part
@@ -1495,25 +1497,22 @@ class ReadCounts:
 			nSTS=len(self.filteredReplicates)
 			# iterate over the "iterable" species trees / filtered STs
 			self.appLogger.info("Running...")
-			nProcesses=sum([self.numLociPerReplicate[item-1] for item in self.filteredReplicates])
+			nProcesses=sum([self.numLociPerReplicates[item-1] for item in self.filteredReplicates])
 			currProcessesRunning=1
 			pool=multiprocessing.Pool(self.settings.numThreads)
 
 			filepathIndividualsRelations=[\
-				os.path.join(\
-					self.settings.tablesFolderPath,\
-					"{0}.{1:0{2}d}.individuals.csv".format(\
-					self.settings.projectName,\
-					indexREP,\
-					self.numReplicateDigits\
-					)\
-				)
+				"{0}/tables/{1}.{2:0{3}d}.individuals.csv".format(\
+				self.settings.outputFolderPath,\
+				self.settings.projectName,\
+				indexREP,\
+				self.numReplicateDigits)\
 			for indexREP in self.filteredReplicates]
 
 			individualsList=[self.parseIndividualRelationFile(singlefile) for singlefile in filepathIndividualsRelations]
 			numIndividualsList=[len(item.keys()) for item in individualsList]
 			coverageMatrices=[self.retrieveCoverageMatrix(indexREP) for indexREP in self.filteredReplicates]
-			nLociList=[self.numLociPerReplicate[item-1] for item in self.filteredReplicates]
+			nLociList=[self.numLociPerReplicates[item-1] for item in self.filteredReplicates]
 			ARGS=[(referenceList[item],\
 				self.filteredReplicates[item],\
 				nLociList[item],\
@@ -1546,7 +1545,7 @@ class ReadCounts:
 								individualsList[indexFilterST],\
 								coverageMatrices[indexFilterST])\
 						)
-						t.daemon=True
+						t.daemon=NOError
 						jobs.append(t)
 						t.start()
 						indexGT+=1

@@ -1,0 +1,22 @@
+[general]
+path=/home/user/
+output_folder_name=NGSphy_output
+ploidy=1
+[data]
+inputmode=2
+gene_tree_file=/home/myuser/my_gene_tree.tree
+ancestral_sequence_file=/home/myuser/my_ancestral.fasta
+indelible_control_file=/home/myuser/my_control_indelible.txt
+[ngs-reads-art]
+amp=true
+l=100
+m=250
+p=true
+q=true
+s=50
+sam=true
+ss=HS20
+[execution]
+environment = bash
+run = on
+threads=4

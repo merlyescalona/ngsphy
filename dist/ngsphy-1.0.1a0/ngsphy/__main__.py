@@ -5,7 +5,7 @@ import loggingformatter as lf
 # CONSTANTS
 VERSION=1
 MIN_VERSION=0
-FIX_VERSION=2
+FIX_VERSION=0
 PROGRAM_NAME="ngsphy.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
 INSTITUTION="University of Vigo, Spain."
@@ -76,8 +76,8 @@ or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 	status=True; message=""
 	try:
 		tmpArgs = parser.parse_args()
-		if (tmpArgs.help):
-			parser.print_help()
+		if (tmpArgs.help): parser.print_help()
+		sys.stdout("\n{}\n".format(LINE))
 		# Checks if the log level debug is chosen it will also print the debug file
 		if tmpArgs.log==LOG_LEVEL_CHOICES[0]:
 			createLogFile()
@@ -87,7 +87,7 @@ or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 			 "Please verify. Exiting.", LINE)
 		APPLOGGER.error(message)
 		parser.print_help()
-		# sys.exit(-1)
+		sys.exit(-1)
 	if not tmpArgs.settings and not os.path.exists(os.path.abspath(os.path.join(os.getcwd(),"settings.txt"))):
 		parser.print_help()
 	return tmpArgs

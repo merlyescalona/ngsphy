@@ -1,0 +1,20 @@
+Metadata-Version: 1.2
+Name: ngsphy
+Version: 1.0.1a0
+Summary: phylogenomic simulation of NGS data 
+Home-page: https://github.com/merlyescalona/ngsphy
+Author: Merly Escalona
+Author-email: merlyescalona@uvigo.es
+License: GNU/GPL v3
+Download-URL: https://github.com/merlyescalona/ngsphy/blob/master/dist/ngsphy-1.0.1a.tar.gz
+Description: NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (read counts or Illumina reads) obtained from thousands of gene families evolving under a common species tree, with multiple haploid and/or diploid individuals per species, where sequencing coverage (depth) heterogeneity can vary among species, individuals and loci, including off-target or uncaptured loci.
+Keywords: biology phylogenomics next-generation sequencing coverage targeted-sequencing
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Programming Language :: Python :: 2.7
+Requires-Python: ~=2.7
