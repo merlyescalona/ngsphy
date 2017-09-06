@@ -204,7 +204,7 @@ class Settings:
 		elif self.parser.has_section("ngs-read-counts"):
 			self.ngsmode=2
 			# readcount
-			statusRC,messageRC=self.checkBlockNGSReadCounts(parserMessageCorrect,parserMessageWrong)
+			statusRC,messageRC=self.checkBlockNGSReadCounts()
 			if statusRC:
 				statusCoverage,messageCoverage=self.checkBlockCoverage(parserMessageCorrect,parserMessageWrong)
 				# Exit here
@@ -220,10 +220,10 @@ class Settings:
 		self.checkBlockExecution(parserMessageCorrect,parserMessageWrong)
 		# Exit here
 		self.appLogger.info(self.formatSettingsMessage())
-		if self.settings.inputmode <4:
+		if self.inputmode <4:
 			self.basepath=self.alignmentsFolderPath
 		else:
-			self.basepath=self.settings.simphyFolderPath
+			self.basepath=self.simphyFolderPath
 
 		return allGood,parserMessageCorrect
 
@@ -236,7 +236,7 @@ class Settings:
 		- boolean, message: the status of the process and the message related to
 		such status
 		"""
-		self.appLogger.debug("Section General")
+		self.appLogger.debug("Block General")
 		# Check GENERAL SECTION
 		if not self.parser.has_section("general"):
 			parserMessageWrong="\n\t{0}\n\t{1}".format(\
@@ -244,6 +244,7 @@ class Settings:
 				"Please verify. Exiting."\
 			)
 			return False, parserMessageWrong
+
 		# CHECKING GENERAL PARAMETERS
 		# checking ploidy for the output data
 		if (not self.parser.has_option("general","ploidy")):
@@ -259,7 +260,6 @@ class Settings:
 					"Please verify. Exiting."\
 				)
 				return False, parserMessageWrong
-
 		if (self.parser.has_option("general","path")):
 			self.path=os.path.abspath(self.parser.get("general","path"))
 		else:
@@ -273,8 +273,8 @@ class Settings:
 		if(self.parser.has_option("general","output_folder_name")):
 			self.outputFolderName=self.parser.get("general","output_folder_name")
 
-		if os.path.exists("{0}/{1}/{2}/".format(self.path,self.outputFolderName)):
-			listdir=os.listdir("{0}/{1}".format(self.path))
+		if os.path.exists("{0}/{1}".format(self.path,self.outputFolderName)):
+			listdir=os.listdir("{0}".format(self.path))
 			counter=0
 			for item in listdir:
 				if self.outputFolderName in item:
@@ -283,19 +283,19 @@ class Settings:
 
 		self.outputFolderPath=os.path.join(self.path,self.outputFolderName)
 		self.alignmentsFolderPath=os.path.join(\
-			self.outputFolderName,"alignments")
+			self.outputFolderPath,"alignments")
 		self.coverageFolderPath=os.path.join(\
-			self.outputFolderName,"coverage")
+			self.outputFolderPath,"coverage")
 		self.individualsFolderPath=os.path.join(\
-			self.outputFolderName,"individuals")
+			self.outputFolderPath,"individuals")
 		self.readsFolderPath=os.path.join(\
-			self.outputFolderName,"reads")
+			self.outputFolderPath,"reads")
 		self.refAllelesFolderPath=os.path.join(\
-			self.outputFolderName,"ref_alleles")
+			self.outputFolderPath,"ref_alleles")
 		self.scriptsFolderPath=os.path.join(\
-			self.outputFolderName,"scripts")
+			self.outputFolderPath,"scripts")
 		self.tablesFolderPath=os.path.join(\
-			self.outputFolderName,"ind_labels")
+			self.outputFolderPath,"ind_labels")
 
 		return True,parserMessageCorrect
 
@@ -308,7 +308,7 @@ class Settings:
 		- boolean, message: the status of the process and the message related to
 		such status
 		"""
-		self.appLogger.debug("Section Data")
+		self.appLogger.debug("Block Data")
 		if (self.parser.has_section("data")):
 			if (self.parser.has_option("data","inputmode")):
 				try:
@@ -326,7 +326,6 @@ class Settings:
 					"Please verify. Exiting."\
 				)
 				return False, parserMessageWrong
-
 			####################################################################
 			if not self.inputmode in [1,2,3,4]:
 				parserMessageWrong="\n\t\n\t{0}\n\t{1}".format(\
@@ -393,7 +392,7 @@ class Settings:
 				statusOk, message=self.checkBranchLengthsInTree()
 				if not statusOk: return statusOk,message
 
-				self.parser.set("general","numspeciestrees",str(1))
+				self.parser.set("general","numreplicates",str(1))
 				self.numReplicates=1
 				# removing options that do not match with the origin mode selected
 				if self.parser.has_option("data","simphy_data_prefix"): self.parser.remove("data","simphy_data_prefix")
@@ -407,9 +406,9 @@ class Settings:
 				stream2 = os.popen('which indelible-ngsphy').read()[0:-1]
 				self.appLogger.info("Checking dependencies...")
 				if stream1:
-					self.appLogger.info("indelible - Found running in: {}".format(stream))
+					self.appLogger.info("indelible - Found running in: {}".format(stream1))
 				elif stream2:
-					self.appLogger.info("indelible-ngsphy - Found running in: {}".format(stream))
+					self.appLogger.info("indelible-ngsphy - Found running in: {}".format(stream2))
 				else:
 					parserMessageWrong="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(\
 						"[data] block: Input mode (",self.inputmode,") selected but invalid option.",\
@@ -563,7 +562,7 @@ class Settings:
 			return False, parserMessageWrong
 		return True, parserMessageCorrect
 
-	def checkBlockNGSReadCounts(self,parserMessageCorrect,parserMessageWrong):
+	def checkBlockNGSReadCounts(self):
 		"""
 		Checks read counts  block of the settings file, regarding parameters
 		of the read counts process.
@@ -575,7 +574,7 @@ class Settings:
 		########################################################################
 		# BLOCK: READ COUNT
 		########################################################################
-		message=parserMessageCorrect
+		message=""; status=True
 		if (self.parser.has_section("ngs-read-counts")):
 			if not self.parser.has_option("ngs-read-counts", "read_counts_error"):
 				self.appLogger.warning("[ngs-read-counts] block. Read counts error rate for this runART is being considered as 0.")
@@ -1004,10 +1003,11 @@ class Settings:
 		such status
 		"""
 		self.appLogger.debug("Checking branch lengths")
-		message=""
+		message=""; status=True
 		tree=dendropy.Tree.get(path=self.geneTreeFile, schema="newick",preserve_underscores=True)
-		leaves=[ node.taxon.label for node in tree.leaf_node_iter()]
+		leaves=[ node for node in tree.leaf_node_iter()]
 		leafedge=None
+
 		for leaf in leaves:
 			leafedge= leaf.edge_length
 			if not leafedge:
@@ -1018,9 +1018,8 @@ class Settings:
 			"Branch lengths are not specified in the gene tree file.",\
 			"Please verify. Exiting."\
 			)
-			return False,message
-
-		pass
+			status=False
+		return status,message
 
 	def checkLabelFormatInTree(self):
 		"""

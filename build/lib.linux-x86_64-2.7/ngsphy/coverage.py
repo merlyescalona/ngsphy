@@ -426,7 +426,6 @@ class CoverageMatrixGenerator:
 		self.appLogger=logging.getLogger('ngsphy')
 		self.appLogger.info("Coverage calculations")
 		self.settings=settings
-
 		self.experiment=self.settings.experiment.asNGSPhyDistribution()
 		self.numReplicate=self.settings.parser.getint("general", "numreplicates")
 		cc=self.settings.parser.get("general", "numLociPerReplicate").strip().split(",")
