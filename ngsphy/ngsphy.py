@@ -90,7 +90,7 @@ class NGSphy:
                     # only copying ancestral sequences if the mode needs it
                     if(self.settings.inputmode >1):
                         statusRefSeq,messageRefSeq=self.seqGenerator.copyAncestralSequenceToOutputFolder()
-                        if not statusRefSeq: return statusRefSeq,messageRefSeq
+                        if not statusRefSeq: self.ending(statusRefSeq,messageRefSeq)
                     indelibleStatus,indelibleMessage=self.seqGenerator.run()
                     if not (indelibleStatus): self.ending(indelibleStatus, indelibleMessage)
                 # Generate Individuals (plody independency)
@@ -112,7 +112,7 @@ class NGSphy:
     				self.ngs=ngs.ARTIllumina(self.settings)
     				status, message=self.ngs.run()
     				if not status: self.ending(status,message)
-    				self.appLogger.info("NGS read simulation process finished. Check log fo status.")
+    				self.appLogger.info("NGS read simulation process finished.")
     			elif self.settings.ngsmode==2:
     				self.appLogger.info("Read counts mode")
     				# self.appLogger.info("NGS read simulation is not being made.")
@@ -140,8 +140,7 @@ class NGSphy:
                 "Please verify. Exiting."
                 )
     		status=False
-
-    	self.ending(status,message)
+        self.ending(status,message)
 
     def generateFolderStructure(self):
         """

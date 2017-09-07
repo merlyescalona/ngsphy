@@ -1,5 +1,5 @@
 #!/usr/bin/home/python
-import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing, subprocess
+import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing,msatools, subprocess
 import numpy as np
 import random as rnd
 import settings as sp
@@ -55,6 +55,7 @@ class SequenceGenerator:
 				self.settings.alignmentsFolderPath,\
 				"ngsphy.tree"\
 			)
+		self.generateFolderStructure()
 
 
 	def run(self):
@@ -62,7 +63,6 @@ class SequenceGenerator:
 		Process flow for the generation of genome sequences from a gene tree
 		and an evolutionary model
 		"""
-		self.generateFolderStructure()
 		self.writeIndelibleControlFile()
 
 		runStatus,runMessage=self.runIndelible()
@@ -97,31 +97,39 @@ class SequenceGenerator:
 		# reference.fasta file
 		# that sequence will be the first from the file if there are more than 1 sequence
 		status=True; message=""
+		self.appLogger.debug("Copying reference sequence file ")
 		self.appLogger.info("Copying reference sequence file to: {}".format(\
 			self.newIndelibleAncestralSequence))
-		fin=open(self.settings.ancestralSequenceFilePath,"r")
-		referenceLines=fin.readlines()
-		fin.close()
-		if len(referenceLines) > 1:
-			fout=open(self.newIndelibleAncestralSequence,"w")
-			fout.write(">ngsphypartition\n")
-			for index in range(1,len(referenceLines)):
-				item=referenceLines[index].strip()
-				if not item.startswith(">"):
-					fout.write("{}".format(item))
-				else:
-					break
-			if item.startswith(">"):
-				self.appLogger.warning("Ancestral sequence file has more than one sequence. Only one is needed. Selecting the first one.")
-			fout.write("\n")
-			fout.close()
-		else:
-			status=False
-			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
-				"Ancestral sequence file given has a problem.",
-				"Please verify",\
-				"Exiting"
+		description=""
+		try:
+			f=open(self.settings.ancestralSequenceFilePath, "r")
+			description=f.readline().strip()
+			f.close()
+		except Exception as ex:
+			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}\n".format(\
+				"I/O problem.",\
+				ex,
+				"Stopped while reading the ancestral sequence file.",\
+				"Please verify and rerun. Exiting."
 			)
+			status=False
+			return status, message
+		description=description[1:len(description)]
+		referenceDict=msatools.parseMSAFileWithDescriptions(self.settings.ancestralSequenceFilePath)
+		reference=referenceDict[description]
+		try:
+			fout=open(self.newIndelibleAncestralSequence,"w")
+			fout.write(">ngsphypartition\n{}\n".format(reference))
+			fout.close()
+		except Exception as ex:
+			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}\n".format(\
+				"I/O problem.",\
+				ex,\
+				"Stopped while copying the ancestral sequence file.",\
+				"Please verify and rerun. Exiting."
+			)
+			status=False
+			return status, message
 		return status, message
 
 

@@ -288,7 +288,7 @@ class IndividualAssignment:
 		for indexREP in self.filteredReplicates:
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
-				"{1:0{2}d}".format(\
+				"{0:0{1}d}".format(\
 					indexREP,\
 					self.numReplicateDigits\
 				)\
@@ -541,8 +541,7 @@ class IndividualAssignment:
 		"""
 		self.appLogger.debug("Mating table")
 		filename=os.path.join(\
-			self.settings.path,\
-			self.settings.projectName,\
+			self.settings.basepath,\
 			"{0:0{1}d}".format(\
 				indexREP,\
 				self.numReplicateDigits),\

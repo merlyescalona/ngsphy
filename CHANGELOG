@@ -1,3 +1,7 @@
+Version 1.0.3:
+    bug fixes:
+        - when handling ancestral sequence file, the access to the sequence was wrong.
+        - some variable names were misspelled.
 Version 1.0.2
     bug fixes:
         - checking existence of INDELible control file: path generated was badly formatted.

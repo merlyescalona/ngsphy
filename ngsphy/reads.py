@@ -385,7 +385,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		the reads (ART commands)
 		"""
 		self.appLogger.debug("Start")
-		bashfile=os.paht.join(\
+		bashfile=os.path.join(\
 			self.settings.scriptsFolderPath,\
 			"{0}.sh".format(self.settings.projectName)\
 		)

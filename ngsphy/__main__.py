@@ -87,7 +87,7 @@ or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 			 "Please verify. Exiting.", LINE)
 		APPLOGGER.error(message)
 		parser.print_help()
-		# sys.exit(-1)
+		sys.exit(-1)
 	if not tmpArgs.settings and not os.path.exists(os.path.abspath(os.path.join(os.getcwd(),"settings.txt"))):
 		parser.print_help()
 	return tmpArgs

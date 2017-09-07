@@ -1,4 +1,4 @@
-import argparse,datetime,dendropy, logging,os,re,sys
+import argparse,datetime,dendropy, logging,msatools,os,re,sys
 import numpy as np
 from coverage import NGSPhyDistributionParser as ngsphydistro
 if (sys.version_info[0:2]<(3,0)):
@@ -1103,11 +1103,17 @@ class Settings:
 		- boolean, message: the status of the process and the message related to
 		such status
 		"""
+		self.appLogger.debug("checking content of the refernece sequence")
 		status=True; message=""
+		# need to read the first line of the file to get the description:
+		f=open(self.ancestralSequenceFilePath, "r")
+		description=f.readline().strip()
+		f.close()
+		description=description[1:len(description)]
 		referenceDict=msatools.parseMSAFileWithDescriptions(self.ancestralSequenceFilePath)
-		reference=referenceDict[0]
+		reference=referenceDict[description]
 		for item in reference:
-			if not item.uppercase() in self.__NUCLEOTIDES:
+			if not item.upper() in self.__NUCLEOTIDES:
 				status=False
 				message="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(
 					"[data] block: Input mode (",self.inputmode,") selected but invalid option.",\
