@@ -84,7 +84,7 @@ or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 	except:
 		message="{0}\n{1}\n{2}\n".format(\
 			"Something happened while parsing the arguments.",\
-			 "Please verify. Exiting.", LINE)
+			"Please verify. Exiting.", LINE)
 		APPLOGGER.error(message)
 		parser.print_help()
 		sys.exit(-1)
@@ -105,9 +105,17 @@ def main():
 		prog = ngsphy.NGSphy(cmdArgs)
 		ch.setLevel(cmdArgs.log.upper())
 		prog.run()
-	except ngsphy.NGSphyException as ex:
-		if ex.expression: sys.exit()
-		else: sys.exit(-1)
+	except ngsphy.NGSphyExitException as ex:
+		if ex.expression:
+			APPLOGGER.info("NGSphy finished properly.")
+			APPLOGGER.info("Elapsed time (ETA):\t{0}".format(ex.time))
+			APPLOGGER.info("Ending at:\t{0}".format(datetime.datetime.now().strftime("%a, %b %d %Y. %I:%M:%S %p")))
+			sys.exit()
+		else:
+			APPLOGGER.error(ex.message)
+			APPLOGGER.error("Elapsed time (ETA):\t{0}".format(ex.time))
+			APPLOGGER.error("Ending at:\t{0}".format(datetime.datetime.now().strftime("%a, %b %d %Y. %I:%M:%S %p")))
+			sys.exit(-1)
 	except KeyboardInterrupt:
 		APPLOGGER.error("{0}{1}\nProgram has been interrupted.{2}\nPlease run again for the expected outcome.\n{3}\n".format("\033[91m","\033[1m","\033[0m",LINE))
 		sys.exit(-1)

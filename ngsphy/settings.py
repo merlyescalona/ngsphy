@@ -417,6 +417,7 @@ class Settings:
 					)
 					return False, parserMessageWrong
 				if self.parser.has_option("data","ancestral_sequence_file"):  self.parser.remove_option("data","ancestral_sequence_file")
+				if self.parser.has_option("data","anchor_sequence_file"):  self.parser.remove_option("data","anchor_sequence_file")
 				if self.parser.has_option("data","anchor_tip_label"):  self.parser.remove_option("data","anchor_tip_label")
 			####################################################################
 			if self.inputmode in [2,3]:
@@ -431,6 +432,8 @@ class Settings:
 						"Please verify the installation. Exiting."\
 					)
 					return False, parserMessageWrong
+			####################################################################
+			if self.inputmode==2:
 				if (self.parser.has_option("data","ancestral_sequence_file")):
 					self.ancestralSequenceFilePath=os.path.abspath(self.parser.get("data","ancestral_sequence_file").strip())
 					filesOk=(os.path.exists(self.ancestralSequenceFilePath) and os.path.isfile(self.ancestralSequenceFilePath))
@@ -450,11 +453,30 @@ class Settings:
 					"Please verify. Exiting."\
 					)
 					return False, parserMessageWrong
-
+				if self.parser.has_option("data","anchor_sequence_file"):  self.parser.remove_option("data","anchor_sequence_file")
 			####################################################################
 			if self.inputmode==3:
+				if (self.parser.has_option("data","anchor_sequence_file")):
+					self.ancestralSequenceFilePath=os.path.abspath(self.parser.get("data","anchor_sequence_file").strip())
+					filesOk=(os.path.exists(self.ancestralSequenceFilePath) and os.path.isfile(self.ancestralSequenceFilePath))
+					if not filesOk:
+						parserMessageWrong="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(
+						"[data] block: Input mode (",self.inputmode,") selected but invalid option.",\
+						"Anchor sequence file does not exist or the given path does not belong to a file.",\
+						"Please verify. Exiting."\
+						)
+						return False, parserMessageWrong
+					statusSeq,messageSeq=self.correctContentReferenceSequence()
+					if not statusSeq: return statusSeq, messageSeq
+				else:
+					parserMessageWrong="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(\
+					"[data] block: Input mode (",self.inputmode,") selected but invalid option.",\
+					"Anchor sequence file is required",\
+					"Please verify. Exiting."\
+					)
+					return False, parserMessageWrong
 				if (self.parser.has_option("data","anchor_tip_label")):
-					self.anchorTipLabel=self.parser.get("data","anchor_tip_label")
+					self.anchorTipLabel=self.parser.get("data","anchor_tip_label").strip()
 					statusOk, message=self.checkAnchorTipLabelInTree()
 					if not statusOk: return statusOk,message
 				else:
@@ -464,6 +486,7 @@ class Settings:
 						"Please verify. Exiting."\
 					)
 					return False, parserMessageWrong
+				if self.parser.has_option("data","ancestral_sequence_file"):  self.parser.remove_option("data","ancestral_sequence_file")
 			####################################################################
 			if self.inputmode==4:
 				if (self.parser.has_option("data","simphy_folder_path")):
@@ -500,19 +523,15 @@ class Settings:
 				else:
 					self.simphyFilter=False
 				# removing options that do not match with the origin mode selected
-				if (self.parser.has_option("data","indelible_control_file")):
-					self.parser.remove_option("data","indelible_control_file")
-				if (self.parser.has_option("data","gene_tree_file")):
-					self.parser.remove_option("data","gene_tree_file")
-				if (self.parser.has_option("data","anchor_tip_label")):
-					self.parser.remove_option("data","anchor_tip_label")
-				if (self.parser.has_option("data","ancestral_sequence_file")):
-					self.parser.remove_option("data","ancestral_sequence_file")
+				if (self.parser.has_option("data","indelible_control_file")): self.parser.remove_option("data","indelible_control_file")
+				if (self.parser.has_option("data","gene_tree_file")): self.parser.remove_option("data","gene_tree_file")
+				if (self.parser.has_option("data","anchor_tip_label")): self.parser.remove_option("data","anchor_tip_label")
+				if (self.parser.has_option("data","ancestral_sequence_file")): self.parser.remove_option("data","ancestral_sequence_file")
+				if (self.parser.has_option("data","anchor_sequence_file")): self.parser.remove_option("data","anchor_sequence_file")
 				# --------------------------------------------------------------
 				# check if simphy is valid projectName
 				status,message=self.checkSimPhyProjectValid()
-				if not status:
-					return status, message
+				if not status: return status, message
 				####################################################################
 		else:
 			parserMessageWrong="\n\t\n\t{0}\n\t{1}\n\t{2}".format(\

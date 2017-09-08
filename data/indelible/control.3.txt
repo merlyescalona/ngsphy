@@ -1,0 +1,7 @@
+[TYPE] NUCLEOTIDE 1
+[SETTINGS]
+  [ancestralprint] NEW
+  [output] FASTA
+[MODEL] m1 // no insertions, no gamma
+  [submodel] HKY 0.1 // HKY with kappa=0.1
+[NGSPHYPARTITION] t3 m1 100

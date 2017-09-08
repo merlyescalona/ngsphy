@@ -1,8 +1,6 @@
 import logging
 
 LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
-CONFIG_LEVEL=45
-
 class MEOutputFormatter:
     """
     This module incorporates different constant color values from bash shell
@@ -25,6 +23,8 @@ class MELoggingFormatter(logging.Formatter):
     the standard output and the log file.
     """
     FORMATS={\
+        "DEBUGERROR":"%(asctime)s - {0}{1}%(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s{2}".format(\
+            MEOutputFormatter.BOLD, MEOutputFormatter.DARKCYAN,MEOutputFormatter.END),\
         "CONFIG":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
             MEOutputFormatter.BOLD, MEOutputFormatter.BLUE,MEOutputFormatter.END),\
         "ERROR": "%(asctime)s - {0}{1}%(levelname)s (%(module)s){2}{0}:\t%(message)s{2}".format(\

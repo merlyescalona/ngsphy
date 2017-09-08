@@ -366,6 +366,15 @@ class IndividualAssignment:
 					)\
 				)
 				seqDict=parseMSAFileWithDescriptions(fastapath)
+				################################################################
+				if self.settings.inputmode==3:
+					# need to modify the sequence of the anchor-root
+					f=open(self.settings.ancestralSequenceFilePath,"r")
+					lines=f.readlines()
+					f.close()
+					seqs=[line.strip() for line in lines if not line.startswith(">")]
+					seqDict[self.settings.anchorTipLabel]=seqs[0]
+				################################################################
 				outputFolder=os.path.join(
 					self.settings.individualsFolderPath,\
 					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
@@ -412,10 +421,6 @@ class IndividualAssignment:
 		)
 		descriptions=parseMSAFileWithDescriptions(fastapath).keys()
 		descriptions.sort()
-		if self.settings.inputmode == 3:
-			if self.settings.anchorTipLabel in descriptions:
-				del descriptions[self.settings.anchorTipLabel]
-
 		table=[(item,descriptions[item]) for item in range(0,len(descriptions))]
 		self.numIndividualsPerReplicate[indexREP-1]=len(table)
 		return table

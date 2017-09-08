@@ -19,9 +19,24 @@ class NGSphyException(Exception):
         expression -- input expression in which the error occurred
         message -- explanation of the error
     """
-    def __init__(self, expression, message):
+    def __init__(self, expression, message, time):
         self.expression = expression
         self.message = message
+        self.time= time
+
+class NGSphyExitException(Exception):
+    """
+    Exception raised for ending of the NGSphy process.
+    ----------------------------------------------------------------------------
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+    def __init__(self, expression, message, time):
+        self.expression = expression
+        self.message = message
+        self.time= time
+
 
 class NGSphy:
     """
@@ -60,27 +75,26 @@ class NGSphy:
         executed or conditions of execution are not satisfied.
         """
     	# checking existence of settings file
-    	status=True; message="NGSphy finished correctly."
     	try:
-    		self.appLogger.info("Checking settings...")
-    		if (not os.path.exists(self.settingsFile)):
-    			self.ending(False,"Settings file ({0}) does not exist. Exiting. ".format(self.settingsFile))
-    		else:
-    			# settings file exist, go ahead and run
-    			self.appLogger.debug("Starting process")
-    			self.settings=sp.Settings(self.settingsFile)
-    			settingsOk,settingsMessage=self.settings.checkArgs()
-    			# Exit heere if not correnct parser of the settings
-    			if not settingsOk: self.ending(settingsOk,settingsMessage)
-    			# Generate BASIC folder structure - output folder
-    			self.generateFolderStructure()
-    			# Settings exist and are ok.
-    			# reroot-tree
+            status=True
+            message="NGSphy finished correctly."
+            self.appLogger.info("Checking settings...")
+            if (os.path.exists(self.settingsFile)):
+                self.appLogger.debug("Starting process")
+                self.appLogger.debug("Starting process")
+                # settings file exist, go ahead and run
+            	self.settings=sp.Settings(self.settingsFile)
+            	settingsOk,settingsMessage=self.settings.checkArgs()
+            	# Exit heere if not correnct parser of the settings
+            	if not settingsOk: self.ending(settingsOk,settingsMessage)
+            	# Generate BASIC folder structure - output folder
+            	self.generateFolderStructure()
+            	# Settings exist and are ok.
+            	# reroot-tree
                 if self.settings.inputmode == 3:
                     self.rerooter=rr.Rerooter(self.settings)
                     status, message=self.rerooter.run()
                     if not status: self.ending(status,message)
-                    self.settings.geneTreeFile=self.rerooter.geneTreeFile
                     status, message= self.rerooter.recheckPloidyAfterRerooting()
                     if not status: self.ending(status, message)
                 # Generate sequences
@@ -106,41 +120,41 @@ class NGSphy:
                 	covGenerator=coverage.CoverageMatrixGenerator(self.settings)
                 	status,message=covGenerator.calculate()
                 	if not status: self.ending(status,message)
-    			# After this I'll have generated the individuals and folder structure
-    			if self.settings.ngsmode==1:
-    				self.appLogger.info("NGS Illumina reads - ART mode")
-    				self.ngs=ngs.ARTIllumina(self.settings)
-    				status, message=self.ngs.run()
-    				if not status: self.ending(status,message)
-    				self.appLogger.info("NGS read simulation process finished.")
-    			elif self.settings.ngsmode==2:
-    				self.appLogger.info("Read counts mode")
-    				# self.appLogger.info("NGS read simulation is not being made.")
-    				# If i have read count folder structure must change - i need reference folder
-    				# print("ngsphy.py - Read count")
-    				if self.settings.indels:
-    					self.ending(False,"{0}\n\t{1}\n\t{2}".format(\
-    						"Read Counts does not support INDELs (for now)",\
-    						"Check the output folder. Data has been generated.",\
-    						"Exiting."\
-    					) )
-    				self.readcount=rc.ReadCounts(self.settings)
-    				status, message=self.readcount.run()
-    				if not status:
-    					self.ending(status,message)
-    			else:
-    				self.appLogger.info("NGS simulation is not being made.")
-    	except Exception as ex:
-    		exc_type, exc_obj, exc_tb = sys.exc_info()
-    		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    		message="\n\t{0} {1} | {2} - File: {3} - Line:{4}\n\t{5}".format(\
-                "ngsphy (main): Something is wrong.",\
-                ex,exc_type,\
-    			fname, exc_tb.tb_lineno,\
-                "Please verify. Exiting."
-                )
-    		status=False
-        self.ending(status,message)
+            	# After this I'll have generated the individuals and folder structure
+            	if self.settings.ngsmode==1:
+            		self.appLogger.info("NGS Illumina reads - ART mode")
+            		self.ngs=ngs.ARTIllumina(self.settings)
+            		status, message=self.ngs.run()
+            		if not status: self.ending(status,message)
+            		self.appLogger.info("NGS read simulation process finished.")
+            	elif self.settings.ngsmode==2:
+            		self.appLogger.info("Read counts mode")
+            		# self.appLogger.info("NGS read simulation is not being made.")
+            		# If i have read count folder structure must change - i need reference folder
+            		# print("ngsphy.py - Read count")
+            		if self.settings.indels:
+            			self.ending(False,"{0}\n\t{1}\n\t{2}".format(\
+            				"Read Counts does not support INDELs (for now)",\
+            				"Check the output folder. Data has been generated.",\
+            				"Exiting."\
+            			) )
+            		self.readcount=rc.ReadCounts(self.settings)
+            		status, message=self.readcount.run()
+            		if not status:
+            			self.ending(status,message)
+            	else:
+            		self.appLogger.info("NGS simulation is not being made.")
+            else:
+            	self.ending(False,"Settings file ({0}) does not exist. Exiting. ".format(self.settingsFile))
+            self.ending(status,message)
+    	except NGSphyException as ex:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            message="{1} | File: {2} - Line:{3}\n\t{0}".format(\
+                ex.message,exc_type,\
+                fname, exc_tb.tb_lineno\
+            )
+            raise NGSphyExitException(ex.expression,message, ex.time)
 
     def generateFolderStructure(self):
         """
@@ -166,14 +180,9 @@ class NGSphy:
         Raises a NGSphyException
         """
     	self.endTime=datetime.datetime.now()
-    	# good: Whether there's a good ending or not (error)
-    	if not good:
-    		self.appLogger.error(message)
-    		self.appLogger.error("Elapsed time (ETA):\t{0}".format(self.endTime-self.startTime))
-    		self.appLogger.error("Ending at:\t{0}".format(self.endTime.strftime("%a, %b %d %Y. %I:%M:%S %p")))
-    	else:
-    		self.appLogger.info(message)
-    		self.appLogger.info("Elapsed time (ETA):\t{0}".format(self.endTime-self.startTime))
-    		self.appLogger.info("Ending at:\t{0}".format(self.endTime.strftime("%a, %b %d %Y. %I:%M:%S %p")))
-    	raise NGSphyException(good,message)
+        eta=self.endTime-self.startTime
+        if good:
+            raise NGSphyExitException(good,message,eta)
+        else:
+            raise NGSphyException(good,message,eta)
     	# sys.exit()
