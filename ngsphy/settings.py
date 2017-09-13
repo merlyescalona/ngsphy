@@ -173,9 +173,9 @@ class Settings:
 		# Checking general block
 		statusGeneral,messageGeneral= self.checkBlockGeneral(\
 			parserMessageCorrect,parserMessageWrong)
-
 		# Exit here
 		if not statusGeneral: return statusGeneral, messageGeneral
+
 		# Checking data block
 		statusData,messageData=self.checkBlockData(\
 			parserMessageCorrect,parserMessageWrong)
@@ -219,10 +219,7 @@ class Settings:
 		self.checkBlockExecution(parserMessageCorrect,parserMessageWrong)
 		# Exit here
 		self.appLogger.info(self.formatSettingsMessage())
-		if self.inputmode <4:
-			self.basepath=self.alignmentsFolderPath
-		else:
-			self.basepath=self.simphyFolderPath
+
 
 		return allGood,parserMessageCorrect
 
@@ -325,6 +322,7 @@ class Settings:
 					"Please verify. Exiting."\
 				)
 				return False, parserMessageWrong
+
 			####################################################################
 			if not self.inputmode in [1,2,3,4]:
 				parserMessageWrong="\n\t\n\t{0}\n\t{1}".format(\
@@ -333,6 +331,11 @@ class Settings:
 					"Please verify. Exiting."\
 				)
 				return False, parserMessageWrong
+			####################################################################
+			if self.inputmode <4:
+				self.basepath=self.alignmentsFolderPath
+			else:
+				self.basepath=self.simphyFolderPath
 			####################################################################
 			# SINGLE GENE TREE MODES GENERAL
 			if self.inputmode < 4: # 1,2,3
