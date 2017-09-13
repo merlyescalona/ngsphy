@@ -1,3 +1,5 @@
+Version 1.0.5:
+    - trying to fix the gene-tree distribution input mode. Basepath was not being assigned.
 Version 1.0.4:
     bug fixes:
         - while using gene-tree distributions, output and input folders where mixed and readings were being made incorrectly. Now fixed.

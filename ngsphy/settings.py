@@ -332,13 +332,10 @@ class Settings:
 				)
 				return False, parserMessageWrong
 			####################################################################
-			if self.inputmode <4:
-				self.basepath=self.alignmentsFolderPath
-			else:
-				self.basepath=self.simphyFolderPath
-			####################################################################
+
 			# SINGLE GENE TREE MODES GENERAL
 			if self.inputmode < 4: # 1,2,3
+				self.basepath=self.alignmentsFolderPath
 					# parameter is set up, now check if folder exist
 				if (self.parser.has_option("data","indelible_control_file")):
 					self.indelibleControlFile=os.path.abspath(\
@@ -493,6 +490,7 @@ class Settings:
 			if self.inputmode==4:
 				if (self.parser.has_option("data","simphy_folder_path")):
 					self.simphyFolderPath=os.path.abspath(self.parser.get("data","simphy_folder_path"))
+					self.basepath=self.simphyFolderPath
 				else:
 					parserMessageWrong="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(\
 						"[data] block: Input mode (",self.inputmode,") selected but invalid option.",\
@@ -532,15 +530,17 @@ class Settings:
 				if (self.parser.has_option("data","anchor_sequence_file")): self.parser.remove_option("data","anchor_sequence_file")
 				# --------------------------------------------------------------
 				# check if simphy is valid projectName
+				####################################################################
 				status,message=self.checkSimPhyProjectValid()
 				if not status: return status, message
-				####################################################################
 		else:
 			parserMessageWrong="\n\t\n\t{0}\n\t{1}\n\t{2}".format(\
 				"[data] block is missing. This block is required.",\
 				"Please verify. Exiting."\
 			)
 			return False, parserMessageWrong
+		####################################################################
+
 		return True, parserMessageCorrect
 
 
@@ -962,7 +962,9 @@ class Settings:
 		"""
 		message=""
 		# List all the things in the project directory
-		fileList=os.listdir(os.path.join(self.basepath))
+
+		fileList=os.listdir(self.basepath)
+
 		for index in range(0,len(fileList)):
 			fileList[index]=os.path.abspath(os.path.join(self.basepath,fileList[index]))
 
