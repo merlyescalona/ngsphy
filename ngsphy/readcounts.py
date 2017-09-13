@@ -58,7 +58,7 @@ class RunningInfo:
 		self.lock = threading.Lock()
 		self.lock.acquire()
 		f=open(self.filename,"w")
-		f.write("indexREP,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
+		f.write("repID,locID,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
 		f.close()
 		self.lock.release()
 
@@ -404,8 +404,8 @@ class ReadCounts:
 		Parameters:
 		- filename: path for the Individual-description relation file
 		Returns:
-		- if ploidy=1:	returns a dict. key: indID,content: dict(indexREP,speciesID,locusID, geneID)
-		- if ploidy=2:	returns a dict. key: indID,content: dict(indexREP,speciesID,locusID, mateID1,mateID2)
+		- if ploidy=1:	returns a dict. key: indID,content: dict(repID,spID,locID, geneID)
+		- if ploidy=2:	returns a dict. key: indID,content: dict(repID,spID,locID, mateID1,mateID2)
 		"""
 		self.appLogger.debug("parseIndividualRelationFile(self,filename)")
 		individuals=dict()
@@ -415,17 +415,17 @@ class ReadCounts:
 			if (self.settings.ploidy==1):
 				for row in d:
 					individuals[str(row["indID"])] = {\
-						"indexREP":row["indexREP"],\
-						"speciesID":row["speciesID"],\
-						"locusID":row["locusID"],\
+						"repID":row["repID"],\
+						"spID":row["spID"],\
+						"locID":row["locID"],\
 						"geneID":row["geneID"]}
 			if (self.settings.ploidy==2):
-				# indexREP,indID,speciesID,mateID1,mateID2
+				# repID,indID,spID,mateID1,mateID2
 				for row in d:
 					individuals[str(row["indID"])] = {\
-						"indexREP":row["indexREP"],\
-						"speciesID":row["speciesID"],\
-						"locusID":row["locusID"],\
+						"repID":row["repID"],\
+						"spID":row["spID"],\
+						"locID":row["locID"],\
 						"mateID1":row["mateID1"],\
 						"mateID2":row["mateID2"]}
 			csvfile.close()
@@ -479,8 +479,8 @@ class ReadCounts:
 		seqSize=len(msa["{0}_{1}".format(str(1),str(0))][str(0)]['sequence'])
 		fullInd=None; speciesID=None; tipID=None; tmp=None
 		fullInd=np.chararray(shape=(1,seqSize), itemsize=1)
-		speciesID=ind["speciesID"].strip()
-		locusID=ind["locusID"].strip()
+		speciesID=ind["spID"].strip()
+		locusID=ind["locID"].strip()
 		tipID=ind["geneID"].strip()
 		tmp=list(msa["{0}_{1}".format(str(speciesID), str(locusID))][str(tipID)]['sequence'])
 		fullInd=[item for item in tmp]
@@ -491,7 +491,7 @@ class ReadCounts:
 		Extract individuals "ind" sequence(s) from MSA dictionary
 		Parameters:
 		- msa: dictionary
-		- ind: dict(indexREP,speciesID, mateID1,mateID2)
+		- ind: dict(repID,spID, mateID1,mateID2)
 		Returns:
 		- matrix: 2 x seqLength - representing the sequence of the individual
 		"""
@@ -499,8 +499,8 @@ class ReadCounts:
 		self.appLogger.debug("getDiploidIndividualSequence(self,msa,ind)")
 		seqSize=len(msa["1_0"][str(0)]['sequence'])
 		fullInd=None;  tmp=None
-		speciesID=ind["speciesID"];
-		locusID=ind["locusID"];
+		speciesID=ind["spID"];
+		locusID=ind["locID"];
 		tipID1=ind["mateID1"];
 		tipID2=ind["mateID2"];
 		geneFamily="{0}_{1}".format(speciesID,locusID)
@@ -1458,7 +1458,6 @@ class ReadCounts:
 						variableSites,DP)
 				tEndTime=datetime.datetime.now()
 				ETA=(tEndTime-tStartTime).total_seconds()
-				# row['indexREP'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
 				if(self.settings.runningTimes):
 					outfile=os.path.join(
 						self.readcountNoErrorFolderPath,\

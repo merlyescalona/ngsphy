@@ -69,7 +69,7 @@ class ARTIllumina:
 		self.appLogger=logging.getLogger('ngsphy')
 		self.appLogger.info('NGS read simulation: ART run started.')
 		self.settings=settings
-		self.numReplicates=self.settings.parser.getint("general","numreplicates")
+		self.numReplicates=self.settings.numReplicates
 		self.numReplicateDigits=len(str(self.numReplicates))
 		self.filteredReplicates=[ int(numST) for numST in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
 		self.numLociPerReplicate=[int(numST) for numST in self.settings.parser.get("general","numLociPerReplicate").split(",")]
@@ -159,14 +159,14 @@ class ARTIllumina:
 						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
 						inputFile=os.path.join(\
 							self.settings.individualsFolderPath,\
-							row['indexREP'],\
+							row['repID'],\
 							"{0:0{1}d}".format(\
 								indexLOC,\
 							 	self.numLociPerReplicateDigits[indexREP-1]
 							),\
 							"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
 								self.settings.projectName,\
-								row['indexREP'],\
+								row['repID'],\
 								indexLOC,\
 								self.numLociPerReplicateDigits[indexREP-1],\
 								self.settings.simphyDataPrefix,\
@@ -177,14 +177,14 @@ class ARTIllumina:
 						# This means, from a multiple (2) sequence fasta file.
 						outputFile=os.path.join(\
 							self.settings.readsFolderPath,\
-							row['indexREP'],\
+							row['repID'],\
 							"{0:0{1}d}".format(\
 								indexLOC,\
 								self.numLociPerReplicateDigits[indexREP-1]
 							),\
 							"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
 								self.settings.projectName,\
-								row['indexREP'],\
+								row['repID'],\
 								indexLOC,\
 								self.numLociPerReplicateDigits[indexREP-1],\
 								self.settings.simphyDataPrefix,\
@@ -334,7 +334,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 					inputFile=os.path.join(\
 						self.settings.individualsFolderPath,\
 						"{0:0{1}d}".format(\
-							int(row['indexREP']),\
+							int(row['repID']),\
 							self.numReplicateDigits
 						),\
 						"{0:0{1}d}".format(\
@@ -343,7 +343,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 						),\
 						"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
 							self.settings.projectName,\
-							int(row['indexREP']),\
+							int(row['repID']),\
 							indexLOC,\
 							self.numLociPerReplicateDigits[indexREP-1],
 							self.settings.simphyDataPrefix,\
@@ -354,7 +354,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 					outputFile=os.path.join(\
 						self.settings.readsFolderPath,\
 						"{0:0{1}d}".format(\
-							int(row['indexREP']),\
+							int(row['repID']),\
 							self.numReplicateDigits
 						),\
 						"{0:0{1}d}".format(\
@@ -363,7 +363,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 						),\
 						"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
 							self.settings.projectName,\
-							int(row['indexREP']),\
+							int(row['repID']),\
 							indexLOC,\
 							self.numLociPerReplicateDigits[indexREP-1],
 							self.settings.simphyDataPrefix,\
@@ -375,7 +375,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 					callParams=["art_illumina"]+self.params+["--fcov",str(coverage),"--in", inputFile,"--out",outputFile]
 					# self.params+=["--in ",inputFile,"--out",outputFile]
 					# print(callParams)
-					self.commands+=[[row['indexREP'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
+					self.commands+=[[row['repID'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
 
 		self.appLogger.info("Commands have been generated...")
 
@@ -500,7 +500,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		"""
 		outputFile=os.path.join(self.settings.outputFolderPath,"{0}.info".format(self.settings.projectName))
 		f=open(outputFile,"w")
-		f.write("indexREP,indexLOC,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
+		f.write("repID,locID,indID,inputFile,cpuTime,seed,outputFilePrefix\n")
 		for item in self.runningInfo.value:
 			f.write(
 				str(item[0])+","+\

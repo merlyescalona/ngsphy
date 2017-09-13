@@ -1,0 +1,15 @@
+[TYPE] NUCLEOTIDE 1
+[SETTINGS]
+	[output]	FASTA
+	[fastaextension]	fasta
+[MODEL] complex_common
+	[submodel]	GTR $(rd:6,16,2,8,20,4)
+	[statefreq] $(d:1,1,1,1)
+	[rates] 0 $(e:2) 0
+
+[SIMPHY-UNLINKED-MODEL]	simple_unlinked
+	[submodel]    HKY $(e:1)
+  	[statefreq]   $(d:1,1,1,1)
+
+[SIMPHY-PARTITIONS] simple [1 simple_unlinked 500] //// The first half of the gene families will evolve under the model "simple_unlinked". Their sequence lengths are sampled from a Normal with mean=1000 and sd=100.
+[SIMPHY-EVOLVE] 1 data // One sequence alignment for each gene tree, saved in files with "dataset" as common prefix (it will generate dataset_1, dataset_2, etc.)

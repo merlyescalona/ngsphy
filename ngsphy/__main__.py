@@ -5,7 +5,7 @@ import loggingformatter as lf
 # CONSTANTS
 VERSION=1
 MIN_VERSION=0
-FIX_VERSION=2
+FIX_VERSION=3
 PROGRAM_NAME="ngsphy.py"
 AUTHOR="Merly Escalona <merlyescalona@uvigo.es>"
 INSTITUTION="University of Vigo, Spain."

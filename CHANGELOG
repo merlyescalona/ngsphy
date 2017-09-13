@@ -1,5 +1,8 @@
 Version 1.0.3:
     bug fixes:
+        - runART option was not retrieved from the settings, so automatically it was not running ART. now fixed.
+        - runs correctly now for input mode 4.
+        - coverage matrix floating points now 3 (before 4)
         - when handling ancestral sequence file, the access to the sequence was wrong.
         - some variable names were misspelled.
 Version 1.0.2

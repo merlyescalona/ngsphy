@@ -648,8 +648,8 @@ class Settings:
 		if(self.parser.has_section("coverage")):
 			# ------------------------------------------------------------------
 			#  Targeted-sequencing related
-			if self.inputmode==1:
-				self.appLogger.debug("Inputmode 1")
+			if self.inputmode==4:
+				self.appLogger.debug("Inputmode 4")
 				if (self.parser.has_option("coverage","offtarget")):
 					self.appLogger.debug("offtarget")
 					offTargetValues=self.parser.get("coverage","offtarget").strip().split(",")
@@ -661,9 +661,8 @@ class Settings:
 							"Please verify. Exiting"\
 							)
 					try:
-						self.offtarget["loci"]=float(self.offtarget[0])
-						self.offtarget["coverage"]=float(self.offtarget[1])
-
+						self.offtarget["loci"]=float(offTargetValues[0])
+						self.offtarget["coverage"]=float(offTargetValues[1])
 					except:
 						return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 							parserMessageWrong,\
@@ -672,8 +671,8 @@ class Settings:
 							"Please verify. Exiting"\
 							)
 
-					if (self.offtarget["loci"] < 0 and self.offtarget["loci"] > 1) and \
-						(self.offtarget["coverage"] < 0 and self.offtarget["coverage"] > 1):
+					if (self.offtarget["loci"] < 0 or self.offtarget["loci"] > 1) and \
+						(self.offtarget["coverage"] < 0 or self.offtarget["coverage"] > 1):
 						return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 							"[coverage] block: offtarget option invalid.",\
 							"One or both values are out of range",\
@@ -698,7 +697,7 @@ class Settings:
 				if (self.parser.has_option("coverage","offtarget")): self.parser.remove("coverage","offtarget")
 				if (self.parser.has_option("coverage","notcaptured")): self.parser.remove("coverage","notcaptured")
 				if (self.parser.has_option("coverage","ontarget") or self.parser.has_option("coverage","offtarget") or self.parser.has_option("coverage","notcaptured")):
-					self.appLogger.warning("Coverage options - offtarget and notcaptured - only possible with [data] inputmode = 1 (gene-tree distribution)")
+					self.appLogger.warning("Coverage options - offtarget and notcaptured - only possible with [data] inputmode = 4 (gene-tree distribution)")
 			# ------------------------------------------------------------------
 			#  Coverage distribution related
 			if (self.parser.has_option("coverage","experiment")):
@@ -742,7 +741,8 @@ class Settings:
 			# ------------------------------------------------------------------
 			#  taxon
 			if (self.parser.has_option("coverage","taxon")):
-				values=self.parser.get("coverage","taxon").strip().split(",")
+				values1=self.parser.get("coverage","taxon").strip().split(";")
+				values=[ value.split(",") for value in values1 ]
 				if not (len(values)%2==0):
 					return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 						parserMessageWrong,\
@@ -750,9 +750,9 @@ class Settings:
 						"Incorrect number of values.",\
 						"Please verify. Exiting"\
 						)
+				values=sum(values,[])
 				taxonOk=True
 				for item in range(0,len(values),2):
-					# TODO: may need a try catch block here, string to float conversion
 					try:
 						val=float(values[item+1])
 					except:
@@ -773,7 +773,7 @@ class Settings:
 						"One or many values are out of range. Value should be in the interval [0,1].",\
 						"Please verify. Exiting"\
 						)
-				self.appLogger.info("Applying phylogenetic coverage decay")
+				self.appLogger.info("Applying taxon-specific coverage")
 		else:
 			# No coverage block
 			message="\n\t{0}\n\t{1}\n\t{2}\n\t".format(
@@ -835,7 +835,7 @@ class Settings:
 			# OPTION: RUN
 			if (self.parser.has_option("execution","runART")):
 				try:
-					value=self.parser.getboolean("execution","runART")
+					self.runART=self.parser.getboolean("execution","runART")
 				except Exception as e:
 					message="\n\t{0}\n\t{1}\n\t{2}".format(\
 						"Settings: Execution block",\

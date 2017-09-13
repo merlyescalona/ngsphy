@@ -394,10 +394,10 @@ class CoverageMatrixGenerator:
 	- individualsMultiplier: parameters to be used to sample alphashapesIndividuals.
 	- experiment: expected coverage for a specific replicate (species tree data).
 	- outputFolderPath: folder where coverage matrices will be stored.
-	- numReplicate: number of species trees.
+	- numReplicates: number of species trees.
 	- numLociPerReplicate: number of loci per species tree.
 	- numIndividualsPerReplicate: number of individuals per species tree.
-	- numReplicateDigits: number of digits needed to represent numReplicate.
+	- numReplicateDigits: number of digits needed to represent numReplicates.
 	- numLociPerReplicateDigits: number of digits needed to represent.
 	- filteredReplicates: identifier of the species trees that will be used.
 
@@ -415,7 +415,7 @@ class CoverageMatrixGenerator:
 
 	outputFolderPath=""
 
-	numReplicate=0
+	numReplicates=0
 	numLociPerReplicate=[]
 	numIndividualsPerReplicate=[]
 	numReplicateDigits=0
@@ -427,23 +427,23 @@ class CoverageMatrixGenerator:
 		self.appLogger.info("Coverage calculations")
 		self.settings=settings
 		self.experiment=self.settings.experiment.asNGSPhyDistribution()
-		self.numReplicate=self.settings.parser.getint("general", "numreplicates")
+		self.numReplicates=self.settings.numReplicates
 		cc=self.settings.parser.get("general", "numLociPerReplicate").strip().split(",")
 		self.numLociPerReplicate=[ int(item) for item in cc if not item ==""]
 		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
 		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
-		self.numReplicateDigits=len(str(self.numReplicate))
+		self.numReplicateDigits=len(str(self.numReplicates))
 		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicate]
 		self.numIndividualsPerReplicateDigits=[len(str(item )) for item in self.numIndividualsPerReplicate]
 		self.filteredReplicates=[int(item) for item in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
 		if (self.settings.locus):
 			distro=self.settings.locus.asNGSPhyDistribution()
-			self.alphashapesLocus=distro.value(self.settings.numReplicate)
-			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in range(0,self.numReplicate)]
+			self.alphashapesLocus=distro.value(self.settings.numReplicates)
+			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in range(0,self.numReplicates)]
 		if (self.settings.individual):
 			distro=self.settings.individual.asNGSPhyDistribution()
-			self.alphashapesIndividuals=distro.value(self.settings.numReplicate)
-			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numLociPerReplicate[index]) for item in range(0,self.numReplicate)]
+			self.alphashapesIndividuals=distro.value(self.settings.numReplicates)
+			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in range(0,self.numReplicates)]
 		self.generateFolderStructure()
 
 	def generateFolderStructure(self):
@@ -477,17 +477,19 @@ class CoverageMatrixGenerator:
 			# individuals + loci multipliers
 			try:
 				if self.settings.locus:
+					self.appLogger.debug("Locus-wide multipliers")
 					multipliers=self.locusMultiplier[indexRep-1]
 					for loc in range(0,nLoci):
 						coverageMatrix[:, loc]=coverageMatrix[:,loc]*multipliers[loc]
 				if self.settings.individual:
+					self.appLogger.debug("individual-wide multipliers")
 					multipliers=self.individualsMultiplier[indexRep-1]
 					for ind in range(0,nInds):
-						coverageMatrix[ind,]=coverageMatrix[ind,]*multipliers[ind]
+						coverageMatrix[ind,:]=coverageMatrix[ind,:]*multipliers[ind]
 			except Exception as ex:
 				exc_type, exc_obj, exc_tb = sys.exc_info()
 				fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-				message="\n\t{0} {1} | {2} - File: {3} - Line:{4}".format(\
+				message="\n\t{0}\n\t{1}\n\t{2} | File: {3} - Line:{4}".format(\
 					"Unexpected. Coverage computation:",
 					ex,exc_type, fname, exc_tb.tb_lineno)
 				return False, message
@@ -496,9 +498,9 @@ class CoverageMatrixGenerator:
 			# dont car if haploid or diploid because ill only need the first 3 columns
 			# which match in both cases
 			if self.settings.taxon:
+				self.appLogger.debug("Taxon-specific multipliers")
 				individualsTableFilename=os.path.join(\
-					self.settings.outputFolderPath,\
-					"tables",
+					self.settings.tablesFolderPath,
 					"{0}.{1:0{2}d}.individuals.csv".format(\
 						self.settings.projectName,\
 						indexRep,\
@@ -509,35 +511,39 @@ class CoverageMatrixGenerator:
 				individualsTable = [row for row in d]
 				individualsTableFile.close()
 				for row in individualsTable:
-					if str(row['speciesID']) in self.settings.taxon.keys():
-						coverageMatrix[ind,]=np.array(coverageMatrix[ind,])*self.settings.taxon[str(row['speciesID'])]
+					if str(row['spID']) in self.settings.taxon.keys():
+						coverageMatrix[ind,]=np.array(coverageMatrix[ind,])*self.settings.taxon[str(row['spID'])]
 			#on/off target
 			onTargetLoci=range(0,nLoci)
 			offTargetLoci=[]
 			try:
 				if self.settings.offtarget["loci"] > 0:
+					self.appLogger.debug("Off-target coverage")
 					nSamples=int(self.settings.offtarget["loci"]*nLoci)
-					offTargetLoci=np.random.choice(nLoci,nSamples,replace=F)
+					offTargetLoci=np.random.choice(nLoci,nSamples,replace=False)
 					onTargetLoci=set(range(0,nLoci))-set(offTargetLoci)
 					for loc in offTargetLoci:
-						column=np.array(np.array(coverageMatrix[:,loc])*self.offtarget["coverage"])
-						coverageMatrix[:,loc]=np.transpose(column)
+						coverageMatrix[:,loc]=coverageMatrix[:,loc]*self.settings.offtarget["coverage"]
 			except Exception as ex:
-				return False, "".format(\
+				return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
+					ex,\
 					"Coverage Matrix Generator",\
 					"An unexpected error occurr with the on/off target parameter. ",\
 					"Please verify. Exiting.")
+
 			# not captured
+			onTargetLoci=nLoci-len(offTargetLoci)
 			try:
 				if self.settings.notcaptured:
 					# random number of loci  (respecting probabilities)
-					nSamples=int(self.settings.notcaptured)*(nLoci-len(offTargetLoci))
-					notcaptured=np.random.choice(onTargetLoci,nSamples,replace=F)
+					self.appLogger.debug("Not captured on target")
+					nSamples=int(self.settings.notcaptured*onTargetLoci)
+					notcaptured=np.random.choice(onTargetLoci,nSamples,replace=False)
 					for loc in notcaptured:
-						column=np.array(coverageMatrix[:,loc])*0
-						coverageMatrix[:loc]=np.transpose(column)
+						coverageMatrix[:,loc]=coverageMatrix[:,loc]*0
 			except Exception as ex:
-				return False, "".format(\
+				return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
+					ex,\
 					"Coverage Matrix Generator",\
 					"An unexpected error occurr with the not captured parameter. ",\
 					"Please verify. Exiting.")
@@ -564,7 +570,7 @@ class CoverageMatrixGenerator:
 		f.write("{}\n".format(" ,".join(header)))
 		for r in range(0,nInds):
 			weird=coverageMatrix[r,].tolist()[0]
-			weird=["{0:.4f}".format(float(item)) for item in weird]
+			weird=["{0:.3f}".format(float(item)) for item in weird]
 			line=", ".join(weird)
 			line=line.replace("[","").replace("]","")
 			# print(line)

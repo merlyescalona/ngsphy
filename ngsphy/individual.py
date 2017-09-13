@@ -46,8 +46,7 @@ class IndividualAssignment:
 		self.generateFolderStructure()
 		message=""
 		# need to know whether i'm working with simphy or indelible
-		if (self.settings.parser.has_option("general","numreplicates")):
-			self.numReplicates=self.settings.parser.getint("general","numreplicates")
+		self.numReplicates=self.settings.numReplicates
 		self.filteredReplicates=range(1,self.numReplicates+1)
 		self.numReplicateDigits=len(str(self.numReplicates))
 		self.numIndividualsPerReplicate=[0]*self.numReplicates
@@ -72,13 +71,7 @@ class IndividualAssignment:
 			# checking if I'll used the filtered in case there's a possibility
 			# that one or many sts do not match the ploidy and number of gene copies
 
-			# BASEPATH -> FOLDER WHERE SIMPHY FOLDER IS
-			if self.settings.simphyFilter:
-				self.filterReplicatesReplicates=self.filterSTMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
-			else:
-				# check ploidy matches given data
-				status,message=self.checkPloidySimPhyData()
-				if not status: return status,message
+
 			self.command = os.path.join(\
 				self.settings.basepath,\
 				"{0}.command".format(self.settings.projectName))
@@ -88,6 +81,13 @@ class IndividualAssignment:
 			self.db = os.path.join(\
 				self.settings.basepath,\
 				"{0}.db".format(self.settings.projectName))
+			# BASEPATH -> FOLDER WHERE SIMPHY FOLDER IS
+			if self.settings.simphyFilter:
+				self.filterReplicatesReplicates=self.filterReplicatesMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
+			else:
+				# check ploidy matches given data
+				status,message=self.checkPloidySimPhyData()
+				if not status: return status,message
  			# check that the species tree replicate folder have the correct data
 			gtperstOK,message=self.checkDataWithinReplicates()
 			if (not gtperstOK):
@@ -131,12 +131,16 @@ class IndividualAssignment:
 		Print the configuration of the simphy project
 		"""
 		self.appLogger.debug(\
-			"\n\t{0}Configuration...{1}\n\tSimPhy project name:\t{2}\n\tSimPhy path:\t{3}\n\tOutput folder:\t{4}\n\tDataset prefix(es) (INDELible):\t{5}\n\tNumber of species trees replicates/folders:\t{6}".format(\
-				mof.BOLD,mof.END,\
-				self.settings.projectName,\
+			"\n\tConfiguration...\n\t{0}\t{1}\n\t{2}\t{3}\n\t{4}\t{5}\n\t{6}\t{7}\n\t{8}\t{9}".format(\
+				"SimPhy path:",\
 				self.settings.basepath,\
+				"SimPhy project name:",\
+				self.settings.projectName,\
+				"Output folder:",\
 				self.settings.outputFolderPath,\
+				"Dataset prefix(es) (INDELible):",\
 				self.settings.simphyDataPrefix,\
+				"Number of species trees replicates/folders:",\
 				self.numReplicates\
 			)
 		)
@@ -246,7 +250,7 @@ class IndividualAssignment:
 			fileList=os.listdir(curReplicatePath)
 			# check composition of the current indexREP folder
 			for item in fileList:
-				if ("{0}_".format(self.settings.simphyDataPrefix) in item) and ("TRUE.fasta" in item):
+				if ("{0}_".format(self.settings.simphyDataPrefix) in item) and ("TRUE" in item):
 					numFastaFiles+=1
 				if  ("g_trees" in item) and (".trees" in item):
 					numGeneTrees+=1
@@ -257,8 +261,10 @@ class IndividualAssignment:
 			self.numLociPerReplicateDigits[indexREP-1]=len(str(numFastaFiles))
 			if (numFastaFiles<1):
 				# Do not have fasta files from the given replicate to work, I'll skip it.
-				self.appLogger.warning("Replicate {0}({1}): It is not possible to do the mating for this replicate".format(indexREP, curReplicatePath))
-				self.appLogger.warning("There are no sequences o there is a missmatch between the prefixes and the number of sequences in the folder.")
+				self.appLogger.warning(\
+					"Replicate {0}({1}): It is not possible to do the mating for this replicate".format(indexREP, curReplicatePath))
+				self.appLogger.warning(\
+					"There are no sequences o there is a missmatch between the prefixes and the number of sequences in the folder.")
 				return False, "Please verify. Exiting."
 			if (numGeneTrees<1):
 				return False,"Trying to mate sequences, but there are no gene tree files to back that up. Please, finish the SimPhy run and try again afterwards."
@@ -512,7 +518,7 @@ class IndividualAssignment:
 		)
 		if not os.path.isfile(indexFilename):
 			indexFile=open(indexFilename,"w")
-			indexFile.write("indexREP,indID,speciesID,locusID,geneID\n")
+			indexFile.write("repID,indID,spID,locID,geneID\n")
 			indexFile.close()
 		indexFile=open(indexFilename,"a")
 		for indexRow in range(0,len(individualTable)):
@@ -667,7 +673,7 @@ class IndividualAssignment:
 		self.appLogger.debug(indexFilename)
 		if not os.path.isfile(indexFilename):
 			indexFile=open(indexFilename,"w")
-			indexFile.write("indexREP,indID,speciesID,locusID,mateID1,mateID2\n")
+			indexFile.write("repID,indID,spID,locID,mateID1,mateID2\n")
 			indexFile.close()
 		indexFile=open(indexFilename,"a")
 		for indexRow in range(0,len(matingTable)):
@@ -802,7 +808,7 @@ class IndividualAssignment:
 		for indexREP in self.filteredReplicates:
 			genomicdata=""
 			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
-				self.appLogger.debug("indexLoc: {0}".format(indexLOC))
+				self.appLogger.debug("locID: {0}".format(indexLOC))
 				fastapath=os.path.join(
 					self.settings.basepath,\
 					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
