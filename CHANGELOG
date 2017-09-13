@@ -1,3 +1,6 @@
+Version 1.0.4:
+    bug fixes:
+        - while using gene-tree distributions, output and input folders where mixed and readings were being made incorrectly. Now fixed.
 Version 1.0.3:
     bug fixes:
         - runART option was not retrieved from the settings, so automatically it was not running ART. now fixed.

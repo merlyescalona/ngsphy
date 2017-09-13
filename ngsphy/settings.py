@@ -960,20 +960,20 @@ class Settings:
 		"""
 		message=""
 		# List all the things in the project directory
-		fileList=os.listdir(os.path.join(self.path,self.projectName))
+		fileList=os.listdir(os.path.join(self.basepath,self.projectName))
 		for index in range(0,len(fileList)):
-			fileList[index]=os.path.abspath(os.path.join(self.path,self.projectName,fileList[index]))
+			fileList[index]=os.path.abspath(os.path.join(self.basepath,self.projectName,fileList[index]))
 
 		command = os.path.join(\
-			self.path,\
+			self.basepath,\
 			self.projectName,\
 			"{0}.command".format(self.projectName))
 		params = os.path.join(\
-			self.path,\
+			self.basepath,\
 			self.projectName,\
 			"{0}.params".format(self.projectName))
 		db = os.path.join(\
-			self.path,\
+			self.basepath,\
 			self.projectName,\
 			"{0}.db".format(self.projectName))
 
