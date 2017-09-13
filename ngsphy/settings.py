@@ -147,7 +147,6 @@ class Settings:
 	threads=1
 	executionMode=1
 
-
 	__NUCLEOTIDES=["A","C","G","T"]
 	def __init__(self,filename):
 		# If I've got this far, then filename is a correct file
@@ -960,21 +959,18 @@ class Settings:
 		"""
 		message=""
 		# List all the things in the project directory
-		fileList=os.listdir(os.path.join(self.basepath,self.projectName))
+		fileList=os.listdir(os.path.join(self.basepath))
 		for index in range(0,len(fileList)):
-			fileList[index]=os.path.abspath(os.path.join(self.basepath,self.projectName,fileList[index]))
+			fileList[index]=os.path.abspath(os.path.join(self.basepath,fileList[index]))
 
 		command = os.path.join(\
 			self.basepath,\
-			self.projectName,\
 			"{0}.command".format(self.projectName))
 		params = os.path.join(\
 			self.basepath,\
-			self.projectName,\
 			"{0}.params".format(self.projectName))
 		db = os.path.join(\
 			self.basepath,\
-			self.projectName,\
 			"{0}.db".format(self.projectName))
 
 		self.appLogger.debug("SimPhy files (command, params, db)")
