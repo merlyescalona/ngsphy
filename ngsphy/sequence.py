@@ -1,5 +1,5 @@
 #!/usr/bin/home/python
-import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing,msatools, subprocess,platform
+import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing,msatools,subprocess,platform,stat
 import numpy as np
 import random as rnd
 import settings as sp
@@ -34,7 +34,7 @@ class SequenceGenerator:
 	partition=[]
 
 	def __init__(self,settings):
-		self.appLogger=logging.getLogger(__name__)
+		self.appLogger=logging.getLogger("ngsphy")
 		self.appLogger.debug('INDELible run')
 		self.settings=settings
 		self.settings.alignmentsFolderPath=os.path.join(self.settings.alignmentsFolderPath,"1")
@@ -48,7 +48,6 @@ class SequenceGenerator:
 				"ngsphy.tree"\
 			)
 		self.generateFolderStructure()
-
 
 	def run(self):
 		"""
@@ -210,7 +209,9 @@ class SequenceGenerator:
 		f=open(self.newIndelibleControlFilePath,"w")
 		for item in controllines:
 			f.write("{}\n".format(item))
-		f.close()
+		f.close
+		st = os.stat(self.newIndelibleControlFilePath)
+		os.chmod(self.newIndelibleControlFilePath, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
 	def runIndelible(self):
 		"""
@@ -242,39 +243,16 @@ class SequenceGenerator:
 		indelibleMessage="INDELible run has finished";proc=""
 		lines=[]
 		try:
-			self.appLogger.info("Moving to {0}".format(self.settings.alignmentsFolderPath))
-			print(self.settings.alignmentsFolderPath)
-			if platform.system()=="Darwin":
-				subprocess.call(['cd',self.settings.alignmentsFolderPath])
-			else:
-				os.chdir(os.path.abspath(self.settings.alignmentsFolderPath))
-		except OSError as error:
-			indelibleMessage="\n\t{0}\n\t{1}\n\t{2}".format(\
-				error,\
-				"There has been a problem  while moving into the alignments folder.",\
-				"Please verify. Exiting."
-			)
-			raise RuntimeError(indelibleMessage)
-		except subprocess.CalledProcessError as error:
-			indelibleMessage="\n\t{0}\n\t{1}\n\t{2}".format(\
-				error,\
-				"There has been a problem  while moving into the alignments folder (subprocess call).",\
-				"Please verify. Exiting."
-			)
-			raise RuntimeError(indelibleMessage)
-
-		try:
+			cwd=os.getcwd()
 			self.appLogger.info("Running INDELible")
 			proc=""
-			cwd=os.getcwd()
+			self.appLogger.info("Moving to {0}".format(self.settings.alignmentsFolderPath))
 			os.chdir(self.settings.alignmentsFolderPath)
-			proc=subprocess.check_output([self.settings.programCommand,'control.txt'],stderr=subprocess.STDOUT)
+			self.appLogger.info("Running INDELible")
+			proc = subprocess.check_output([self.settings.programCommand,'control.txt'],stderr=subprocess.STDOUT)
+			if (sys.version_info>=(3,0)): proc=str(proc, "utf-8")
+			self.appLogger.info("Moving back to working directory: {0}".format(cwd))
 			os.chdir(cwd)
-			#print(proc)
-			self.appLogger.info("INDELible launched")
-			#f=open(os.path.join(self.settings.alignmentsFolderPath, 'indelible.log'))
-			#proc=f.readlines()
-			#f.close()
 			cpuTime = [line.split(":")[1].split()[0] for line in proc.split('\n') if "* Block" in line]
 			for item in range(1,len(cpuTime)):
 				cpu=cpuTime[(item-1)]
@@ -290,6 +268,14 @@ class SequenceGenerator:
 			"\nFor more information about this error please run the following commands separately:\n"+\
 			"\n\tcd {0}\n\tindelible\n".format(self.settings.alignmentsFolderPath)
 			raise RuntimeError(indelibleMessage)
+		except Exception as ex:
+			exc_type, exc_obj, exc_tb = sys.exc_info()
+			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+			message="{1} | File: {2} - Line:{3}\n\t{0}".format(\
+			    ex,exc_type,\
+			    fname, exc_tb.tb_lineno\
+			)
+			raise RuntimeError(message)
 		if (self.settings.runningTimes): self.writeRunningInfoIntoFile(lines)
 
 	def writeRunningInfoIntoFile(self, lines):

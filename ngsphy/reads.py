@@ -66,7 +66,7 @@ class ARTIllumina:
 	individualsFileNameSuffix="individuals"
 
 	def __init__(self,settings):
-		self.appLogger=logging.getLogger(__name__)
+		self.appLogger=logging.getLogger("ngsphy")
 		self.appLogger.info('NGS read simulation: ART run started.')
 		self.settings=settings
 		self.numReplicates=self.settings.numReplicates

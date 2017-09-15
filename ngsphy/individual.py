@@ -33,7 +33,7 @@ class IndividualAssignment:
 	filteredReplicates=[]
 
 	def __init__(self, settings):
-		self.appLogger=logging.getLogger(__name__)
+		self.appLogger=logging.getLogger("ngsphy")
 		self.appLogger.info("IndividualGenerator: Run started")
 		self.settings=settings
 

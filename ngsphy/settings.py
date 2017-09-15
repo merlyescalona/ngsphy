@@ -152,7 +152,7 @@ class Settings:
 	def __init__(self,filename):
 		# If I've got this far, then filename is a correct file
 		self.settingsFile=os.path.abspath(filename)
-		self.appLogger=logging.getLogger(__name__)
+		self.appLogger=logging.getLogger("ngsphy")
 		self.appLogger.debug("(class Settings) __init__()")
 		# default settings can be established.
 		self.parser=cp.SafeConfigParser()
@@ -427,6 +427,7 @@ class Settings:
 				self.appLogger.info("Checking dependencies...")
 				if stream:
 					self.appLogger.info("indelible-ngsphy - Found running in: {}".format(stream))
+					self.programCommand="indelible-ngsphy"
 				else:
 					parserMessageWrong="\n\t{0}{1}{2}\n\t{3}\n\t{4}".format(\
 						"[data] block: Input mode (",self.inputmode,") selected but invalid option.",\

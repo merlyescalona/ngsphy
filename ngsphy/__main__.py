@@ -13,7 +13,7 @@ LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 LINE="--------------------------------------------------------------------------------"
 ################################################################################
 # Logger initialization
-APPLOGGER=logging.getLogger(__name__)
+APPLOGGER=logging.getLogger("ngsphy")
 ch = logging.StreamHandler()
 loggerFormatter=lf.MELoggingFormatter(\
 	fmt="%(asctime)s - %(levelname)s:\t%(message)s",\

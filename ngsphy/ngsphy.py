@@ -60,7 +60,7 @@ class NGSphy:
 
     def __init__(self,args):
     	self.startTime=datetime.datetime.now()
-    	self.appLogger=logging.getLogger(__name__)
+    	self.appLogger=logging.getLogger("ngsphy")
     	self.appLogger.info("Starting")
     	self.settingsFile=""
     	if (args.settings):
