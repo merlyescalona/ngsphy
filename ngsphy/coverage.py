@@ -423,7 +423,7 @@ class CoverageMatrixGenerator:
 	filteredReplicates=[]
 
 	def __init__(self, settings):
-		self.appLogger=logging.getLogger('ngsphy')
+		self.appLogger=logging.getLogger(__name__)
 		self.appLogger.info("Coverage calculations")
 		self.settings=settings
 		self.experiment=self.settings.experiment.asNGSPhyDistribution()

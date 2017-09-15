@@ -1,4 +1,4 @@
-import logging
+import logging, platform
 
 LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 class MEOutputFormatter:
@@ -22,22 +22,39 @@ class MELoggingFormatter(logging.Formatter):
     This module has been done to modify the way in which the log is written to
     the standard output and the log file.
     """
-    FORMATS={\
-        "DEBUGERROR":"%(asctime)s - {0}{1}%(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s{2}".format(\
-            MEOutputFormatter.BOLD, MEOutputFormatter.DARKCYAN,MEOutputFormatter.END),\
-        "CONFIG":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
-            MEOutputFormatter.BOLD, MEOutputFormatter.BLUE,MEOutputFormatter.END),\
-        "ERROR": "%(asctime)s - {0}{1}%(levelname)s (%(module)s){2}{0}:\t%(message)s{2}".format(\
-            MEOutputFormatter.BOLD, MEOutputFormatter.RED,MEOutputFormatter.END),\
-        "WARNING":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
-            MEOutputFormatter.BOLD, MEOutputFormatter.YELLOW,MEOutputFormatter.END),\
-        "INFO": "%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
-            MEOutputFormatter.BOLD, MEOutputFormatter.GREEN,MEOutputFormatter.END),\
-        "DEBUG":"%(asctime)s - {0}{1}%(levelname)s{2} (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s".format(\
-            MEOutputFormatter.BOLD, MEOutputFormatter.PURPLE,MEOutputFormatter.END),\
-        "DEFAULT":"%(asctime)s - {0}%(levelname)s{1}:\t%(message)s".format(\
-            MEOutputFormatter.BOLD,MEOutputFormatter.END)\
-       }
+
+    FORMATS={}
+
+    if platform.system()=="Darwin":
+        FORMATS={\
+            "CONFIG":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.BLUE,MEOutputFormatter.END),\
+            "ERROR": "%(asctime)s - {0}{1}%(levelname)s (%(module)s){2}{0}:\t%(message)s{2}".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.RED,MEOutputFormatter.END),\
+            "WARNING":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.YELLOW,MEOutputFormatter.END),\
+            "INFO": "%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.GREEN,MEOutputFormatter.END),\
+            "DEBUG":"%(asctime)s - {0}{1}%(levelname)s{2} (%(module)s:%(lineno)d):\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.PURPLE,MEOutputFormatter.END),\
+            "DEFAULT":"%(asctime)s - {0}%(levelname)s{1}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD,MEOutputFormatter.END)\
+           }
+    else:
+        FORMATS={\
+            "CONFIG":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.BLUE,MEOutputFormatter.END),\
+            "ERROR": "%(asctime)s - {0}{1}%(levelname)s (%(module)s){2}{0}:\t%(message)s{2}".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.RED,MEOutputFormatter.END),\
+            "WARNING":"%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.YELLOW,MEOutputFormatter.END),\
+            "INFO": "%(asctime)s - {0}{1}%(levelname)s{2}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.GREEN,MEOutputFormatter.END),\
+            "DEBUG":"%(asctime)s - {0}{1}%(levelname)s{2} (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s".format(\
+                MEOutputFormatter.BOLD, MEOutputFormatter.PURPLE,MEOutputFormatter.END),\
+            "DEFAULT":"%(asctime)s - {0}%(levelname)s{1}:\t%(message)s".format(\
+                MEOutputFormatter.BOLD,MEOutputFormatter.END)\
+           }
 
     def __init__(self,fmt,datefmt):
         logging.Formatter.__init__(self, fmt, datefmt)

@@ -24,7 +24,7 @@ class Rerooter:
 	outputFilePath=""
 
 	def __init__(self, settings):
-		self.appLogger=logging.getLogger('ngsphy')
+		self.appLogger=logging.getLogger(__name__)
 		self.appLogger.debug('Rerooting')
 		self.settings=settings
 		self.outputFilePath=os.path.join(\

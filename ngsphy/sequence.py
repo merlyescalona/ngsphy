@@ -1,5 +1,5 @@
 #!/usr/bin/home/python
-import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing,msatools, subprocess
+import argparse,copy,datetime,dendropy,logging,os,re,sys, multiprocessing,msatools, subprocess,platform
 import numpy as np
 import random as rnd
 import settings as sp
@@ -33,11 +33,8 @@ class SequenceGenerator:
 	evolve=[1,"ngsphydata_1"]
 	partition=[]
 
-	programCommand=""
-
-
 	def __init__(self,settings):
-		self.appLogger=logging.getLogger('ngsphy')
+		self.appLogger=logging.getLogger(__name__)
 		self.appLogger.debug('INDELible run')
 		self.settings=settings
 		self.settings.alignmentsFolderPath=os.path.join(self.settings.alignmentsFolderPath,"1")
@@ -45,11 +42,6 @@ class SequenceGenerator:
 			self.settings.alignmentsFolderPath,"control.txt")
 		self.newIndelibleAncestralSequence=os.path.join(\
 			self.settings.alignmentsFolderPath,"ancestral.fasta")
-
-		if self.settings.inputmode ==1:
-			self.programCommand="indelible"
-		if self.settings.inputmode in [2,3]:
-			self.programCommand="indelible-ngsphy"
 		if self.settings.inputmode==3: # INDELible + reference
 			self.geneTreeFile=os.path.join(\
 				self.settings.alignmentsFolderPath,\
@@ -251,22 +243,43 @@ class SequenceGenerator:
 		lines=[]
 		try:
 			self.appLogger.info("Moving to {0}".format(self.settings.alignmentsFolderPath))
-			os.chdir(self.settings.alignmentsFolderPath)
+			print(self.settings.alignmentsFolderPath)
+			if platform.system()=="Darwin":
+				subprocess.call(['cd',self.settings.alignmentsFolderPath])
+			else:
+				os.chdir(os.path.abspath(self.settings.alignmentsFolderPath))
+		except OSError as error:
+			indelibleMessage="\n\t{0}\n\t{1}\n\t{2}".format(\
+				error,\
+				"There has been a problem  while moving into the alignments folder.",\
+				"Please verify. Exiting."
+			)
+			raise RuntimeError(indelibleMessage)
+		except subprocess.CalledProcessError as error:
+			indelibleMessage="\n\t{0}\n\t{1}\n\t{2}".format(\
+				error,\
+				"There has been a problem  while moving into the alignments folder (subprocess call).",\
+				"Please verify. Exiting."
+			)
+			raise RuntimeError(indelibleMessage)
+
+		try:
 			self.appLogger.info("Running INDELible")
 			proc=""
-			if (sys.version_info[0:2]<(3,0)):
-				proc =subprocess.check_output(self.programCommand,stderr=subprocess.STDOUT)
-			elif (sys.version_info>=(3,0)):
-				 proc = str(subprocess.check_output(self.programCommand,stderr=subprocess.STDOUT),'utf-8')
+			cwd=os.getcwd()
+			os.chdir(self.settings.alignmentsFolderPath)
+			proc=subprocess.check_output([self.settings.programCommand,'control.txt'],stderr=subprocess.STDOUT)
+			os.chdir(cwd)
+			#print(proc)
+			self.appLogger.info("INDELible launched")
+			#f=open(os.path.join(self.settings.alignmentsFolderPath, 'indelible.log'))
+			#proc=f.readlines()
+			#f.close()
 			cpuTime = [line.split(":")[1].split()[0] for line in proc.split('\n') if "* Block" in line]
 			for item in range(1,len(cpuTime)):
 				cpu=cpuTime[(item-1)]
 				output="{0}_{1}".format(self.evolve[1],item )
 				lines+=[item,cpu,output]
-		except OSError as error:
-			indelibleMessage="Output folder does not exist. Please verify. Exiting."
-			self.appLogger.error(indelibleMessage)
-			raise RuntimeError(indelibleMessage)
 		except subprocess.CalledProcessError as error:
 			indelibleMessage="\nINDELible execution error. "+\
 			"\n------------------------------------------------------------------------"+\

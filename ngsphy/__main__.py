@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import argparse,datetime,logging, ngsphy, os,sys
+import argparse,datetime,logging, ngsphy, os,sys, platform
 import loggingformatter as lf
 ################################################################################
 # CONSTANTS
@@ -13,14 +13,23 @@ LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 LINE="--------------------------------------------------------------------------------"
 ################################################################################
 # Logger initialization
-APPLOGGER=logging.getLogger('ngsphy')
+APPLOGGER=logging.getLogger(__name__)
 ch = logging.StreamHandler()
-loggerFormatter=lf.MELoggingFormatter(fmt="%(asctime)s - %(levelname)s:\t%(message)s",datefmt="%d/%m/%Y %I:%M:%S %p")
+loggerFormatter=lf.MELoggingFormatter(\
+	fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
+	datefmt="%d/%m/%Y %I:%M:%S %p")
 ch.setFormatter(loggerFormatter)
+ch.setLevel(logging.NOTSET)
 APPLOGGER.addHandler(ch)
 ################################################################################
 def createLogFile():
-	logging.basicConfig(format="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s",\
+	formatString=""
+	if platform.system()=="Darwin":
+		formatString="%(asctime)s - %(levelname)s (%(module)s:%(lineno)d):\t%(message)s"
+	else:
+		formatString="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s"
+
+	logging.basicConfig(format=formatString,\
 		datefmt="%d/%m/%Y %I:%M:%S %p",\
 		filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
 			os.getcwd(),datetime.datetime.now(),PROGRAM_NAME[0:-3].upper()),\
@@ -80,7 +89,11 @@ or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 			parser.print_help()
 		# Checks if the log level debug is chosen it will also print the debug file
 		if tmpArgs.log==LOG_LEVEL_CHOICES[0]:
+			APPLOGGER.setLevel(logging.DEBUG)
 			createLogFile()
+		if tmpArgs.log==LOG_LEVEL_CHOICES[1]: APPLOGGER.setLevel(logging.INFO)
+		if tmpArgs.log==LOG_LEVEL_CHOICES[2]: APPLOGGER.setLevel(logging.WARNING)
+		if tmpArgs.log==LOG_LEVEL_CHOICES[3]: APPLOGGER.setLevel(logging.ERROR)
 	except:
 		message="{0}\n{1}\n{2}\n".format(\
 			"Something happened while parsing the arguments.",\

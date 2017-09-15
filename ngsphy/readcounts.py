@@ -37,14 +37,12 @@ def getScoreMatrix(data):
 	"""
 	self.appLogger.debug("getScoreMatrix(data)")
 	value=np.copy(data)
-	with warnings.catch_warnings():
-		warnings.filterwarnings('error')
-		try:
-			value=-10*np.log10(data)
-		except:
-			pass
-		infs=np.inf==value
-		value[infs]=0
+	try:
+		value=-10*np.log10(data)
+	except:
+		pass
+	infs=np.inf==value
+	value[infs]=0
 	return value
 
 class RunningInfo:
@@ -130,7 +128,7 @@ class ReadCounts:
 	filteredReplicates=[]
 
 	def __init__(self,settings):
-		self.appLogger=logging.getLogger('ngsphy')
+		self.appLogger=logging.getLogger(__name__)
 		self.appLogger.info('Read counts.')
 		self.settings=settings
 
@@ -746,14 +744,12 @@ class ReadCounts:
 		# getting read count
 		for indexVar in range(0,nVariants):
 			for indexNuc in range(0,4):
-				with warnings.catch_warnings():
-					warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
-					nuc=[self.__NUCLEOTIDES[indexNuc]]
-					indexConverted=str(variableSitesPositionIndices[indexVar])
-					val=ADNOErrors[indexNuc,indexVar]
-					rcNOError[indexConverted]+=nuc*val
-					val=ADWErrors[indexNuc,indexVar]
-					rcWErrors[indexConverted]+=nuc*val
+				nuc=[self.__NUCLEOTIDES[indexNuc]]
+				indexConverted=str(variableSitesPositionIndices[indexVar])
+				val=ADNOErrors[indexNuc,indexVar]
+				rcNOError[indexConverted]+=nuc*val
+				val=ADWErrors[indexNuc,indexVar]
+				rcWErrors[indexConverted]+=nuc*val
 		return rcNOError, rcWErrors
 
 	def getAllelicDepthPerHaploidIndividual(self,individualSeq,variableSitesPositionIndices,DP):
