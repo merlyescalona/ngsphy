@@ -4,8 +4,8 @@ output_folder_name=NGSphy_output
 ploidy=1
 [data]
 inputmode=1
-gene_tree_file=/home/merly/git/test-ngsphy/test1/t1.tree
-indelible_control_file=/home/merly/git/test-ngsphy/test1/control.1.txt
+gene_tree_file=t1.tree
+indelible_control_file=control.1.txt
 [coverage]
 experiment=F:100
 [ngs-read-counts]
@@ -14,4 +14,3 @@ read_counts_error=0.1
 environment=bash
 running_times=off
 threads=2
-
