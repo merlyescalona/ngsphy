@@ -13,13 +13,14 @@ LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 LINE="--------------------------------------------------------------------------------"
 ################################################################################
 # Logger initialization
-APPLOGGER=logging.getLogger("ngsphy")
+
 ch = logging.StreamHandler()
 loggerFormatter=lf.MELoggingFormatter(\
 	fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
 	datefmt="%d/%m/%Y %I:%M:%S %p")
 ch.setFormatter(loggerFormatter)
 ch.setLevel(logging.NOTSET)
+APPLOGGER=logging.getLogger("ngsphy")
 APPLOGGER.addHandler(ch)
 ################################################################################
 def createLogFile():
@@ -28,13 +29,17 @@ def createLogFile():
 		formatString="%(asctime)s - %(levelname)s (%(module)s:%(lineno)d):\t%(message)s"
 	else:
 		formatString="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s"
-
-	logging.basicConfig(format=formatString,\
-		datefmt="%d/%m/%Y %I:%M:%S %p",\
-		filename="{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
-			os.getcwd(),datetime.datetime.now(),PROGRAM_NAME[0:-3].upper()),\
-		filemode='a',\
-		level=logging.DEBUG)
+	fh=logging.FileHandler(\
+		"{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
+			os.getcwd(),\
+			datetime.datetime.now(),\
+			PROGRAM_NAME[0:-3].upper()\
+			)\
+		)
+	fh.setLevel(logging.DEBUG)
+	formatter=logging.Formatter(formatString)
+	fh.setFormatter(formatter)
+	APPLOGGER.addHandler(fh)
 
 def handlingCmdArguments():
 	"""
