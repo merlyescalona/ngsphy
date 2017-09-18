@@ -13,14 +13,14 @@ before_install:
     - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
     - git clone https://github.com/adamallo/SimPhy simphy
     - git clone https://github.com/merlyescalona/indelible-ngsphy
-    - tar -xvzf sqlite*
-    - tar -xvzf gsl*
-    - bunzip2 gmp* && tar -xvf gmp*
-    - tar -xvzf mpfr*
-    - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
+    - tar -xzf sqlite*
+    - tar -xzf gsl*
+    - bunzip2 gmp* && tar -xf gmp*
+    - tar -xzf mpfr*
+    - tar -zxf  artsrcmountrainier20160605linuxtgz.tgz
     - pushd $PWD/sqlite-autoconf-3080900 && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
     - pushd $PWD/gsl-2.4 && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
-    - pushd $PWD/gmp-6.0.0a  && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
+    - pushd $PWD/gmp-6.0.0  && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
     - export C_INCLUDE_PATH=$PWD/opt/local/include
     - export LD_LIBRARY_PATH=$PWD/opt/local/lib
     - export LDFLAGS=-L$PWD/opt/local/lib
