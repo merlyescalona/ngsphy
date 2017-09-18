@@ -8,8 +8,7 @@ sudo: required
 before_install:
     - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
     - tar -xvzf gsl*
-    - mv gsl* gsl
-    - pushd $PWD/gsl && ./configure --prefix=$PWD/opt/local
+    - pushd $PWD/gsl-2.4 && ./configure --prefix=$PWD/opt/local && make && make install && make clean popd
     - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
     - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
     - pushd $PWD/art_src_MountRainier_Linux/ && ./configure --prefix=$PWD/opt/local && make && popd
