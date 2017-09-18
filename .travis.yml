@@ -6,17 +6,32 @@ os: linux
 dist: trusty
 sudo: required
 before_install:
+    - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
     - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
-    - tar -xvzf gsl*
-    - pushd $PWD/gsl-2.4 && ./configure --prefix=$PWD/opt/local && make && make install && make clean popd
+    - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
+    - wget http://www.mpfr.org/mpfr-current/mpfr-3.1.6.tar.gz
     - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
-    - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
-    - pushd $PWD/art_src_MountRainier_Linux/ && ./configure --prefix=$PWD/opt/local && make && popd
-    - export PATH=$PATH:$PWD/art_src_MountRainier_Linux/
+    - git clone https://github.com/adamallo/SimPhy simphy
     - git clone https://github.com/merlyescalona/indelible-ngsphy
+    - tar -xvzf sqlite*
+    - tar -xvzf gsl*
+    - bunzip2 gmp* && tar -xvf gmp*
+    - tar -xvzf mpfr*
+    - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
+    - pushd $PWD/sqlite-autoconf-3080900 && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
+    - pushd $PWD/gsl-2.4 && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
+    - pushd $PWD/gmp-6.0.0a  && ./configure --prefix=$PWD/opt/local && make && make install && make clean && popd
+    - export C_INCLUDE_PATH=$PWD/opt/local/include
+    - export LD_LIBRARY_PATH=$PWD/opt/local/lib
+    - export LDFLAGS=-L$PWD/opt/local/lib
+    - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/opt/local/lib
+    - pushd $PWD/mpfr-3.1.6 && ./configure --prefix=$PWD/opt/local --with-gmp=$PWD/opt/local && make && make install && make clean && popd
+    - pushd simphy && make && make clean && popd
+    - pushd $PWD/art_src_MountRainier_Linux/ && ./configure --prefix=$PWD/opt/local && make && popd
     - pushd indelible-ngsphy && make && popd
+    - export PATH=$PATH:$PWD/simphy/bin
+    - export PATH=$PATH:$PWD/art_src_MountRainier_Linux/
     - export PATH=$PATH:$PWD/indelible-ngsphy/bin
-
 install:
     - pip install -r requirements.txt
     - python setup.py install
