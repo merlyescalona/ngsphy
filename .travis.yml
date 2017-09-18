@@ -2,28 +2,17 @@
 language: python
 python:
     - 2.7
-matrix:
-    include:
-        -   os: linux
-            dist: trusty
-            before_install:
-                - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
-                - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
-                - pushd PATH=$PATH:$PWD/art_src_MountRainier_Linux/ && ./configure && make && popd
-                - export PATH=$PATH:$PWD/art_src_MountRainier_Linux/
-                - git clone https://github.com/merlyescalona/indelible-ngsphy
-                - pushd indelible-ngsphy && make && popd
-                - export PATH=$PATH:$PWD/indelible-ngsphy/bin
-        -   os: osx
-            before_install:
-                - brew update && brew install gsl
-                - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
-                - tar -zxvf artsrcmountrainier20160605macostgz.zip
-                - pushd PATH=$PATH:$PWD/art_src_MountRainier_MacOS/ && ./configure && make && popd
-                - export PATH=$PATH:$PWD/art_src_MountRainier_MacOS/
-                - git clone https://github.com/merlyescalona/indelible-ngsphy
-                - pushd indelible-ngsphy && make && popd
-                - export PATH=$PATH:$PWD/indelible-ngsphy/bin
+os: linux
+dist: trusty
+before_install:
+    - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
+    - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
+    - pushd $PWD/art_src_MountRainier_Linux/ && ./configure && make && popd
+    - export PATH=$PATH:$PWD/art_src_MountRainier_Linux/
+    - git clone https://github.com/merlyescalona/indelible-ngsphy
+    - pushd indelible-ngsphy && make && popd
+    - export PATH=$PATH:$PWD/indelible-ngsphy/bin
+
 install:
     - pip install -r requirements.txt
     - python setup.py install
