@@ -6,10 +6,13 @@ os: linux
 dist: trusty
 sudo: required
 before_install:
-    - sudo apt-get update && sudo apt-get install libgsl2 libgsl-dev
+    - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
+    - tar -xvzf gsl*
+    - mv gsl* gsl
+    - pushd $PWD/gsl && ./configure --prefix=$PWD/opt/local
     - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
     - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
-    - pushd $PWD/art_src_MountRainier_Linux/ && ./configure && make && popd
+    - pushd $PWD/art_src_MountRainier_Linux/ && ./configure --prefix=$PWD/opt/local && make && popd
     - export PATH=$PATH:$PWD/art_src_MountRainier_Linux/
     - git clone https://github.com/merlyescalona/indelible-ngsphy
     - pushd indelible-ngsphy && make && popd
