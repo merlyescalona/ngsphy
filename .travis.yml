@@ -4,8 +4,9 @@ python:
     - 2.7
 os: linux
 dist: trusty
+sudo: required
 before_install:
-    - apt-get install libgsl-dev
+    - sudo apt-get install libgsl-dev
     - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
     - tar -zxvf  artsrcmountrainier20160605linuxtgz.tgz
     - pushd $PWD/art_src_MountRainier_Linux/ && ./configure && make && popd
