@@ -10,14 +10,22 @@ matrix:
             before_install:
                 - sudo apt-get update -qq
                 - sudo apt-get install -qq libgsl0-dev libgmp-dev libmpfr-dev libsqlite0-dev
+                - wget http://abacus.gene.ucl.ac.uk/software/indelible/EFBKqHdv0v7qir6CyeHgqaz/INDELibleV1.03.tar.gz
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
+                - tar -zxf INDELibleV1.03.tar.gz
                 - tar -zxf artsrcmountrainier20160605linuxtgz.tgz
                 - pushd simphy && make && make clean && popd
+                - pushd INDELibleV1.03/
+                - rm MersenneTwister.h
+                - wget https://raw.githubusercontent.com/merlyescalona/indelible-ngsphy/master/src/MersenneTwister.h
+                - g++ -o indelible -O4 indelible.cpp
+                - popd
                 - pushd art_src_MountRainier_Linux/ && ./configure  && make && popd
                 - pushd indelible-ngsphy && make && popd
                 - export PATH=$PATH:$(pwd)/simphy/bin
+                - export PATH=$PATH:$(pwd)/INDELibleV1.03/src
                 - export PATH=$PATH:$(pwd)/art_src_MountRainier_Linux/
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
@@ -25,14 +33,22 @@ matrix:
         -   os: osx
             before_install:
                 - brew install parallel gsl gmp sqlite3 mpfr
+                - wget http://abacus.gene.ucl.ac.uk/software/indelible/EFBKqHdv0v7qir6CyeHgqaz/INDELibleV1.03.tar.gz
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
                 - tar -zxf  artsrcmountrainier20160605macostgz.tgz
+                - tar -zxf INDELibleV1.03.tar.gz
                 - pushd simphy && make && make clean && popd
+                - pushd INDELibleV1.03/
+                - rm MersenneTwister.h
+                - wget https://raw.githubusercontent.com/merlyescalona/indelible-ngsphy/master/src/MersenneTwister.h
+                - g++ -o indelible -O4 indelible.cpp
+                - popd
                 - pushd art_src_MountRainier_MacOS/ && ./configure && make && popd
                 - pushd indelible-ngsphy && make && popd
                 - export PATH=$PATH:$(pwd)/simphy/bin
+                - export PATH=$PATH:$(pwd)/INDELibleV1.03/src
                 - export PATH=$PATH:$(pwd)/art_src_MountRainier_MacOS/
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
