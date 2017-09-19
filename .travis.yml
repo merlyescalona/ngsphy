@@ -8,66 +8,30 @@ matrix:
             dist: trusty
             sudo: required
             before_install:
-                - sudo apt-get update &&  sudo apt-get install libgsl0-dev
-                - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
-                - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
-                - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
-                - wget http://www.mpfr.org/mpfr-current/mpfr-3.1.6.tar.gz
+                - sudo apt-get update -qq
+                - sudo apt-get install -qq libgsl0-dev libgmp-dev libmpfr-dev libsqlite0-dev
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605linuxtgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
-                - tar -xzf sqlite*
-                - tar -xzf gsl*
-                - bunzip2 gmp* && tar -xf gmp*
-                - tar -xzf mpfr*
                 - tar -zxf artsrcmountrainier20160605linuxtgz.tgz
-                - tar -xzf Math*
-                - CWD=$(pwd)
-                - pushd $CWD/sqlite-autoconf-3080900 && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
-                - pushd $CWD/gsl-2.4 && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
-                - pushd $CWD/gmp-6.0.0  && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
-                - export C_INCLUDE_PATH=$CWD/opt/local/include
-                - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CWD/opt/local/lib
-                - export LDFLAGS=-L$CWD/opt/local/lib
-                - export CPPFLAGS="-I$CWD/opt/local/include"
-                - export CFLAGS="-I$CWD/opt/local/include"
-                - pushd $CWD/mpfr-3.1.6 && ./configure --prefix=$CWD/opt/local --with-gmp=$CWD/opt/local && make && make install && make clean && popd
                 - pushd simphy && make && make clean && popd
-                - pushd $CWD/art_src_MountRainier_Linux/ && ./configure --prefix=$CWD/opt/local && make && popd
+                - pushd $CWD/art_src_MountRainier_Linux/ && ./configure  && make && popd
                 - pushd indelible-ngsphy && make && popd
-                - export PATH=$PATH:$CWD/simphy/bin
-                - export PATH=$PATH:$CWD/art_src_MountRainier_Linux/
-                - export PATH=$PATH:$CWD/indelible-ngsphy/bin
+                - export PATH=$PATH:$(pwd)/simphy/bin
+                - export PATH=$PATH:$(pwd)/art_src_MountRainier_Linux/
+                - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
                 - sudo cpan install Math::GSL
         -   os: osx
             before_install:
-                - brew install parallel
-                - brew install gsl
-                - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
-                - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
-                - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
-                - wget http://www.mpfr.org/mpfr-current/mpfr-3.1.6.tar.gz
+                - brew install parallel gsl gmp sqlite3 mpfr
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
-                - tar -xzf sqlite*
-                - tar -xzf gsl*
-                - bunzip2 gmp* && tar -xf gmp*
-                - tar -xzf mpfr*
                 - tar -zxf  artsrcmountrainier20160605macostgz.tgz
                 - CWD=$(pwd)
-                - pushd $CWD/sqlite-autoconf-3080900 && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
-                - pushd $CWD/gsl-2.4 && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
-                - pushd $CWD/gmp-6.0.0  && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
-                - export C_INCLUDE_PATH=$CWD/opt/local/include
-                - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CWD/opt/local/lib
-                - export LDFLAGS=-L$CWD/opt/local/lib
-                - export CPPFLAGS="-I$CWD/opt/local/include"
-                - export CFLAGS="-I$CWD/opt/local/include"
-                - pushd $CWD/mpfr-3.1.6 && ./configure --prefix=$CWD/opt/local --with-gmp=$CWD/opt/local && make && make install && make clean && popd
                 - pushd simphy && make && make clean && popd
-                - pushd $CWD/art_src_MountRainier_MacOS/ && ./configure --prefix=$CWD/opt/local && make && popd
+                - pushd $CWD/art_src_MountRainier_MacOS/ && ./configure && make && popd
                 - pushd indelible-ngsphy && make && popd
                 - export PATH=$PATH:$CWD/simphy/bin
                 - export PATH=$PATH:$CWD/art_src_MountRainier_MacOS/
