@@ -8,7 +8,7 @@ matrix:
             dist: trusty
             sudo: required
             before_install:
-                - sudo apt-get install libgsl0-dev
+                - sudo apt-get install libgsl-dev
                 - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
                 - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
@@ -20,7 +20,8 @@ matrix:
                 - tar -xzf gsl*
                 - bunzip2 gmp* && tar -xf gmp*
                 - tar -xzf mpfr*
-                - tar -zxf  artsrcmountrainier20160605linuxtgz.tgz
+                - tar -zxf artsrcmountrainier20160605linuxtgz.tgz
+                - tar -xzf Math*
                 - CWD=$(pwd)
                 - pushd $CWD/sqlite-autoconf-3080900 && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
                 - pushd $CWD/gsl-2.4 && ./configure --prefix=$CWD/opt/local && make && make install && make clean && popd
@@ -38,16 +39,16 @@ matrix:
                 - export PATH=$PATH:$CWD/art_src_MountRainier_Linux/
                 - export PATH=$PATH:$CWD/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
-                - cpan -I install Math::GSL
+                - sudo cpan install Math::GSL
         -   os: osx
             before_install:
                 - brew install parallel
                 - brew install gsl
-                - curl -O http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
-                - curl -O ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
-                - curl -O https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
-                - curl -O http://www.mpfr.org/mpfr-current/mpfr-3.1.6.tar.gz
-                - curl -O https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
+                - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
+                - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
+                - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
+                - wget http://www.mpfr.org/mpfr-current/mpfr-3.1.6.tar.gz
+                - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
                 - tar -xzf sqlite*
@@ -72,7 +73,7 @@ matrix:
                 - export PATH=$PATH:$CWD/art_src_MountRainier_MacOS/
                 - export PATH=$PATH:$CWD/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
-                - cpan -I install Math::GSL
+                - sudo cpan install Math::GSL
 install:
     - pip install -r requirements.txt
     - python setup.py install
