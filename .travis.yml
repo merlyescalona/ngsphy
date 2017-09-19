@@ -71,7 +71,4 @@ install:
     - pip install -r requirements.txt
     - python setup.py install
 script:
-    - test/ngsphy.test.1.sh
-    - test/ngsphy.test.2.sh
-    - test/ngsphy.test.3.sh
-    - test/ngsphy.test.4.sh
+    - test/ngsphy.all.tests.sh

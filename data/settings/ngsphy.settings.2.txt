@@ -5,7 +5,7 @@ ploidy=2
 [data]
 inputmode=2
 gene_tree_file=t2.tree
-ancestral_sequence_file=my_ancestral.fasta
+ancestral_sequence_file=my_ancestral_sequence.fasta
 indelible_control_file=control.2.txt
 [coverage]
 experiment=F:50
