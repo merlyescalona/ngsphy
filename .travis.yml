@@ -8,7 +8,7 @@ matrix:
             dist: trusty
             sudo: required
             before_install:
-                - sudo apt-get install libgsl-dev
+                - sudo apt-get update && sudo apt-get upgrade && sudo apt-get install libgsl0-dev
                 - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
                 - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
