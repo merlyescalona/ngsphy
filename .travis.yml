@@ -8,6 +8,7 @@ matrix:
             dist: trusty
             sudo: required
             before_install:
+                - sudo apt-get install libgsl0-dev
                 - wget http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
                 - wget https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
@@ -41,6 +42,7 @@ matrix:
         -   os: osx
             before_install:
                 - brew install parallel
+                - brew install gsl
                 - curl -O http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
                 - curl -O ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
                 - curl -O https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
