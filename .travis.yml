@@ -38,7 +38,8 @@ matrix:
                 - export PATH=$PATH:$CWD/indelible-ngsphy/bin
         -   os: osx
             before_install:
-                - curl -Oee http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
+                - brew install parallel
+                - curl -O http://www.sqlite.org/2015/sqlite-autoconf-3080900.tar.gz
                 - curl -O ftp://ftp.gnu.org/gnu/gsl/gsl-latest.tar.gz
                 - curl -O https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
                 - curl -O http://www.mpfr.org/mpfr-current/mpfr-3.1.6.tar.gz
