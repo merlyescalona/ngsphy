@@ -77,7 +77,7 @@ or to the wiki page https://gihub.com/merlyescalona/ngsphy/wiki/
 	help='Path to the settings file.')
 	optionalGroup.add_argument('-l','--log',metavar='<log_level>', type=str,\
 		choices=LOG_LEVEL_CHOICES, default="INFO",\
-		help='Specified level of log that will be shown through the standard output. Entire log will be stored in a separate file. Values:{0}. Default: {1}. '.format(LOG_LEVEL_CHOICES,LOG_LEVEL_CHOICES[1]))
+		help='Specified level of log that will be shown through the standard output. Log will be stored in a separate file when level==DEBUG. Values:{0}. Default: {1}. '.format(LOG_LEVEL_CHOICES,LOG_LEVEL_CHOICES[1]))
 	informationGroup= parser.add_argument_group("{0}Information arguments{1}".format("\033[1m","\033[0m"))
 	informationGroup.add_argument('-v', '--version',\
 		action='version',\
@@ -121,7 +121,7 @@ def main():
 	try:
 		cmdArgs = handlingCmdArguments()
 		prog = ngsphy.NGSphy(cmdArgs)
-		ch.setLevel(cmdArgs.log.upper())
+		APPLOGGER.setLevel(cmdArgs.log.upper())
 		prog.run()
 	except ngsphy.NGSphyExitException as ex:
 		if ex.expression:
