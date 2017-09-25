@@ -83,7 +83,7 @@ class IndividualAssignment:
 				"{0}.db".format(self.settings.projectName))
 			# BASEPATH -> FOLDER WHERE SIMPHY FOLDER IS
 			if self.settings.simphyFilter:
-				self.filterReplicatesReplicates=self.filterReplicatesMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
+				self.filteredReplicates=self.filterReplicatesMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
 			else:
 				# check ploidy matches given data
 				status,message=self.checkPloidySimPhyData()
