@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import csv,datetime,logging,os,subprocess,sys,threading,time
 import numpy as np
