@@ -1272,8 +1272,8 @@ class ReadCounts:
 		headerFields=["{0:{1}s}".format(\
 			headerCols[indexField],headerWidths[indexField])\
 			for indexField in range(0,len(headerCols))]
-		# filevcf=open(outfile, 'a')
-		filevcf=codecs.open(outfile, 'a', 'utf-8')
+		# filevcf=codecs.open(outfile, 'a+', 'utf-8')
+		filevcf=open(outfile, 'a')
 		filevcf.write("{0}\n{1}\n{2}\n".format(\
 			header,\
 			formatLines,\
@@ -1288,12 +1288,12 @@ class ReadCounts:
 				ID[index],colWidths[2],\
 				REF[variableSitesPositionIndices[index]],colWidths[3],\
 				",".join(alt[str(variableSitesPositionIndices[index])]),colWidths[4],\
-				QUAL[index].encode("UTF-8"),colWidths[5],\
-				FILTER[index].encode("UTF-8"),colWidths[6],\
-				INFO[index].encode("UTF-8"),colWidths[7],\
-				FORMAT[index].encode("UTF-8"),colWidths[8],\
+				QUAL[index].encode('utf-8').strip(),colWidths[5],\
+				FILTER[index].encode('utf-8').strip(),colWidths[6],\
+				INFO[index].encode('utf-8').strip(),colWidths[7],\
+				FORMAT[index].encode('utf-8').strip(),colWidths[8],\
 				"\t".join(\
-					["{0:{1}s}".format(indVar,maxLenIndName) for indVar in allVariants[str(variableSitesPositionIndices[index])]]\
+					['{0:{1}}'.format(indVar,maxLenIndName) for indVar in allVariants[str(variableSitesPositionIndices[index])]]\
 				)
 			)
 			filevcf.write(line)
