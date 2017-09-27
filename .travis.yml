@@ -2,8 +2,8 @@
 language: python
 python:
     - 2.7
-include:
-    matrix:
+matrix:
+    include:
         -   os: linux
             dist: trusty
             sudo: required
