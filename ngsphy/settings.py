@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import argparse,datetime,dendropy, logging,msatools,os,re,sys
 import numpy as np
 from coverage import NGSPhyDistributionParser as ngsphydistro

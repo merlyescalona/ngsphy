@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import csv,datetime,logging,os,subprocess,sys,threading,time
 import numpy as np
 import random as rnd

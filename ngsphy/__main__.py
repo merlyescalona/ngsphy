@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import argparse,datetime,logging, ngsphy, os,sys, platform
 import loggingformatter as lf
 ################################################################################

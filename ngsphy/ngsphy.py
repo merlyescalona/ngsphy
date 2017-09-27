@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import argparse,datetime,logging,os,threading,sys
 import numpy as np
 import random as rnd

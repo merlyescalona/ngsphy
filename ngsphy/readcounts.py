@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,copy,csv,datetime,logging,os,subprocess,sys,multiprocessing,threading,time,warnings
+import argparse,codecs,copy,csv,datetime,logging,multiprocessing,os,sys,threading,time,warnings
 import numpy as np
 import random as rnd
 import settings as sp
@@ -1272,7 +1272,8 @@ class ReadCounts:
 		headerFields=["{0:{1}s}".format(\
 			headerCols[indexField],headerWidths[indexField])\
 			for indexField in range(0,len(headerCols))]
-		filevcf=open(outfile, 'a')
+		# filevcf=open(outfile, 'a')
+		filevcf=codecs.open(outfile, 'a', 'utf-8')
 		filevcf.write("{0}\n{1}\n{2}\n".format(\
 			header,\
 			formatLines,\

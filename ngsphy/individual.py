@@ -1,4 +1,5 @@
- #!/usr/bin/home/python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import argparse,copy,datetime,dendropy,logging,os,sys, sqlite3
 import numpy as np
 import random as rnd

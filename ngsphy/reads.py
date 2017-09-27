@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import csv,logging,os,subprocess,sys,threading, time
 import numpy as np
 import random as rnd

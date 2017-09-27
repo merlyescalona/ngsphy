@@ -22,4 +22,4 @@ cp ${ngsphyPATH}/data/trees/t1.tree $(pwd)/ngsphy-test1/
 echo "Moving to the working directory"
 cd $(pwd)/ngsphy-test1
 echo "Running NGSPHY"
-ngsphy -s ngsphy.settings.1.txt
+ngsphy -s ngsphy.settings.1.txt -l DEBUG

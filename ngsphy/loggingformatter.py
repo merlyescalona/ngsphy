@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import logging, platform
 
 LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
