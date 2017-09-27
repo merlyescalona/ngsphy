@@ -14,7 +14,6 @@ LOG_LEVEL_CHOICES=["DEBUG","INFO","WARNING","ERROR"]
 LINE="--------------------------------------------------------------------------------"
 ################################################################################
 # Logger initialization
-
 ch = logging.StreamHandler()
 loggerFormatter=lf.MELoggingFormatter(\
 	fmt="%(asctime)s - %(levelname)s:\t%(message)s",\
@@ -23,6 +22,17 @@ ch.setFormatter(loggerFormatter)
 ch.setLevel(logging.NOTSET)
 APPLOGGER=logging.getLogger("ngsphy")
 APPLOGGER.addHandler(ch)
+
+if platform.system()=="Darwin":
+	syslogAddress=os.path.join(
+		os.getcwd(),\
+		"{0}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
+			PROGRAM_NAME[0:-3].upper(),\
+			datetime.datetime.now()\
+		)\
+	)
+	logHandler=logging.handlers.SysLogHandler(address=syslogAddres, facility="local1")
+	APPLOGGER.addHandler(logHandler)
 ################################################################################
 def createLogFile():
 	formatString=""
@@ -30,17 +40,18 @@ def createLogFile():
 		formatString="%(asctime)s - %(levelname)s (%(module)s:%(lineno)d):\t%(message)s"
 	else:
 		formatString="%(asctime)s - %(levelname)s (%(module)s|%(funcName)s:%(lineno)d):\t%(message)s"
-	fh=logging.FileHandler(\
-		"{0}/{2}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
-			os.getcwd(),\
-			datetime.datetime.now(),\
-			PROGRAM_NAME[0:-3].upper()\
-			)\
-		)
-	fh.setLevel(logging.DEBUG)
-	formatter=logging.Formatter(formatString)
-	fh.setFormatter(formatter)
-	APPLOGGER.addHandler(fh)
+	logging.basicConfig(\
+		filename=os.path.join(
+				os.getcwd(),\
+				"{0}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
+					PROGRAM_NAME[0:-3].upper(),\
+					datetime.datetime.now()\
+				)\
+			),\
+		level=logging.DEBUG,\
+		format=formatString
+	)
+
 
 def handlingCmdArguments():
 	"""
@@ -122,7 +133,6 @@ def main():
 	try:
 		cmdArgs = handlingCmdArguments()
 		prog = ngsphy.NGSphy(cmdArgs)
-		APPLOGGER.setLevel(cmdArgs.log.upper())
 		prog.run()
 	except ngsphy.NGSphyExitException as ex:
 		if ex.expression:

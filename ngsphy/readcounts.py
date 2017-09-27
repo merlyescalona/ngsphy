@@ -334,7 +334,7 @@ class ReadCounts:
 				referenceList+=[(item+1,1,0,0)]
 		return referenceList
 
-	def extractNOErrorVariantsPositions(self, filename):
+	def extractTrueVariantsPositions(self, filename):
 		"""
 		Extract true variant positions from the MSA file used as input
 		------------------------------------------------------------------------
@@ -343,7 +343,7 @@ class ReadCounts:
 		Returns:
 		- dictionary. indices=variable sites, content=variable nucleotide set
 		"""
-		self.appLogger.debug("extractNOErrorVariantsPositions(self, filename)")
+		self.appLogger.debug("extractTrueVariantsPositions(self, filename)")
 		filepath=os.path.abspath(filename)
 		lines=[];variants=dict();seqDescriptions=[]
 		numTotalSeqs=0;lenSeq=0; matrix=None
@@ -370,25 +370,26 @@ class ReadCounts:
 		for item in lines:
 			if item.startswith(">"): numTotalSeqs+=1
 		matrix=np.chararray((numTotalSeqs,lenSeqs), itemsize=1)
+		for i in range(0, numTotalSeqs):
+			for j in range(0,lenSeqs):
+				matrix[i,j]=""
 		# Cleaning strings - removing empty lines and removing "\n"
 		for index in range(0,len(lines)):
 			lines[index]=lines[index].strip()
 
-		try:
-		  lines.remove("")
-		except: # may raise an exception if list empty (x not in list)
-			pass
+		newLines=[ simpleline for simpleline in lines if not simpleline == ""]
 
-		numLinesFile=len(lines);index=0
+		numLinesFile=len(newLines);index=0
 		indexSeqs=range(1,numLinesFile,2)
-
-		for index in range(0,numTotalSeqs):
-			seqDescriptions+=[lines[indexSeqs[index]-1]]
-			matrix[index,:]=list(lines[indexSeqs[index]])
+		for i in range(0,numTotalSeqs):
+			seqDescriptions+=[newLines[indexSeqs[i]-1]]
+			for j in range(0, lenSeqs):
+				matrix[i,j]=newLines[indexSeqs[i]][j]
 
 		for indexCol in range(0,matrix.shape[1]):
 			c=Counter(matrix[:,indexCol])
 			l=np.unique(matrix[:,indexCol])
+			# sys.stdout.write("Pos <{0}>\n{1}|{2}\n".format(indexCol, ",".join(c.keys()), ",".join([str(d) for d in c.values()])))
 			if (len(l)>1):
 				variants[str(indexCol)]=c.keys()
 		return variants
@@ -539,7 +540,12 @@ class ReadCounts:
 		for pos in variableSites.keys():
 			alt[pos]=[]; altInds[pos]=[]
 		for pos in variableSitesPositionIndices:
-			alt[str(pos)]=list(set(variableSites[str(pos)])-set([referenceSeqFull[pos]]))
+			# sys.stdout.write('POS <{0}>: set 1 - {1} | set 2 - {2}\n'.format(pos,variableSites[str(pos)],[referenceSeqFull[pos]]) )
+			tmpset=set(variableSites[str(pos)])-set([referenceSeqFull[pos]])
+			if tmpset== set():
+				alt[str(pos)]=[]
+			else:
+				alt[str(pos)]=list(tmpset)
 		for index in range(0,nInds):
 			indexIND=str(index)
 			HTGeneral[indexIND]=[];HLGeneral[indexIND]=[];ADGeneral[indexIND]=[]
@@ -1282,20 +1288,30 @@ class ReadCounts:
 
 		for index in range(0, nVariants):
 			# extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
-			line="{0:{1}s}\t{2:{3}s}\t{4:{5}s}\t{6:{7}s}\t{8:{9}s}\t{10:{11}s}\t{12:{13}s}\t{14:{15}s}\t{16:{17}s}\t{18}\n".format(\
-				chromName,colWidths[0],\
-				str(POS[index]),colWidths[1],\
-				ID[index],colWidths[2],\
-				REF[variableSitesPositionIndices[index]],colWidths[3],\
-				",".join(alt[str(variableSitesPositionIndices[index])]),colWidths[4],\
-				QUAL[index].encode('utf-8').strip(),colWidths[5],\
-				FILTER[index].encode('utf-8').strip(),colWidths[6],\
-				INFO[index].encode('utf-8').strip(),colWidths[7],\
-				FORMAT[index].encode('utf-8').strip(),colWidths[8],\
-				"\t".join(\
-					['{0:{1}}'.format(indVar,maxLenIndName) for indVar in allVariants[str(variableSitesPositionIndices[index])]]\
-				)
+			CHROM_FIELD="{0:{1}}".format(chromName,colWidths[0]).encode('utf-8').strip()
+			# sys.stdout.write("{}\t".format(CHROM_FIELD))
+			POS_FIELD="{0:{1}}".format(POS[index],colWidths[1]).encode('utf-8').strip()
+			# sys.stdout.write("{}\t".format(POS_FIELD))
+			ID_FIELD="{0:{1}}".format(ID[index],colWidths[2]).encode('utf-8').strip()
+			# sys.stdout.write("{}\t".format(ID_FIELD))
+			REF_FIELD="{0:{1}}".format(REF[variableSitesPositionIndices[index]],colWidths[3]).encode('utf-8').strip()
+			# sys.stdout.write("{}\t".format(REF_FIELD))
+			ALT_FIELD="{0:{1}}".format(",".join(alt[str(variableSitesPositionIndices[index])]).encode('utf-8'),colWidths[4])
+			# sys.stdout.write("{}\t".format(ALT_FIELD))
+			QUAL_FIELD='{0:{1}}'.format(QUAL[index].encode("utf-8"),colWidths[5])
+			# sys.stdout.write("{}\t".format(QUAL_FIELD))
+			FILTER_FIELD="{0:{1}}".format(FILTER[index].encode("utf-8"),colWidths[6])
+			# sys.stdout.write("{}\t".format(FILTER_FIELD))
+			INFO_FIELD="{0:{1}}".format(INFO[index].encode("utf-8"),colWidths[7])
+			# sys.stdout.write("{}\t".format(INFO_FIELD))
+			FORMAT_FIELD="{0:{1}}".format(FORMAT[index],colWidths[8]).encode('utf-8').strip()
+			# sys.stdout.write("{}\t".format(FORMAT_FIELD))
+			INDS_FIELD="\t".join(\
+				['{0:{1}}'.format(indVar,maxLenIndName) for indVar in allVariants[str(variableSitesPositionIndices[index])]]\
 			)
+			# sys.stdout.write("\n{}\n".format(INDS_FIELD))
+			line="{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\n".format(\
+				CHROM_FIELD,POS_FIELD,ID_FIELD,REF_FIELD,ALT_FIELD,QUAL_FIELD,FILTER_FIELD,INFO_FIELD,FORMAT_FIELD,INDS_FIELD)
 			filevcf.write(line)
 		filevcf.close()
 
@@ -1408,7 +1424,7 @@ class ReadCounts:
 			)
 
 			# dictionary. indices=variable sites, content=variable nucleotide set
-			variableSites=self.extractNOErrorVariantsPositions(filepathLoc)
+			variableSites=self.extractTrueVariantsPositions(filepathLoc)
 			nVarSites=len(variableSites.keys())
 			self.appLogger.debug(\
 				"Species tree: {0}\t Locus: {1}\t - Found [{2}] variable sites.".format(\
