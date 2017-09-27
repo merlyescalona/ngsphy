@@ -26,6 +26,11 @@ include:
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
                 - sudo cpan install Math::GSL
+            install:
+                - pip install -r requirements.txt
+                - python setup.py install
+            script:
+                - test/ngsphy.all.tests.sh
         -   os: osx
             before_install:
                 - brew install parallel gsl21 gmp sqlite3 mpfr
@@ -45,9 +50,8 @@ include:
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
                 - sudo cpan install Math::GSL
-install:
-    - pip install -r requirements.txt
-    - python setup.py install --user
-
-script:
-    - test/ngsphy.all.tests.sh
+            install:
+                - pip install -r requirements.txt
+                - python setup.py install
+            script:
+                - test/ngsphy.all.tests.sh
