@@ -26,7 +26,6 @@ matrix:
                 - sudo cpan install Math::GSL
         -   os: osx
             before_install:
-                - brew install wget
                 - brew install parallel
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.1.tar.gz
                 - wget http://abacus.gene.ucl.ac.uk/software/indelible/EFBKqHdv0v7qir6CyeHgqaz/INDELibleV1.03.tar.gz
