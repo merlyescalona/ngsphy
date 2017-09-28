@@ -1,12 +1,10 @@
-
-language: python
-python:
-    - 2.7
 matrix:
     include:
         -   os: linux
             dist: trusty
             sudo: required
+            language: python
+            python: 2.7
             before_install:
                 - sudo apt-get update -qq
                 - sudo apt-get install -qq libgsl0-dev libgmp-dev libmpfr-dev libsqlite0-dev
@@ -28,13 +26,17 @@ matrix:
                 - sudo cpan install Math::GSL
         -   os: osx
             before_install:
-                - brew install wget parallel gsl21 gmp sqlite3 mpfr
+                - brew install wget parallel
+                - wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.1.tar.gz
                 - wget http://abacus.gene.ucl.ac.uk/software/indelible/EFBKqHdv0v7qir6CyeHgqaz/INDELibleV1.03.tar.gz
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
                 - tar -zxf  artsrcmountrainier20160605macostgz.tgz
                 - tar -zxf INDELibleV1.03.tar.gz
+                - tar -zxf gsl-2.1.tar.gz
+                - pushd gsl-2.1 && ./configure && make && make install && make clean && popd
+                - brew install gmp sqlite3 mpfr
                 - pushd simphy && make && make clean && popd
                 - pushd INDELibleV1.03/src && rm MersenneTwister.h &&  wget https://raw.githubusercontent.com/merlyescalona/indelible-ngsphy/master/src/MersenneTwister.h && g++ -o indelible -O4 indelible.cpp  && popd
                 - pushd art_src_MountRainier_MacOS/ && ./configure && make && popd
