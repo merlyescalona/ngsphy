@@ -26,7 +26,8 @@ matrix:
                 - sudo cpan install Math::GSL
         -   os: osx
             before_install:
-                - brew install wget parallel
+                - brew install wget
+                - brew install parallel
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.1.tar.gz
                 - wget http://abacus.gene.ucl.ac.uk/software/indelible/EFBKqHdv0v7qir6CyeHgqaz/INDELibleV1.03.tar.gz
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
@@ -36,7 +37,9 @@ matrix:
                 - tar -zxf INDELibleV1.03.tar.gz
                 - tar -zxf gsl-2.1.tar.gz
                 - pushd gsl-2.1 && ./configure && make && make install && make clean && popd
-                - brew install gmp sqlite3 mpfr
+                - brew install gmp
+                - brew install sqlite3
+                - brew install mpfr
                 - pushd simphy && make && make clean && popd
                 - pushd INDELibleV1.03/src && rm MersenneTwister.h &&  wget https://raw.githubusercontent.com/merlyescalona/indelible-ngsphy/master/src/MersenneTwister.h && g++ -o indelible -O4 indelible.cpp  && popd
                 - pushd art_src_MountRainier_MacOS/ && ./configure && make && popd
