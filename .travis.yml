@@ -45,7 +45,7 @@ matrix:
                 - export PATH=$PATH:$(pwd)/art_src_MountRainier_MacOS/
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
-                - sudo cpan install Math::GSL
+                - sudo cpan install Test::Taint Math::GSL
 install:
     - pip install -r requirements.txt
     - python setup.py install
