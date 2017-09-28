@@ -36,7 +36,6 @@ matrix:
                 - tar -zxf INDELibleV1.03.tar.gz
                 - tar -zxf gsl-2.1.tar.gz
                 - pushd gsl-2.1 && ./configure && make && make install && make clean && popd
-                - brew install gmp
                 - brew install sqlite3
                 - brew install mpfr
                 - pushd simphy && make && make clean && popd
