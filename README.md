@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/merlyescalona/ngsphy.svg?branch=master)](https://travis-ci.org/merlyescalona/ngsphy) [![PyPI version](https://badge.fury.io/py/ngsphy.svg)](https://badge.fury.io/py/ngsphy) 
+[![Build Status](https://travis-ci.org/merlyescalona/ngsphy.svg?branch=master)](https://travis-ci.org/merlyescalona/ngsphy) [![PyPI version](https://badge.fury.io/py/ngsphy.svg)](https://badge.fury.io/py/ngsphy)
 
 # NGSphy
 
@@ -31,32 +31,30 @@ If you use NGSphy, please cite:
 
 ## Input/output files
 
-### Input
+## Input
 
 [Single gene-tree scenario]
-
 - NGSPhy settings file
 - INDELible control file
-- Newick file with single gene tree
-- ancestral sequence file (optional)
+- [Newick file]() with single gene tree
+- ancestral sequence file ([FASTA](https://en.wikipedia.org/wiki/FASTA_format)) (optional)
 - reference allele file (optional)
 
 [Species-tree scenario]
-
 - NGSPhy settings file
 - SimPhy output
 - reference allele file (optional)
 
-### Output files
+## Output files
 - NGS reads:
-    - FASTQ
-    - ALN
-    - BAM
+    - [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format)
+    - [ALN](http://meme-suite.org/doc/clustalw-format.html)
+    - [BAM](https://samtools.github.io/hts-specs/)
 - read counts:
-    - VCF
+    - [VCF](https://samtools.github.io/hts-specs/)
 - sequence alignments:
-    - FASTA
+    - [FASTA](https://en.wikipedia.org/wiki/FASTA_format)
 - coverage variation
-    - CSV
+    - [CSV](https://en.wikipedia.org/wiki/Comma-separated_values)
 - log files
 - bash scripts
