@@ -28,7 +28,7 @@ matrix:
             before_install:
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.1.tar.gz
                 - tar -zxf gsl-2.1.tar.gz
-                - pushd gsl-2.1 && ./configure && make && make install && make clean && popd
+                - pushd gsl-2.1 && ./configure && make && sudo make install && make clean && popd
                 - curl -L https://cpanmin.us | perl - --sudo App::cpanminus
                 - brew update
                 - brew upgrade gmp sqlite mpfr
