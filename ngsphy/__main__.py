@@ -23,16 +23,6 @@ ch.setLevel(logging.NOTSET)
 APPLOGGER=logging.getLogger("ngsphy")
 APPLOGGER.addHandler(ch)
 
-if platform.system()=="Darwin":
-	syslogAddress=os.path.join(
-		os.getcwd(),\
-		"{0}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.log".format(\
-			PROGRAM_NAME[0:-3].upper(),\
-			datetime.datetime.now()\
-		)\
-	)
-	logHandler=logging.handlers.SysLogHandler(address=syslogAddres, facility="local1")
-	APPLOGGER.addHandler(logHandler)
 ################################################################################
 def createLogFile():
 	formatString=""
