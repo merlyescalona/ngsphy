@@ -37,7 +37,6 @@ matrix:
                 - wget https://www.niehs.nih.gov/research/resources/assets/docs/artsrcmountrainier20160605macostgz.tgz
                 - git clone https://github.com/adamallo/SimPhy simphy
                 - git clone https://github.com/merlyescalona/indelible-ngsphy
-                - git clone https://github.com/merlyescalona/ngsphy
                 - tar -zxf  artsrcmountrainier20160605macostgz.tgz
                 - tar -zxf INDELibleV1.03.tar.gz
                 - pushd simphy && make && make clean && popd
@@ -50,7 +49,7 @@ matrix:
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
                 - cpanm install Math::GSL
-anywaysinstall:
+install:
     - pip install -r requirements.txt
     - python setup.py install
 script:
