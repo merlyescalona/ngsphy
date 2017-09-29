@@ -41,7 +41,7 @@ if [[ $(uname -s) -eq "Darwin" ]]; then
     cd ../testwsimphy/2
     echo $(pwd)
     indelible;
-    cd ..
+    cd ../../
     echo $(pwd)
 fi
 echo "Running NGSPHY"
