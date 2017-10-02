@@ -38,7 +38,7 @@ if [[ $(uname -s) -eq "Darwin" ]]; then
     echo $(pwd)
     cd testwsimphy/1; indelible
     echo $(pwd)
-    cd ../testwsimphy/2
+    cd ../2
     echo $(pwd)
     indelible;
     cd ../../
