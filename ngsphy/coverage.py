@@ -25,7 +25,7 @@ class NGSAvailableDistributions:
 		"n":2,\
 		"nb":2,\
 		"p":1,\
-		"u":1\
+		"u":2\
 		})
 	distributions=relationNumParams.keys()
 	names=dict({\
@@ -369,9 +369,9 @@ class NGSPhyDistribution:
 		------------------------------------------------------------------------
 		- samples: number of values that will be returned.
 		"""
-		mean=float(self.__params[0]*1.0)
-		distro=uniform(mean)
-		f=distro.rvs(size=samples)
+		minParam=float(self.__params[0]*1.0)
+		maxParam=float(self.__params[1]*1.0)
+		f= np.random.uniform(low=minParam,high=maxParam,size=samples)
 		return f
 
 class CoverageMatrixGenerator:
