@@ -93,6 +93,7 @@ class NGSphy:
             	# Settings exist and are ok.
             	# reroot-tree
                 if self.settings.inputmode == 3:
+                    self.appLogger.info("Re-rooting")
                     self.rerooter=rr.Rerooter(self.settings)
                     status, message=self.rerooter.run()
                     if not status: self.ending(status,message)

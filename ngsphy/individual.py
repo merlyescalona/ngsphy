@@ -240,6 +240,7 @@ class IndividualAssignment:
 		Existence of fasta files.
 		"""
 		for indexREP in self.filteredReplicates:
+			self.appLogger.info("Checking data: Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
 				self.settings.basepath,\
 				"{0:0{1}d}".format(\
@@ -265,7 +266,7 @@ class IndividualAssignment:
 				self.appLogger.warning(\
 					"Replicate {0}({1}): It is not possible to do the mating for this replicate".format(indexREP, curReplicatePath))
 				self.appLogger.warning(\
-					"There are no sequences o there is a missmatch between the prefixes and the number of sequences in the folder.")
+					"There are no sequences o there is a missmatch between the number of trees and the number of sequences in the folder.")
 				return False, "Please verify. Exiting."
 			if (numGeneTrees<1):
 				return False,"Trying to mate sequences, but there are no gene tree files to back that up. Please, finish the SimPhy run and try again afterwards."
@@ -293,6 +294,7 @@ class IndividualAssignment:
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
 		for indexREP in self.filteredReplicates:
+			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
 				"{0:0{1}d}".format(\
@@ -313,6 +315,7 @@ class IndividualAssignment:
 			self.writeMatingTable(indexREP,matingTable)
 
 			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
 				self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
 				# parsingMSA file
 				fastapath=os.path.join(\
@@ -346,20 +349,17 @@ class IndividualAssignment:
 		the "relation table" as well as the file with the individuals's sequences.
 		"""
 		for indexREP in self.filteredReplicates:
+			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,
 				"{0:0{1}d}".format(indexREP, self.numReplicateDigits)
 			)
-			self.appLogger.info("Replicate {0}/{2} ({1})".format(\
-				indexREP,\
-				curReplicatePath,\
-				self.numReplicates\
-			))
 			# iterating over the number of gts per st
 			self.appLogger.info("Generating individuals...")
 			individualTable=self.generateIndividualTable(indexREP)
 			self.writeIndividualTable(indexREP,individualTable)
 			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
 				self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
 				# parsingMSA file
 				self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
@@ -707,6 +707,7 @@ class IndividualAssignment:
 		Generates:
 		- A set of files, as many as individuals were described in the table.
 		"""
+		self.appLogger.info("Generating mating table for replicate:  {0}\tloci: {1} ".format(indexREP-1, indexLOC))
 		# Proper mating
 		seqDict=copy.deepcopy(sequenceDictionary)
 		species=seqDict.keys()

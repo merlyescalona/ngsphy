@@ -465,8 +465,8 @@ class CoverageMatrixGenerator:
 		"""
 		message=""
 		status=True;
-		self.appLogger.debug("Coverage calculations...")
 		for indexRep in self.filteredReplicates:
+			self.appLogger.info("Coverage calculations for replicate {0}/{1}".format(indexRep,len(self.filteredReplicates)))
 			nInds=self.numIndividualsPerReplicate[indexRep-1]
 			nLoci=self.numLociPerReplicate[indexRep-1]
 			# expectedCoverage=self.experiment.value(nInds*nLoci)
@@ -557,7 +557,7 @@ class CoverageMatrixGenerator:
 		"""
 		Writing into file the coverage matrix
 		"""
-		self.appLogger.debug("Writing coverage matrix for replicate: {0:0{1}d}".format(indexRep, self.numReplicateDigits))
+		self.appLogger.info("Writing coverage matrix for replicate: {0:0{1}d}".format(indexRep, self.numReplicateDigits))
 		filename=os.path.join(self.settings.coverageFolderPath,"{0}.{1:0{2}d}.coverage.csv".format(\
 			self.settings.projectName,\
 			indexRep,\
