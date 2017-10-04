@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,copy,datetime,dendropy,logging,os,sys, sqlite3
+import copy,dendropy,glob,logging,os,sys, sqlite3
 import numpy as np
 import random as rnd
 import settings as sp
@@ -48,7 +48,7 @@ class IndividualAssignment:
 		message=""
 		# need to know whether i'm working with simphy or indelible
 		self.numReplicates=self.settings.numReplicates
-		self.filteredReplicates=range(1,self.numReplicates+1)
+		self.filteredReplicates=xrange(1,self.numReplicates+1)
 		self.numReplicateDigits=len(str(self.numReplicates))
 		self.numIndividualsPerReplicate=[0]*self.numReplicates
 		self.numLociPerReplicate=[0]*self.numReplicates
@@ -249,17 +249,11 @@ class IndividualAssignment:
 				)\
 			)
 			numFastaFiles=0;numGeneTrees=0
-			fileList=os.listdir(curReplicatePath)
 			# check composition of the current indexREP folder
-			for item in fileList:
-				if ("{0}_".format(self.settings.simphyDataPrefix) in item) and ("TRUE" in item):
-					numFastaFiles+=1
-				if  ("g_trees" in item) and (".trees" in item):
-					numGeneTrees+=1
-
+			numFastaFiles=glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix))
+			numGeneTrees=glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix))
 			self.numLociPerReplicate[indexREP-1]=numFastaFiles
-			self.appLogger.warning(\
-				"Number of fasta files:\t{0}".format(numFastaFiles))
+			self.appLogger.info("Number of fasta files:\t{0}".format(numFastaFiles))
 			self.numLociPerReplicateDigits[indexREP-1]=len(str(numFastaFiles))
 			if (numFastaFiles<1):
 				# Do not have fasta files from the given replicate to work, I'll skip it.
@@ -314,7 +308,7 @@ class IndividualAssignment:
 			matingTable=self.generateMatingTable(indexREP)
 			self.writeMatingTable(indexREP,matingTable)
 
-			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
 				self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
 				# parsingMSA file
@@ -358,7 +352,7 @@ class IndividualAssignment:
 			self.appLogger.info("Generating individuals...")
 			individualTable=self.generateIndividualTable(indexREP)
 			self.writeIndividualTable(indexREP,individualTable)
-			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
 				self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
 				# parsingMSA file
@@ -376,10 +370,9 @@ class IndividualAssignment:
 				################################################################
 				if self.settings.inputmode==3:
 					# need to modify the sequence of the anchor-root
-					f=open(self.settings.ancestralSequenceFilePath,"r")
-					lines=f.readlines()
-					f.close()
-					seqs=[line.strip() for line in lines if not line.startswith(">")]
+					seqs=None
+					with open(self.settings.ancestralSequenceFilePath, 'r') as f:
+						seqs=[line.strip() for line in f if not line.startswith("#")]
 					seqDict[self.settings.anchorTipLabel]=seqs[0]
 				################################################################
 				outputFolder=os.path.join(
@@ -428,7 +421,7 @@ class IndividualAssignment:
 		)
 		descriptions=parseMSAFileWithDescriptions(fastapath).keys()
 		descriptions.sort()
-		table=[(item,descriptions[item]) for item in range(0,len(descriptions))]
+		table=[(item,descriptions[item]) for item in xrange(0,len(descriptions))]
 		self.numIndividualsPerReplicate[indexREP-1]=len(table)
 		return table
 
@@ -459,7 +452,7 @@ class IndividualAssignment:
 			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
 			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])
 		)
-		for currentInd in range(0,len(individualTable)):
+		for currentInd in xrange(0,len(individualTable)):
 			# Extracting info from the dictionary
 			indID=str(individualTable[currentInd][0])
 			description=str(individualTable[currentInd][1])
@@ -522,7 +515,7 @@ class IndividualAssignment:
 			indexFile.write("repID,indID,spID,locID,geneID\n")
 			indexFile.close()
 		indexFile=open(indexFilename,"a")
-		for indexRow in range(0,len(individualTable)):
+		for indexRow in xrange(0,len(individualTable)):
 			indID=individualTable[indexRow][0]
 			seqDescription=individualTable[indexRow][1]
 			speciesID=seqDescription.strip().split("_")[0]
@@ -562,10 +555,9 @@ class IndividualAssignment:
 				1,\
 				self.numLociPerReplicateDigits[indexREP-1]))
 		self.appLogger.debug("Reading file: {0}".format(filename))
-		f=open(filename,"r")
-		lines=f.readlines()
-		f.close()
-		leaves=[ item.strip()[1:] for item in lines if item.startswith(">")]
+		leaves=None
+		with open(filename,"r") as f:
+			leaves=[ line.strip()[1:] for line in f if line.startswith(">")]
 		leavesSplit=[ item.split("_") for item in leaves if not item == self.settings.anchorTipLabel]
 		leavesDict=dict()
 		for tip in leavesSplit:
@@ -588,12 +580,12 @@ class IndividualAssignment:
 				mates+=[pair]
 				self.appLogger.debug("Pair generated: {0}".format(pair))
 			else:
-				t=range(0,leavesDict[geneFamily])
+				t=xrange(0,leavesDict[geneFamily])
 				while not t==[]:
 					p1=0;p2=0
 					try:
-						p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
-						p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
+						p1=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
+						p2=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
 					except Exception as e:
 						break
 					sp=geneFamily.split("_")[0]
@@ -630,8 +622,8 @@ class IndividualAssignment:
 		if self.outgroup:
 			mates+=[(indexREP,0,0,0)]
 			nInds=(leaves-1)/2
-		inds=range(0,nIndsPerSp)
-		species=range(1,leaves)
+		inds=xrange(0,nIndsPerSp)
+		species=xrange(1,leaves)
 		self.appLogger.debug("indexREP: {0} / inds:{1} ".format(indexREP,inds))
 		# I'm always assuming there's an outgroup
 		for sp in species:
@@ -639,8 +631,8 @@ class IndividualAssignment:
 			while not t==[]:
 				p1=0;p2=0
 				try:
-					p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
-					p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
+					p1=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
+					p2=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
 				except Exception as e:
 					break
 				pair=(indexREP,sp,p1,p2)
@@ -677,7 +669,7 @@ class IndividualAssignment:
 			indexFile.write("repID,indID,spID,locID,mateID1,mateID2\n")
 			indexFile.close()
 		indexFile=open(indexFilename,"a")
-		for indexRow in range(0,len(matingTable)):
+		for indexRow in xrange(0,len(matingTable)):
 			indID=indexRow
 			speciesID=matingTable[indexRow][1]
 			locusID=matingTable[indexRow][2]
@@ -731,7 +723,7 @@ class IndividualAssignment:
 			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])\
 		)
 		seq1="";des1="";seq2="";des2="";
-		for currentInd in range(0,len(matingTable)):
+		for currentInd in xrange(0,len(matingTable)):
 			# Extracting info from the dictionary
 			st=str(matingTable[currentInd][0])
 			sp=str(matingTable[currentInd][1])
@@ -809,7 +801,7 @@ class IndividualAssignment:
 		indelsList=[];status=True;message=""
 		for indexREP in self.filteredReplicates:
 			genomicdata=""
-			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.debug("locID: {0}".format(indexLOC))
 				fastapath=os.path.join(
 					self.settings.basepath,\
@@ -820,12 +812,9 @@ class IndividualAssignment:
 						self.numLociPerReplicateDigits[indexREP-1]\
 					)\
 				)
-				fasta=open(fastapath, "r")
-				lines=fasta.readlines()
-				fasta.close()
-				for line in lines:
-					if not line.strip().startswith(">"):
-						genomicdata+=line.strip()
+				genomicdata=None
+				with open(fastapath, "r") as fasta:
+					genomicdata=[line.strip() for line in fasta if not line.startswith(">")]
 				dashpos=int(genomicdata.find("-"))
 				if dashpos >= 0: indelsList+=[True] #indel
 				else: indelsList+=[False] # ok

@@ -17,21 +17,19 @@ def parseMSAFile(fastapath):
 		the <GeneTreeID> and the elements are the full description and the sequence
 		itself.
 	"""
-	fastafile=open(fastapath, 'r')
-	lines=fastafile.readlines()
-	fastafile.close()
 	seqdata=[]
 	seqDict=dict()
 	description=""; seq=""; tmp="";count=1
-	for line in lines:
-		if not (line.strip()==''):
-			if line.strip().startswith(">"):
-				seqdata+=[line.strip()]
-			else:
-				if(seqdata[-1].startswith(">")):
+	with open(fastapath,"r") as fastafile:
+		for line in f:
+			if not (line.strip()==''):
+				if line.strip().startswith(">"):
 					seqdata+=[line.strip()]
 				else:
-					seqdata[-1]+=line.strip()
+					if(seqdata[-1].startswith(">")):
+						seqdata+=[line.strip()]
+					else:
+						seqdata[-1]+=line.strip()
 
 	for line in seqdata:
 		if (count%2==0):
@@ -74,21 +72,19 @@ def parseMSAFileWithDescriptions(fastapath):
 		- The keys of the dicitionary are the description of the sequences.
 		- Each element will contain the correspondin sequences.
 	"""
-	fastafile=open(fastapath, 'r')
-	lines=fastafile.readlines()
-	fastafile.close()
 	seqDict=dict()
 	description=""; seq=""; tmp="";count=1
 	seqdata=[]
-	for line in lines:
-		if not (line.strip()==''):
-			if line.strip().startswith(">"):
-				seqdata+=[line.strip()]
-			else:
-				if(seqdata[-1].startswith(">")):
+	with open(fastapath,"r") as fastafile:
+		for line in f:
+			if not (line.strip()==''):
+				if line.strip().startswith(">"):
 					seqdata+=[line.strip()]
 				else:
-					seqdata[-1]+=line.strip()
+					if(seqdata[-1].startswith(">")):
+						seqdata+=[line.strip()]
+					else:
+						seqdata[-1]+=line.strip()
 	for line in seqdata:
 		if (count%2==0):
 			seq=line[0:-1].strip()
@@ -112,21 +108,19 @@ def isFasta(filepath):
 	- A bollean. TRUE if it is a proper fasta, FALSE otherwise.
 	"""
 	fastaOk=True
-	f=open(filepath)
-	lines=f.readlines()
-	f.close()
 	seqdata=[]
 	seqDict=dict()
 	description=""; seq=""; tmp="";count=1
-	for line in lines:
-		if not (line.strip()==''):
-			if line.strip().startswith(">"):
-				seqdata+=[line.strip()]
-			else:
-				if(seqdata[-1].startswith(">")):
+	with open(fastapath,"r") as fastafile:
+		for line in f:
+			if not (line.strip()==''):
+				if line.strip().startswith(">"):
 					seqdata+=[line.strip()]
 				else:
-					seqdata[-1]+=line.strip()
+					if(seqdata[-1].startswith(">")):
+						seqdata+=[line.strip()]
+					else:
+						seqdata[-1]+=line.strip()
 
 	numLinesFile=len(seqdata)
 	if (numLinesFile % 2 == 0): # It looks like a fasta, has even num of lines

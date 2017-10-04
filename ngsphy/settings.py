@@ -272,13 +272,9 @@ class Settings:
 		if(self.parser.has_option("general","output_folder_name")):
 			self.outputFolderName=self.parser.get("general","output_folder_name")
 
-		if os.path.exists("{0}/{1}".format(self.path,self.outputFolderName)):
-			listdir=os.listdir("{0}".format(self.path))
-			counter=0
-			for item in listdir:
-				if self.outputFolderName in item:
-					counter+=1
-			if not counter == 0: self.outputFolderName+="_{0}".format(counter+1)
+		if os.path.exists(os.join(self.path, self.outputFolderName)):
+			counter=glob.glob("{0}*".format(os.join(self.path, self.outputFolderName)))
+			self.outputFolderName+="_{0}".format(counter+1)
 
 		self.outputFolderPath=os.path.join(self.path,self.outputFolderName)
 		self.alignmentsFolderPath=os.path.join(\
@@ -760,7 +756,7 @@ class Settings:
 						)
 				values=sum(values,[])
 				taxonOk=True
-				for item in range(0,len(values),2):
+				for item in xrange(0,len(values),2):
 					try:
 						val=float(values[item+1])
 					except:
@@ -888,14 +884,13 @@ class Settings:
 		such status
 		"""
 		self.appLogger.debug("checkIndelibleControlFile(self,parserMessageCorrect,parserMessageWrong)")
-		f=open(self.indelibleControlFile,"r")
-		lines=f.readlines()
-		f.close()
 		# keeping only lines with content
-		newlines=[ item.strip() for item in lines if not item.strip()==""]
+		newlines=None
+		with open(self.indelibleControlFile,"r") as f:
+			newlines=[ line.strip() for line in f if not line.strip()==""]
 		# check for NGSPHY blocks
 		model=0; partition=0
-		for index in range(0,len(newlines)):
+		for index in xrange(0,len(newlines)):
 			if newlines[index].startswith("[MODEL]") and  model == 0:
 				if model== 0:
 					model=index
@@ -967,23 +962,11 @@ class Settings:
 		such status
 		"""
 		message=""
+		command = os.path.join(self.basepath,"{0}.command".format(self.projectName))
+		params = os.path.join(self.basepath,"{0}.params".format(self.projectName))
+		db = os.path.join(self.basepath,"{0}.db".format(self.projectName))
 		# List all the things in the project directory
-
-		fileList=os.listdir(self.basepath)
-
-		for index in range(0,len(fileList)):
-			fileList[index]=os.path.abspath(os.path.join(self.basepath,fileList[index]))
-
-		command = os.path.join(\
-			self.basepath,\
-			"{0}.command".format(self.projectName))
-		params = os.path.join(\
-			self.basepath,\
-			"{0}.params".format(self.projectName))
-		db = os.path.join(\
-			self.basepath,\
-			"{0}.db".format(self.projectName))
-
+		fileList=[os.path.abspath(os.path.join(self.basepath,item)) for item in os.listdir(self.basepath)]
 		self.appLogger.debug("SimPhy files (command, params, db)")
 		self.appLogger.debug("{0}:\t{1}".format(\
 			os.path.basename(db),db in fileList))
@@ -991,16 +974,15 @@ class Settings:
 			os.path.basename(command),command in fileList))
 		self.appLogger.debug("{0}:\t{1}".format(\
 			os.path.basename(params),params in fileList))
-
 		simphyfiles=((command in fileList) and (params in fileList) and(db in fileList))
 		# check if  command, db, params files
 		if not simphyfiles:
 			message="\n\t{0}\n\t{1}".format(\
-				"One of the mandatory SimPhy files does not exist.",\
-				"Please verify. Exiting.")
+			"One of the mandatory SimPhy files does not exist.",\
+			"Please verify. Exiting.")
 			return False, message
-		# check how many of them are dirs
 
+		# check how many of them are dirs
 		for item in fileList:
 			baseitem=os.path.basename(item)
 			if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):

@@ -94,9 +94,8 @@ class SequenceGenerator:
 			self.newIndelibleAncestralSequence))
 		description=""
 		try:
-			f=open(self.settings.ancestralSequenceFilePath, "r")
-			description=f.readline().strip()
-			f.close()
+			with open(self.settings.ancestralSequenceFilePath, "r") as f:
+				description=f.readline().strip()
 		except Exception as ex:
 			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}\n".format(\
 				"I/O problem.",\
@@ -133,9 +132,9 @@ class SequenceGenerator:
 		self.appLogger.debug("Writing new control file")
 		self.appLogger.debug("Given INDELible control file: ".format(\
 			self.settings.indelibleControlFile))
-		f=open(self.settings.indelibleControlFile,"r")
-		lines=f.readlines()
-		f.close()
+		lines=None
+		with open(self.settings.indelibleControlFile,"r") as f:
+			lines=[line.strip() for line in f ]
 		newlines=copy.copy(lines)
 		newlines.reverse()
 		controllines=[]
@@ -146,17 +145,15 @@ class SequenceGenerator:
 				self.partition=line.split() # ill get 3 elems + label
 			if "[MODEL]" in line:
 				modelname=line.split()[1]
-
+		del newlines
 		newlines=copy.copy(lines)
 		for item in newlines:
 			if item.strip().startswith("[NGSPHY"):
 				break
 			controllines+=[item.strip("\n")]
 
-		f=open(self.settings.geneTreeFile)
-		newicklines=f.readlines()
-		f.close()
-		geneTreeFile=[ item.strip() for item in newicklines if item.strip()!=""]
+		with open(self.settings.geneTreeFile) as f:
+			geneTreeFile=[line.strip() for line in f if not line.strip() == ""]
 		geneTreeFile="".join(geneTreeFile)
 		geneTreeFile=geneTreeFile.replace("'","")
 		# print(geneTreeFile)
@@ -187,7 +184,7 @@ class SequenceGenerator:
 		fastaoutputext="\t[fastaextension] fasta"
 		output=[]; outputext=[]
 		settings=False
-		for indexControl in range(0, len(controllines)):
+		for indexControl in xrange(0, len(controllines)):
 			data=controllines[indexControl].strip()
 			if data=="[SETTINGS]":
 				settings=True
@@ -255,7 +252,7 @@ class SequenceGenerator:
 			self.appLogger.info("Moving back to working directory: {0}".format(cwd))
 			os.chdir(cwd)
 			cpuTime = [line.split(":")[1].split()[0] for line in proc.split('\n') if "* Block" in line]
-			for item in range(1,len(cpuTime)):
+			for item in xrange(1,len(cpuTime)):
 				cpu=cpuTime[(item-1)]
 				output="{0}_{1}".format(self.evolve[1],item )
 				lines+=[item,cpu,output]
