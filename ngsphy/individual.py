@@ -814,7 +814,7 @@ class IndividualAssignment:
 				)
 				genomicdata=None
 				with open(fastapath, "r") as fasta:
-					genomicdata="".join()[line.strip() for line in fasta if not line.startswith(">")])
+					genomicdata="".join([line.strip() for line in fasta if not line.startswith(">")])
 				dashpos=int(genomicdata.find("-"))
 				if dashpos >= 0: indelsList+=[True] #indel
 				else: indelsList+=[False] # ok
