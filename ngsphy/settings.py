@@ -272,8 +272,8 @@ class Settings:
 		if(self.parser.has_option("general","output_folder_name")):
 			self.outputFolderName=self.parser.get("general","output_folder_name")
 
-		if os.path.exists(os.join(self.path, self.outputFolderName)):
-			counter=glob.glob("{0}*".format(os.join(self.path, self.outputFolderName)))
+		if os.path.exists(os.path.join(self.path, self.outputFolderName)):
+			counter=glob.glob("{0}*".format(os.path.join(self.path, self.outputFolderName)))
 			self.outputFolderName+="_{0}".format(counter+1)
 
 		self.outputFolderPath=os.path.join(self.path,self.outputFolderName)
