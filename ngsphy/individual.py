@@ -805,9 +805,10 @@ class IndividualAssignment:
 		self.appLogger.debug("Checking for indels...")
 		indelsList=[];status=True;message=""
 		for indexREP in self.filteredReplicates:
+			self.appLogger.info("indexREP: {0}".format(indexREP))
 			genomicdata=""
 			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
-				self.appLogger.debug("locID: {0}".format(indexLOC))
+				self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(indexREP, indexLOC))
 				fastapath=os.path.join(
 					self.settings.basepath,\
 					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
