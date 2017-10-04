@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,datetime,dendropy, logging,msatools,os,re,sys
+import argparse,datetime,dendropy,glob, logging,msatools,os,re,sys
 import numpy as np
 from coverage import NGSPhyDistributionParser as ngsphydistro
 if (sys.version_info[0:2]<(3,0)):
@@ -273,7 +273,7 @@ class Settings:
 			self.outputFolderName=self.parser.get("general","output_folder_name")
 
 		if os.path.exists(os.path.join(self.path, self.outputFolderName)):
-			counter=glob.glob("{0}*".format(os.path.join(self.path, self.outputFolderName)))
+			counter=len(glob.glob("{0}*".format(os.path.join(self.path, self.outputFolderName))))
 			self.outputFolderName+="_{0}".format(counter+1)
 
 		self.outputFolderPath=os.path.join(self.path,self.outputFolderName)

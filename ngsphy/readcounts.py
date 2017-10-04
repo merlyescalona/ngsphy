@@ -368,24 +368,24 @@ class ReadCounts:
 			raise TypeError(message)
 			# If I get here, function run is over - goes back to  run()
 
-		for item in lines:
-			if item.startswith(">"): numTotalSeqs+=1
-		matrix=np.chararray((numTotalSeqs,lenSeqs), itemsize=1)
+		with open(filepath,"r") as f:
+			for line in f:
+				if line.startswith(">"): numTotalSeqs+=1
+			matrix=np.chararray((numTotalSeqs,lenSeqs), itemsize=1)
 		for i in xrange(0, numTotalSeqs):
 			for j in xrange(0,lenSeqs):
 				matrix[i,j]=""
-		# Cleaning strings - removing empty lines and removing "\n"
-		for index in xrange(0,len(lines)):
-			lines[index]=lines[index].strip()
 
-		newLines=[ simpleline for simpleline in lines if not simpleline == ""]
+		lines=None
+		with open(filepath,"r") as f:
+			lines=[line.strip() for line in f if not line.strip()==""]
 
-		numLinesFile=len(newLines);index=0
+		numLinesFile=len(lines);index=0
 		indexSeqs=xrange(1,numLinesFile,2)
 		for i in xrange(0,numTotalSeqs):
-			seqDescriptions+=[newLines[indexSeqs[i]-1]]
+			seqDescriptions+=[lines[indexSeqs[i]-1]]
 			for j in xrange(0, lenSeqs):
-				matrix[i,j]=newLines[indexSeqs[i]][j]
+				matrix[i,j]=lines[indexSeqs[i]][j]
 
 		for indexCol in xrange(0,matrix.shape[1]):
 			c=Counter(matrix[:,indexCol])
