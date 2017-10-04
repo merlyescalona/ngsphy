@@ -145,7 +145,7 @@ class NGSPhyDistributionParser:
 			status=False
 		if (NGSAvailableDistributions.relationNumParams[self.__name]==len(self.__params)) or (NGSAvailableDistributions.relationNumParams[self.__name]-1==len(self.__params) and self.__dependency):
 			# print(len(self.__params))
-			for index in xrange(0,len(self.__params)):
+			for index in range(0,len(self.__params)):
 				try:
 					self.__params[index]=float(self.__params[index])
 				except ValueError:
@@ -441,11 +441,11 @@ class CoverageMatrixGenerator:
 		if (self.settings.locus):
 			distro=self.settings.locus.asNGSPhyDistribution()
 			self.alphashapesLocus=distro.value(self.settings.numReplicates)
-			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in xrange(0,self.numReplicates)]
+			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in range(0,self.numReplicates)]
 		if (self.settings.individual):
 			distro=self.settings.individual.asNGSPhyDistribution()
 			self.alphashapesIndividuals=distro.value(self.settings.numReplicates)
-			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in xrange(0,self.numReplicates)]
+			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in range(0,self.numReplicates)]
 		self.generateFolderStructure()
 
 	def generateFolderStructure(self):
@@ -481,12 +481,12 @@ class CoverageMatrixGenerator:
 				if self.settings.locus:
 					self.appLogger.debug("Locus-wide multipliers")
 					multipliers=self.locusMultiplier[indexRep-1]
-					for loc in xrange(0,nLoci):
+					for loc in range(0,nLoci):
 						coverageMatrix[:, loc]=coverageMatrix[:,loc]*multipliers[loc]
 				if self.settings.individual:
 					self.appLogger.debug("individual-wide multipliers")
 					multipliers=self.individualsMultiplier[indexRep-1]
-					for ind in xrange(0,nInds):
+					for ind in range(0,nInds):
 						coverageMatrix[ind,:]=coverageMatrix[ind,:]*multipliers[ind]
 			except Exception as ex:
 				exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -517,14 +517,14 @@ class CoverageMatrixGenerator:
 					if str(row['spID']) in self.settings.taxon.keys():
 						coverageMatrix[ind,]=np.array(coverageMatrix[ind,])*self.settings.taxon[str(row['spID'])]
 			#on/off target
-			onTargetLoci=xrange(0,nLoci)
+			onTargetLoci=range(0,nLoci)
 			offTargetLoci=[]
 			try:
 				if self.settings.offtarget["loci"] > 0:
 					self.appLogger.debug("Off-target coverage")
 					nSamples=int(self.settings.offtarget["loci"]*nLoci)
 					offTargetLoci=np.random.choice(nLoci,nSamples,replace=False)
-					onTargetLoci=set(xrange(0,nLoci))-set(offTargetLoci)
+					onTargetLoci=set(range(0,nLoci))-set(offTargetLoci)
 					for loc in offTargetLoci:
 						coverageMatrix[:,loc]=coverageMatrix[:,loc]*self.settings.offtarget["coverage"]
 			except Exception as ex:
@@ -566,12 +566,12 @@ class CoverageMatrixGenerator:
 			)
 		)
 		filepath=os.path.abspath(filename)
-		header=["indID"]+[ "L.{0:0{1}d}".format(loc+1,self.numLociPerReplicateDigits[indexRep-1]) for loc in xrange(0,self.numLociPerReplicate[indexRep-1])]
+		header=["indID"]+[ "L.{0:0{1}d}".format(loc+1,self.numLociPerReplicateDigits[indexRep-1]) for loc in range(0,self.numLociPerReplicate[indexRep-1])]
 		nInds=self.numIndividualsPerReplicate[indexRep-1]
-		indIds=np.transpose(np.array(xrange(0,nInds)))
+		indIds=np.transpose(np.array(range(0,nInds)))
 		f=open(filepath,"w")
 		f.write("{}\n".format(" ,".join(header)))
-		for r in xrange(0,nInds):
+		for r in range(0,nInds):
 			weird=coverageMatrix[r,].tolist()[0]
 			weird=["{0:.3f}".format(float(item)) for item in weird]
 			line=", ".join(weird)

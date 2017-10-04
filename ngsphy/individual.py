@@ -48,7 +48,7 @@ class IndividualAssignment:
 		message=""
 		# need to know whether i'm working with simphy or indelible
 		self.numReplicates=self.settings.numReplicates
-		self.filteredReplicates=xrange(1,self.numReplicates+1)
+		self.filteredReplicates=range(1,self.numReplicates+1)
 		self.numReplicateDigits=len(str(self.numReplicates))
 		self.numIndividualsPerReplicate=[0]*self.numReplicates
 		self.numLociPerReplicate=[0]*self.numReplicates
@@ -71,8 +71,6 @@ class IndividualAssignment:
 			# checking the replicate that are going to be used
 			# checking if I'll used the filtered in case there's a possibility
 			# that one or many sts do not match the ploidy and number of gene copies
-
-
 			self.command = os.path.join(\
 				self.settings.basepath,\
 				"{0}.command".format(self.settings.projectName))
@@ -307,7 +305,7 @@ class IndividualAssignment:
 			matingTable=self.generateMatingTable(indexREP)
 			self.writeMatingTable(indexREP,matingTable)
 
-			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 				# parsingMSA file
 				fastapath=os.path.join(\
 					self.settings.basepath,
@@ -350,7 +348,7 @@ class IndividualAssignment:
 			# iterating over the number of gts per st
 			individualTable=self.generateIndividualTable(indexREP)
 			self.writeIndividualTable(indexREP,individualTable)
-			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
 				# parsingMSA file
 				self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
@@ -419,7 +417,7 @@ class IndividualAssignment:
 		)
 		descriptions=parseMSAFileWithDescriptions(fastapath).keys()
 		descriptions.sort()
-		table=[(item,descriptions[item]) for item in xrange(0,len(descriptions))]
+		table=[(item,descriptions[item]) for item in range(0,len(descriptions))]
 		self.numIndividualsPerReplicate[indexREP-1]=len(table)
 		return table
 
@@ -450,7 +448,7 @@ class IndividualAssignment:
 			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
 			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])
 		)
-		for currentInd in xrange(0,len(individualTable)):
+		for currentInd in range(0,len(individualTable)):
 			# Extracting info from the dictionary
 			indID=str(individualTable[currentInd][0])
 			description=str(individualTable[currentInd][1])
@@ -513,7 +511,7 @@ class IndividualAssignment:
 			indexFile.write("repID,indID,spID,locID,geneID\n")
 			indexFile.close()
 		indexFile=open(indexFilename,"a")
-		for indexRow in xrange(0,len(individualTable)):
+		for indexRow in range(0,len(individualTable)):
 			indID=individualTable[indexRow][0]
 			seqDescription=individualTable[indexRow][1]
 			speciesID=seqDescription.strip().split("_")[0]
@@ -578,12 +576,12 @@ class IndividualAssignment:
 				mates+=[pair]
 				self.appLogger.debug("Pair generated: {0}".format(pair))
 			else:
-				t=xrange(0,leavesDict[geneFamily])
+				t=range(0,leavesDict[geneFamily])
 				while not t==[]:
 					p1=0;p2=0
 					try:
-						p1=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
-						p2=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
+						p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
+						p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
 					except Exception as e:
 						break
 					sp=geneFamily.split("_")[0]
@@ -592,6 +590,7 @@ class IndividualAssignment:
 					mates+=[pair]
 					self.appLogger.debug("Pair generated: {0}".format(pair))
 		self.numIndividualsPerReplicate[indexREP-1]=len(mates)
+		print(mates)
 		return mates
 
 	def generateMatingTableFromDB(self,indexREP):
@@ -620,8 +619,8 @@ class IndividualAssignment:
 		if self.outgroup:
 			mates+=[(indexREP,0,0,0)]
 			nInds=(leaves-1)/2
-		inds=xrange(0,nIndsPerSp)
-		species=xrange(1,leaves)
+		inds=range(0,nIndsPerSp)
+		species=range(1,leaves)
 		self.appLogger.debug("indexREP: {0} / inds:{1} ".format(indexREP,inds))
 		# I'm always assuming there's an outgroup
 		for sp in species:
@@ -629,8 +628,8 @@ class IndividualAssignment:
 			while not t==[]:
 				p1=0;p2=0
 				try:
-					p1=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
-					p2=t.pop(rnd.sample(xrange(0,len(t)),1)[0])
+					p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
+					p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
 				except Exception as e:
 					break
 				pair=(indexREP,sp,p1,p2)
@@ -667,7 +666,7 @@ class IndividualAssignment:
 			indexFile.write("repID,indID,spID,locID,mateID1,mateID2\n")
 			indexFile.close()
 		indexFile=open(indexFilename,"a")
-		for indexRow in xrange(0,len(matingTable)):
+		for indexRow in range(0,len(matingTable)):
 			indID=indexRow
 			speciesID=matingTable[indexRow][1]
 			locusID=matingTable[indexRow][2]
@@ -720,7 +719,7 @@ class IndividualAssignment:
 			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])\
 		)
 		seq1="";des1="";seq2="";des2="";
-		for currentInd in xrange(0,len(matingTable)):
+		for currentInd in range(0,len(matingTable)):
 			# Extracting info from the dictionary
 			st=str(matingTable[currentInd][0])
 			sp=str(matingTable[currentInd][1])
@@ -732,28 +731,27 @@ class IndividualAssignment:
 			self.appLogger.debug("{0}|{1}-{2}".format(sp, pair1,pair2))
 			seq1=seqDict[tag][pair1]["sequence"]
 			seq2=seqDict[tag][pair2]["sequence"]
-			shortDesc1=seqDict[tag][pair1]["description"][1:len(seqDict[tag][pair1]["description"])]
-			des1=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S1".format(\
+			shortDesc1=seqDict[tag][pair1]["description"]
+			des1=">{0}:{1:0{2}d}:{3:0{4}d}:{5}:{6}:{7}_S1".format(\
 				self.settings.projectName,\
 				indexREP,\
-				indexLOC,\
-				self.settings.simphyDataPrefix,\
-				currentInd,shortDesc1,\
 				self.numReplicateDigits,\
-				self.numLociPerReplicateDigits[indexREP-1]\
+				indexLOC,\
+				self.numLociPerReplicateDigits[indexREP-1],\
+				self.settings.simphyDataPrefix,\
+				currentInd,shortDesc1\
 			)
-			shortDesc2=seqDict[tag][pair2]["description"][1:len(seqDict[tag][pair2]["description"])]
-			des2=">{0}:{1:0{6}d}:{2:0{7}d}:{3}:{4}:{5}_S2".format(\
+			shortDesc2=seqDict[tag][pair2]["description"]
+			des2=">{0}:{1:0{2}d}:{3:0{4}d}:{5}:{6}:{7}_S2".format(\
 				self.settings.projectName,\
 				indexREP,\
+				self.numReplicateDigits,\
 				indexLOC,\
+				self.numLociPerReplicateDigits[indexREP-1],\
 				self.settings.simphyDataPrefix,\
 				currentInd,\
-				shortDesc2,\
-				self.numLociPerReplicate[indexREP-1],\
-				self.numLociPerReplicateDigits[indexREP-1]\
+				shortDesc2\
 			)
-
 			indFilename=os.path.join(\
 				outputFolder,\
 				"{0}_{1:0{2}d}_{3:0{4}d}_{5}_{6}.fasta".format(\
@@ -769,15 +767,10 @@ class IndividualAssignment:
 			indFile=open(indFilename, "w")
 			indFile.write("{0}\n{1}\n{2}\n{3}\n".format(des1,seq1,des2,seq2))
 			indFile.close()
-
 			del seqDict[tag][pair1]
 			if not sp== "0": del seqDict[tag][pair2]
 
-		for currentInd in xrange(0,len(matingTable)):
-			# Extracting info from the dictionary
-			sp=str(matingTable[currentInd][1])
-			lt=str(matingTable[currentInd][2])
-			tag="{0}_{1}".format(sp,lt)
+		for tag in seqDict.keys():
 			if not seqDict[tag]=={}:
 				self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
 				self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format(\
@@ -804,7 +797,7 @@ class IndividualAssignment:
 		for indexREP in self.filteredReplicates:
 			self.appLogger.info("ReplicateID: {0}".format(indexREP))
 			genomicdata=""
-			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(indexREP, indexLOC))
 				fastapath=os.path.join(
 					self.settings.basepath,\

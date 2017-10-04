@@ -156,7 +156,7 @@ class ARTIllumina:
 				d = csv.DictReader(csvfile)
 				self.matingDict = [row for row in d]
 				csvfile.close()
-				for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
+				for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 					for row in self.matingDict:
 						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
 						inputFile=os.path.join(\
@@ -302,7 +302,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				if firstLine:
 					firstLine=False
 				else:
-					coverageMatrix[counter,]=[float(row[index]) for index in xrange(1,len(row))]
+					coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
 					counter+=1
 				if not counter < self.numIndividualsPerReplicate[indexREP-1]: break
 		return coverageMatrix
@@ -329,7 +329,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				nInds=len(self.matingDict)
 				nLoci=self.numLociPerReplicate[indexREP-1]
 				coverageMatrix=self.retrieveCoverageMatrix(indexREP)
-				for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
+				for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 					for row in self.matingDict:
 						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
 						inputFile=os.path.join(\

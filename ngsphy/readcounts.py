@@ -209,7 +209,7 @@ class ReadCounts:
 		"""
 		self.appLogger.debug("generateFolderStructureDetail(self)")
 		self.appLogger.info("Generating folders structure for read counts.")
-		for i in xrange(0,len(self.filteredReplicates)):
+		for i in range(0,len(self.filteredReplicates)):
 			indexREP=self.filteredReplicates[i]
 			self.appLogger.debug("{0}|{1}".format(i, self.filteredReplicates[i]))
 			noErrorFolder=os.path.join(\
@@ -275,7 +275,7 @@ class ReadCounts:
 				if firstLine:
 					firstLine=False
 				else:
-					coverageMatrix[counter,]=[float(row[index]) for index in xrange(1,len(row))]
+					coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
 					counter+=1
 				if not counter < self.numIndividualsPerReplicate[indexREP-1]: break
 		return coverageMatrix
@@ -327,11 +327,11 @@ class ReadCounts:
 				itemIndex+=1
 
 			if (itemIndex < self.numReplicates):
-			    for i in xrange(self.numReplicates):
+			    for i in range(self.numReplicates):
 			        print([i+1,1,0,0])
 		else:
 			# iterate get a list with same decription for all species trees
-			for item in xrange(0,self.numReplicates):
+			for item in range(0,self.numReplicates):
 				referenceList+=[(item+1,1,0,0)]
 		return referenceList
 
@@ -372,8 +372,8 @@ class ReadCounts:
 			for line in f:
 				if line.startswith(">"): numTotalSeqs+=1
 			matrix=np.chararray((numTotalSeqs,lenSeqs), itemsize=1)
-		for i in xrange(0, numTotalSeqs):
-			for j in xrange(0,lenSeqs):
+		for i in range(0, numTotalSeqs):
+			for j in range(0,lenSeqs):
 				matrix[i,j]=""
 
 		lines=None
@@ -381,13 +381,13 @@ class ReadCounts:
 			lines=[line.strip() for line in f if not line.strip()==""]
 
 		numLinesFile=len(lines);index=0
-		indexSeqs=xrange(1,numLinesFile,2)
-		for i in xrange(0,numTotalSeqs):
+		indexSeqs=range(1,numLinesFile,2)
+		for i in range(0,numTotalSeqs):
 			seqDescriptions+=[lines[indexSeqs[i]-1]]
-			for j in xrange(0, lenSeqs):
+			for j in range(0, lenSeqs):
 				matrix[i,j]=lines[indexSeqs[i]][j]
 
-		for indexCol in xrange(0,matrix.shape[1]):
+		for indexCol in range(0,matrix.shape[1]):
 			c=Counter(matrix[:,indexCol])
 			l=np.unique(matrix[:,indexCol])
 			# sys.stdout.write("Pos <{0}>\n{1}|{2}\n".format(indexCol, ",".join(c.keys()), ",".join([str(d) for d in c.values()])))
@@ -547,7 +547,7 @@ class ReadCounts:
 				alt[str(pos)]=[]
 			else:
 				alt[str(pos)]=list(tmpset)
-		for index in xrange(0,nInds):
+		for index in range(0,nInds):
 			indexIND=str(index)
 			HTGeneral[indexIND]=[];HLGeneral[indexIND]=[];ADGeneral[indexIND]=[]
 			HTGeneralWErrors[indexIND]=[];
@@ -560,7 +560,7 @@ class ReadCounts:
 
 		self.appLogger.debug("NOError")
 		altInd=copy.copy(alt)
-		for indIndex in xrange(0,nInds):
+		for indIndex in range(0,nInds):
 			indexIND=str(indIndex)
 			self.appLogger.debug(\
 				"\tReplicate tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
@@ -603,7 +603,7 @@ class ReadCounts:
 		# With errors
 		########################################################
 		self.appLogger.debug("With errors")
-		for indIndex in xrange(0,nInds):
+		for indIndex in range(0,nInds):
 			indexIND=str(indIndex)
 			self.appLogger.info("Individual {0} ({1}/{2})".format(indIndex,(indIndex+1),nInds))
 			ind=individuals[indexIND]
@@ -640,11 +640,11 @@ class ReadCounts:
 		nVariants=len(variableSitesPositionIndices)
 		HL=np.ones(shape=(4,nVariants), dtype=np.float)
 		error=float(error)
-		for indexVar in xrange(0,nVariants):
+		for indexVar in range(0,nVariants):
 			indexReads=str(variableSitesPositionIndices[indexVar])
 			reads=variantsRC[indexReads]
 			# possible haplotypes
-			for indexNuc in xrange(0,4):
+			for indexNuc in range(0,4):
 				nuc=self.__NUCLEOTIDES[indexNuc]
 				# read to be analyzed
 				for b in reads:
@@ -687,7 +687,7 @@ class ReadCounts:
 			seqPos=seq[indexVar]
 			altValues=alt[str(indexVar)]
 			iv=str(indexVar)
-			for index in xrange(0,len(altValues)):
+			for index in range(0,len(altValues)):
 				altToCompare=altValues[index]
 				if (index==0) and (altToCompare==seqPos):
 					GT[iv]=1
@@ -715,7 +715,7 @@ class ReadCounts:
 		altUpdated=dict()
 		for item in alt.keys(): altUpdated[item]=[]
 		sortedAltKeys=np.sort([int(item) for item in alt.keys()])
-		for index in xrange(0,len(sortedAltKeys)):
+		for index in range(0,len(sortedAltKeys)):
 			possibleNucsAlt=[]
 			if (AD[0,index]>0): possibleNucsAlt+=["A"]
 			if (AD[1,index]>0): possibleNucsAlt+=["C"]
@@ -744,13 +744,13 @@ class ReadCounts:
 		nVariants=len(variableSitesPositionIndices)
 		rcNOError=dict();rcWErrors=dict()
 		# init variantsRC
-		for indexVar in xrange(0,nVariants):
+		for indexVar in range(0,nVariants):
 			indexConverted=str(variableSitesPositionIndices[indexVar])
 			rcNOError[indexConverted]=[]
 			rcWErrors[indexConverted]=[]
 		# getting read count
-		for indexVar in xrange(0,nVariants):
-			for indexNuc in xrange(0,4):
+		for indexVar in range(0,nVariants):
+			for indexNuc in range(0,4):
 				nuc=[self.__NUCLEOTIDES[indexNuc]]
 				indexConverted=str(variableSitesPositionIndices[indexVar])
 				val=ADNOErrors[indexNuc,indexVar]
@@ -777,7 +777,7 @@ class ReadCounts:
 		self.appLogger.debug("Starting to iterate over the variants")
 		# There was a problem in this block related to low coverage, error
 		# and possible substitutions.
-		for indexVar in xrange(0,nVariants):
+		for indexVar in range(0,nVariants):
 			finalRC=[];indNucs=[]
 			# getting general coverage per position
 			posCoverage=DP[indexVar]
@@ -803,7 +803,7 @@ class ReadCounts:
 				if maxAvailablePositions == 0:  maxAvailablePositions=posCoverage
 
 				errorPositions=np.random.randint(maxAvailablePositions,size=int(errorD))
-				for item in xrange(0,len(errorPositions)):
+				for item in range(0,len(errorPositions)):
 					posToChange=errorPositions[item]
 					finalRC[posToChange]=errorChoices[item]
 			counter=Counter(finalRC)
@@ -840,7 +840,7 @@ class ReadCounts:
 			alt[pos]=[]; altInds[pos]=[]
 		for pos in variableSitesPositionIndices:
 			alt[str(pos)]=list(set(variableSites[str(pos)])-set([referenceSeqFull[pos]]))
-		for index in xrange(0,nInds):
+		for index in range(0,nInds):
 			indexIND=str(index)
 			GTGeneral[indexIND]=[];GLGeneral[indexIND]=[];ADGeneral[indexIND]=[]
 			GTGeneralWErrors[indexIND]=[];
@@ -852,7 +852,7 @@ class ReadCounts:
 		# iterate over individuals
 		self.appLogger.debug("NOError")
 		altInd=copy.copy(alt)
-		for indIndex in xrange(0,nInds):
+		for indIndex in range(0,nInds):
 			GTNOError=dict()
 			indexIND=str(indIndex)
 			self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
@@ -897,7 +897,7 @@ class ReadCounts:
 		# DIPLOID SAMPLED
 		########################################################
 		self.appLogger.debug("With errors")
-		for indIndex in xrange(0,nInds):
+		for indIndex in range(0,nInds):
 			GTWErrors=dict()
 			indexIND=str(indIndex)
 			self.appLogger.debug("\tSpecies tree: {0} - Locus {1} |  Individual {2} ({3}/{4})".format(\
@@ -1028,8 +1028,8 @@ class ReadCounts:
 
 	def genotypeOrder(self,alleles):
 		ordered=[]
-		for a in xrange(0,len(alleles)):
-			for b in xrange(0,(a+1)):
+		for a in range(0,len(alleles)):
+			for b in range(0,(a+1)):
 				ordered+=[[alleles[a],alleles[b]]]
 		return ordered
 
@@ -1052,7 +1052,7 @@ class ReadCounts:
 		self.appLogger.debug("Starting to iterate over the variants")
 		# There was a problem in this block related to low coverage, error
 		# and possible substitutions.
-		for indexVar in xrange(0,nVariants):
+		for indexVar in range(0,nVariants):
 			finalRC=[];indNucs=[]
 			# getting general coverage per position
 			posCoverage=DP[indexVar]
@@ -1082,7 +1082,7 @@ class ReadCounts:
 				if maxAvailablePositions == 0:  maxAvailablePositions=posCoverage
 
 				errorPositions=np.random.randint(maxAvailablePositions,size=int(errorD))
-				for item in xrange(0,len(errorPositions)):
+				for item in range(0,len(errorPositions)):
 					posToChange=errorPositions[item]
 					finalRC[posToChange]=errorChoices[item]
 			counter=Counter(finalRC)
@@ -1118,9 +1118,9 @@ class ReadCounts:
 		for indexVAR in variableSitesPositionIndices:
 			allVariants[str(indexVAR)]=[]
 		# Had an error here, because the alt variable was empty (passed wrong variable name to the function)
-		for indexVAR in xrange(0,nVariants):
+		for indexVAR in range(0,nVariants):
 			tmpInd=variableSitesPositionIndices[indexVAR]
-			for indexIND in xrange(0,nInds):
+			for indexIND in range(0,nInds):
 				trueRows=None; htPerInd=None; adPerInd=None;hlPerInd=None;
 				if self.settings.ploidy==1:
 					valuesToCodify=[ref[tmpInd]]+alt[str(tmpInd)]
@@ -1207,7 +1207,7 @@ class ReadCounts:
 			"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Depth of coverage\">"
 		)
 
-		indnames=["Ind{0}".format(i) for i in xrange(0,nInds)]
+		indnames=["Ind{0}".format(i) for i in range(0,nInds)]
 		# filename, file_extension = os.path.splitext('/path/to/somefile.ext')
 		headerCols=["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"]+indnames
 		# CHROM
@@ -1225,7 +1225,7 @@ class ReadCounts:
 			self.numReplicatesDigits,\
 			indexLOC,
 			numGeneTreeDigits,\
-			ID) for ID in xrange(1, (nVariants+1))]
+			ID) for ID in range(1, (nVariants+1))]
 		# ALT
 		ALT=[ ",".join(alt[str(pos)]) for pos in variableSitesPositionIndices ]
 		# qual
@@ -1278,7 +1278,7 @@ class ReadCounts:
 		headerWidths=colWidths+headerWidths
 		headerFields=["{0:{1}s}".format(\
 			headerCols[indexField],headerWidths[indexField])\
-			for indexField in xrange(0,len(headerCols))]
+			for indexField in range(0,len(headerCols))]
 		# filevcf=codecs.open(outfile, 'a+', 'utf-8')
 		filevcf=open(outfile, 'a')
 		filevcf.write("{0}\n{1}\n{2}\n".format(\
@@ -1287,7 +1287,7 @@ class ReadCounts:
 			"\t".join(headerFields)\
 			))
 
-		for index in xrange(0, nVariants):
+		for index in range(0, nVariants):
 			# extra 9 columns: #CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT = 9
 			CHROM_FIELD="{0:{1}}".format(chromName,colWidths[0]).encode('utf-8').strip()
 			# sys.stdout.write("{}\t".format(CHROM_FIELD))
@@ -1460,7 +1460,7 @@ class ReadCounts:
 				DP=[self.getDepthCoveragePerIndividual(\
 						nVarSites,\
 						coverageMatrix[index][(indexLOC-1)]) \
-						for index in xrange(0,numIndividuals)\
+						for index in range(0,numIndividuals)\
 						]
 				if self.settings.ploidy==1:
 					self.computeHaploid(\
@@ -1536,9 +1536,9 @@ class ReadCounts:
 				nLociList[item],\
 				individualsList[item],\
 				coverageMatrices[item])\
-			for item in xrange(0,nSTS)]
+			for item in range(0,nSTS)]
 
-			for indexFilterST in xrange(0,nSTS):
+			for indexFilterST in range(0,nSTS):
 				indexREP=self.filteredReplicates[indexFilterST] # Get Proper ID for ST
 				nLoci=nLociList[indexFilterST]
 				self.appLogger.debug("Number of individuals: {0}".format(numIndividualsList[indexFilterST]))
@@ -1548,9 +1548,9 @@ class ReadCounts:
 				self.appLogger.info("Simulating read counts for Replicate - {0:0{1}d}".format(\
 					indexREP, self.numReplicatesDigits))
 				while indexLOC < (nLoci+1):
-					# for indexLOC in xrange(1,(nLoci+1)):
+					# for indexLOC in range(1,(nLoci+1)):
 					jobs=[]
-					for item in xrange(0,min(self.settings.numThreads, threadsToBeRan)):
+					for item in range(0,min(self.settings.numThreads, threadsToBeRan)):
 						progress=((currProcessesRunning*100)*1.0)/(nProcesses+1)
 						currProcessesRunning+=1
 						sys.stdout.write("Progress {0:02.1f} %\r".format(progress))

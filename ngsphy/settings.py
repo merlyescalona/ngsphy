@@ -988,7 +988,6 @@ class Settings:
 			if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):
 				self.numReplicates=self.numReplicates+1
 
-		numReplicatesDigits=len(str(self.numReplicates))
 		self.parser.set("general","numspeciestrees",str(self.numReplicates))
 		# check if at least one
 		self.appLogger.debug("Num species trees:\t{0}".format(self.numReplicates))

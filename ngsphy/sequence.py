@@ -184,7 +184,7 @@ class SequenceGenerator:
 		fastaoutputext="\t[fastaextension] fasta"
 		output=[]; outputext=[]
 		settings=False
-		for indexControl in xrange(0, len(controllines)):
+		for indexControl in range(0, len(controllines)):
 			data=controllines[indexControl].strip()
 			if data=="[SETTINGS]":
 				settings=True
@@ -252,7 +252,7 @@ class SequenceGenerator:
 			self.appLogger.info("Moving back to working directory: {0}".format(cwd))
 			os.chdir(cwd)
 			cpuTime = [line.split(":")[1].split()[0] for line in proc.split('\n') if "* Block" in line]
-			for item in xrange(1,len(cpuTime)):
+			for item in range(1,len(cpuTime)):
 				cpu=cpuTime[(item-1)]
 				output="{0}_{1}".format(self.evolve[1],item )
 				lines+=[item,cpu,output]
