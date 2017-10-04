@@ -21,7 +21,7 @@ def parseMSAFile(fastapath):
 	seqDict=dict()
 	description=""; seq=""; tmp="";count=1
 	with open(fastapath,"r") as fastafile:
-		for line in f:
+		for line in fastafile:
 			if not (line.strip()==''):
 				if line.strip().startswith(">"):
 					seqdata+=[line.strip()]
@@ -76,7 +76,7 @@ def parseMSAFileWithDescriptions(fastapath):
 	description=""; seq=""; tmp="";count=1
 	seqdata=[]
 	with open(fastapath,"r") as fastafile:
-		for line in f:
+		for line in fastafile:
 			if not (line.strip()==''):
 				if line.strip().startswith(">"):
 					seqdata+=[line.strip()]
@@ -112,7 +112,7 @@ def isFasta(filepath):
 	seqDict=dict()
 	description=""; seq=""; tmp="";count=1
 	with open(fastapath,"r") as fastafile:
-		for line in f:
+		for line in fastafile:
 			if not (line.strip()==''):
 				if line.strip().startswith(">"):
 					seqdata+=[line.strip()]
