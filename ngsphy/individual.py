@@ -250,8 +250,8 @@ class IndividualAssignment:
 			)
 			numFastaFiles=0;numGeneTrees=0
 			# check composition of the current indexREP folder
-			numFastaFiles=glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix))
-			numGeneTrees=glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix))
+			numFastaFiles=len(glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix)))
+			numGeneTrees=len(glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			self.numLociPerReplicate[indexREP-1]=numFastaFiles
 			self.appLogger.info("Number of fasta files:\t{0}".format(numFastaFiles))
 			self.numLociPerReplicateDigits[indexREP-1]=len(str(numFastaFiles))
@@ -259,11 +259,11 @@ class IndividualAssignment:
 				# Do not have fasta files from the given replicate to work, I'll skip it.
 				self.appLogger.warning(\
 					"Replicate {0}({1}): It is not possible to do the mating for this replicate".format(indexREP, curReplicatePath))
-				self.appLogger.warning(\
-					"There are no sequences o there is a missmatch between the number of trees and the number of sequences in the folder.")
 				return False, "Please verify. Exiting."
 			if (numGeneTrees<1):
 				return False,"Trying to mate sequences, but there are no gene tree files to back that up. Please, finish the SimPhy run and try again afterwards."
+			if not numGeneTrees == numFastaFiles:
+				return False, "There are no sequences o there is a missmatch between the number of trees and the number of sequences in the folder."
 		return True,"Got number of gene trees per species trees"
 
 	def iteratingOverReplicates(self):
