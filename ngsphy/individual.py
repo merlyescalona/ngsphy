@@ -776,12 +776,17 @@ class IndividualAssignment:
 			del seqDict[tag][pair1]
 			if not sp== "0": del seqDict[tag][pair2]
 
-		if not seqDict[tag]=={}:
-			self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
-			self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format(\
-				seqDict[tag].keys(), sp))
-			for item in seqDict[tag].keys():
-				del seqDict[sp][item]
+		for currentInd in xrange(0,len(matingTable)):
+			# Extracting info from the dictionary
+			sp=str(matingTable[currentInd][1])
+			lt=str(matingTable[currentInd][2])
+			tag="{0}_{1}".format(sp,lt)
+			if not seqDict[tag]=={}:
+				self.appLogger.warning("Number of individuals (sequences) generated per species is odd.")
+				self.appLogger.warning("Sequence {0} from species {1} will not be paired.".format(\
+					seqDict[tag].keys(), sp))
+				for item in seqDict[tag].keys():
+					del seqDict[sp][item]
 
 		return None
 
