@@ -240,7 +240,6 @@ class IndividualAssignment:
 		Existence of fasta files.
 		"""
 		for indexREP in self.filteredReplicates:
-			self.appLogger.info("Checking data: Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
 				self.settings.basepath,\
 				"{0:0{1}d}".format(\
@@ -253,7 +252,7 @@ class IndividualAssignment:
 			numFastaFiles=len(glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			numGeneTrees=len(glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			self.numLociPerReplicate[indexREP-1]=numFastaFiles
-			self.appLogger.info("Number of fasta files:\t{0}".format(numFastaFiles))
+			self.appLogger.info("Checking - ReplicateID/numberOfWorkingReplicates [numberOfFiles]... {0}/{1} [{2}]".format(indexREP, len(self.filteredReplicates), numFastaFiles))
 			self.numLociPerReplicateDigits[indexREP-1]=len(str(numFastaFiles))
 			if (numFastaFiles<1):
 				# Do not have fasta files from the given replicate to work, I'll skip it.
@@ -287,6 +286,7 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
+		self.appLogger.info("Generating individuals (replicateID/numberOfReplicates)...")
 		for indexREP in self.filteredReplicates:
 			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
@@ -304,13 +304,10 @@ class IndividualAssignment:
 				)\
 			)
 			# iterating over the number of gts per st
-			self.appLogger.info("Generating individuals...")
 			matingTable=self.generateMatingTable(indexREP)
 			self.writeMatingTable(indexREP,matingTable)
 
 			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
-				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
-				self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
 				# parsingMSA file
 				fastapath=os.path.join(\
 					self.settings.basepath,
@@ -342,6 +339,7 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "relation table" as well as the file with the individuals's sequences.
 		"""
+		sself.appLogger.info("Generating individuals (replicateID/numberOfReplicates)...")
 		for indexREP in self.filteredReplicates:
 			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
@@ -349,12 +347,10 @@ class IndividualAssignment:
 				"{0:0{1}d}".format(indexREP, self.numReplicateDigits)
 			)
 			# iterating over the number of gts per st
-			self.appLogger.info("Generating individuals...")
 			individualTable=self.generateIndividualTable(indexREP)
 			self.writeIndividualTable(indexREP,individualTable)
 			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
-				self.appLogger.debug("Number of FASTA file: {0}".format(indexLOC))
 				# parsingMSA file
 				self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
 				fastapath=os.path.join(\
@@ -409,6 +405,7 @@ class IndividualAssignment:
 		"""
 		# get first gt of the st to get the descriptions
 		indexLOC=1
+		self.appLogger.info("Generating mating table for replicate {0}".format(indexREP))
 		self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
 		fastapath=os.path.join(\
 			self.settings.basepath,\
@@ -699,7 +696,7 @@ class IndividualAssignment:
 		Generates:
 		- A set of files, as many as individuals were described in the table.
 		"""
-		self.appLogger.info("Generating mating table for replicate:  {0}\tloci: {1} ".format(indexREP-1, indexLOC))
+		self.appLogger.info("Generating individuals for replicate:  {0}\tloci: {1} ".format(indexREP, indexLOC))
 		# Proper mating
 		seqDict=copy.deepcopy(sequenceDictionary)
 		species=seqDict.keys()
@@ -802,10 +799,10 @@ class IndividualAssignment:
 			FALSE if it has indel, meaning dataset is INCORRECT for processing.
 
 		"""
-		self.appLogger.debug("Checking for indels...")
+		self.appLogger.info("Checking for indels...")
 		indelsList=[];status=True;message=""
 		for indexREP in self.filteredReplicates:
-			self.appLogger.info("indexREP: {0}".format(indexREP))
+			self.appLogger.info("ReplicateID: {0}".format(indexREP))
 			genomicdata=""
 			for indexLOC in xrange(1,self.numLociPerReplicate[indexREP-1]+1):
 				self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(indexREP, indexLOC))
