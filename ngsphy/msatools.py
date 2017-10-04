@@ -111,7 +111,7 @@ def isFasta(filepath):
 	seqdata=[]
 	seqDict=dict()
 	description=""; seq=""; tmp="";count=1
-	with open(fastapath,"r") as fastafile:
+	with open(filepath,"r") as fastafile:
 		for line in fastafile:
 			if not (line.strip()==''):
 				if line.strip().startswith(">"):
