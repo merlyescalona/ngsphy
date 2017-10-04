@@ -15,9 +15,8 @@ The documentation is available [here](https://github.com/merlyescalona/ngsphy/wi
 
 ## Citation
 
-If you use NGSphy, please cite:
-
-- Escalona, M, Rocha S and Posada D. *NGSphy: phylogenomic simulation of NGS data*. bioRxiv 197715; doi: https://doi.org/10.1101/197715
+- If you use NGSphy, please cite:
+    - Escalona, M, Rocha S and Posada D. *NGSphy: phylogenomic simulation of NGS data*. bioRxiv 197715; doi: https://doi.org/10.1101/197715
 
 - if running ART cite also:
     - Huang W, Li L, Myers JR and Marth, GT. (2012) *ART: a next-generation sequencing read simulator*. Bioinformatics  28 (4): 593-594

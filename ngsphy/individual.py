@@ -331,6 +331,7 @@ class IndividualAssignment:
 					self.appLogger.warning("OS error: {0}".format(err))
 					self.appLogger.debug("Folder {0} exists.".format(outputFolder))
 				# generating and writing mating table
+				self.appLogger.info("Generating individuals for replicate:\t{0} ".format(indexREP))
 				self.mate(indexREP,indexLOC,matingTable,seqDict)
 
 	def iterationHaploid(self):
@@ -339,7 +340,7 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "relation table" as well as the file with the individuals's sequences.
 		"""
-		sself.appLogger.info("Generating individuals (replicateID/numberOfReplicates)...")
+		self.appLogger.info("Generating individuals (replicateID/numberOfReplicates)...")
 		for indexREP in self.filteredReplicates:
 			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
 			curReplicatePath=os.path.join(\
@@ -696,7 +697,6 @@ class IndividualAssignment:
 		Generates:
 		- A set of files, as many as individuals were described in the table.
 		"""
-		self.appLogger.info("Generating individuals for replicate:  {0}\tloci: {1} ".format(indexREP, indexLOC))
 		# Proper mating
 		seqDict=copy.deepcopy(sequenceDictionary)
 		species=seqDict.keys()
