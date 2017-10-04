@@ -11,8 +11,6 @@ import reads as ngs
 import readcounts as rc
 import rerooter as rr
 from select import select
-import memory_profiler,psutil
-from memory_profiler import profile
 class NGSphyException(Exception):
     """
     Exception raised for errors of the NGSphy program.
@@ -71,7 +69,6 @@ class NGSphy:
     	else:
     		self.settingsFile=os.path.abspath(os.path.join(os.getcwd(),"settings.txt"))
 
-    @profile
     def run(self):
         """
         Execution of the process flow.
