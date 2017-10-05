@@ -284,9 +284,9 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals (replicateID/numberOfReplicates)...")
+		self.appLogger.info("Generating individuals: replicateID [numLoci])...")
 		for indexREP in self.filteredReplicates:
-			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
+			self.appLogger.info("Generating individuals for replicate:\t{0} [{1}] ".format(indexREP,self.numLociPerReplicate[indexREP-1]+1))
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
 				"{0:0{1}d}".format(\
@@ -329,7 +329,6 @@ class IndividualAssignment:
 					self.appLogger.warning("OS error: {0}".format(err))
 					self.appLogger.debug("Folder {0} exists.".format(outputFolder))
 				# generating and writing mating table
-				self.appLogger.info("Generating individuals for replicate:\t{0} ".format(indexREP))
 				self.mate(indexREP,indexLOC,matingTable,seqDict)
 
 	def iterationHaploid(self):
@@ -338,9 +337,9 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "relation table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals (replicateID/numberOfReplicates)...")
+		self.appLogger.info("Generating individuals: replicateID [numLoci])...")
 		for indexREP in self.filteredReplicates:
-			self.appLogger.info("Iterating over replicates... {0}/{1}".format(indexREP, len(self.filteredReplicates)))
+			self.appLogger.info("Generating individuals for replicate:\t{0} [{1}] ".format(indexREP,self.numLociPerReplicate[indexREP-1]+1))
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,
 				"{0:0{1}d}".format(indexREP, self.numReplicateDigits)
@@ -349,7 +348,6 @@ class IndividualAssignment:
 			individualTable=self.generateIndividualTable(indexREP)
 			self.writeIndividualTable(indexREP,individualTable)
 			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
-				self.appLogger.info("Iterating over loci... {0}/{1}".format(indexLOC+1, self.numLociPerReplicate[indexREP-1]))
 				# parsingMSA file
 				self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
 				fastapath=os.path.join(\
