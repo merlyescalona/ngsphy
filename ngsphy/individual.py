@@ -286,7 +286,7 @@ class IndividualAssignment:
 		"""
 		self.appLogger.info("Generating individuals: replicateID [numLoci])...")
 		for indexREP in self.filteredReplicates:
-			self.appLogger.info("Generating individuals for replicate:\t{0} [{1}] ".format(indexREP,self.numLociPerReplicate[indexREP-1]+1))
+			self.appLogger.info("Generating individuals for replicate:\t{0} [{1}] ".format(indexREP,self.numLociPerReplicate[indexREP-1]))
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
 				"{0:0{1}d}".format(\
@@ -588,7 +588,6 @@ class IndividualAssignment:
 					mates+=[pair]
 					self.appLogger.debug("Pair generated: {0}".format(pair))
 		self.numIndividualsPerReplicate[indexREP-1]=len(mates)
-		print(mates)
 		return mates
 
 	def generateMatingTableFromDB(self,indexREP):
