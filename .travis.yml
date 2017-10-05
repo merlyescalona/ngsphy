@@ -23,7 +23,7 @@ matrix:
                 - export PATH=$PATH:$(pwd)/art_src_MountRainier_Linux/
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
-                - sudo cpan install Math::GSL
+                - sudo cpan install Test::Taint Math::GSL
         -   os: osx
             before_install:
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.1.tar.gz
