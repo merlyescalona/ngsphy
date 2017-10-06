@@ -465,8 +465,8 @@ class CoverageMatrixGenerator:
 		"""
 		message=""
 		status=True;
+		self.appLogger.info("Coverage calculations...}")
 		for indexRep in self.filteredReplicates:
-			self.appLogger.info("Coverage calculations for replicate {0}/{1}".format(indexRep,len(self.filteredReplicates)))
 			nInds=self.numIndividualsPerReplicate[indexRep-1]
 			nLoci=self.numLociPerReplicate[indexRep-1]
 			# expectedCoverage=self.experiment.value(nInds*nLoci)
@@ -477,7 +477,7 @@ class CoverageMatrixGenerator:
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
-			self.appLogger.debug("Rep {0}/{1} - Matrix dimensions: ({2},{3})".format(indexRep,len(self.filteredReplicates), nInds, nLoci))
+			self.appLogger.info("Rep {0}/{1} - Matrix ({2},{3})".format(indexRep,len(self.filteredReplicates), nInds, nLoci))
 			try:
 				if self.settings.locus:
 					self.appLogger.debug("Locus-wide multipliers")

@@ -237,6 +237,8 @@ class IndividualAssignment:
 		Checks the data files within the  replicates.
 		Existence of fasta files.
 		"""
+		self.appLogger.info("Checking - ReplicateID/numberOfWorkingReplicates [numberOfFiles]... ")
+
 		for indexREP in self.filteredReplicates:
 			curReplicatePath=os.path.join(\
 				self.settings.basepath,\
@@ -250,7 +252,7 @@ class IndividualAssignment:
 			numFastaFiles=len(glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			numGeneTrees=len(glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			self.numLociPerReplicate[indexREP-1]=numFastaFiles
-			self.appLogger.info("Checking - ReplicateID/numberOfWorkingReplicates [numberOfFiles]... {0}/{1} [{2}]".format(indexREP, len(self.filteredReplicates), numFastaFiles))
+			self.appLogger.info(" Replicate: {0}/{1} [{2}]".format(indexREP, len(self.filteredReplicates), numFastaFiles))
 			self.numLociPerReplicateDigits[indexREP-1]=len(str(numFastaFiles))
 			if (numFastaFiles<1):
 				# Do not have fasta files from the given replicate to work, I'll skip it.
@@ -286,7 +288,6 @@ class IndividualAssignment:
 		"""
 		self.appLogger.info("Generating individuals: replicateID [numLoci])...")
 		for indexREP in self.filteredReplicates:
-			self.appLogger.info("Generating individuals for replicate:\t{0} [{1}] ".format(indexREP,self.numLociPerReplicate[indexREP-1]))
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
 				"{0:0{1}d}".format(\
@@ -294,13 +295,12 @@ class IndividualAssignment:
 					self.numReplicateDigits\
 				)\
 			)
-			self.appLogger.info(\
-				"Replicate {0}/{2} ({1})".format(\
-					indexREP,\
-					curReplicatePath,\
-					self.numReplicates\
-				)\
-			)
+			self.appLogger.info("Replicate:\t{0}/{1} [{2}] (3) ".format(\
+				indexREP,\
+				len(self.filteredReplicates),\
+				self.numLociPerReplicate[indexREP-1],\
+				curReplicatePath\
+			))
 			# iterating over the number of gts per st
 			matingTable=self.generateMatingTable(indexREP)
 			self.writeMatingTable(indexREP,matingTable)
