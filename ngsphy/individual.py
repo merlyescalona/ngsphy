@@ -345,7 +345,11 @@ class IndividualAssignment:
 				"{0:0{1}d}".format(indexREP, self.numReplicateDigits)
 			)
 			# iterating over the number of gts per st
-			individualTable=self.generateIndividualTable(indexREP)
+			individualTable=None
+			if (self.inputmode < 4):
+				individualTable=self.generateIndividualTable(indexREP)
+			else:
+				individualTable=self.generateMatingTableFromDB(indexREP)
 			self.writeIndividualTable(indexREP,individualTable)
 			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
 				# parsingMSA file

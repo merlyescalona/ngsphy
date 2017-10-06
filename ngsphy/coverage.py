@@ -477,6 +477,7 @@ class CoverageMatrixGenerator:
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
+			self.appLogger.debug("Rep {0}/{1} - Matrix dimensions: ({2},{3})".format(indexRep,len(self.filteredReplicates, nInds, nLoci)))
 			try:
 				if self.settings.locus:
 					self.appLogger.debug("Locus-wide multipliers")
