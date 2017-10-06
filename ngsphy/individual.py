@@ -346,7 +346,7 @@ class IndividualAssignment:
 			)
 			# iterating over the number of gts per st
 			individualTable=None
-			if (self.inputmode < 4):
+			if (self.settings.inputmode < 4):
 				individualTable=self.generateIndividualTable(indexREP)
 			else:
 				individualTable=self.generateMatingTableFromDB(indexREP)
