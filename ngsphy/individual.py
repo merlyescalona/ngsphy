@@ -286,7 +286,7 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals: replicateID [numLoci])...")
+		self.appLogger.info("Generating individuals: replicateID [numLoci] (path))...")
 		for indexREP in self.filteredReplicates:
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
@@ -295,7 +295,7 @@ class IndividualAssignment:
 					self.numReplicateDigits\
 				)\
 			)
-			self.appLogger.info("Replicate:\t{0}/{1} [{2}] (3) ".format(\
+			self.appLogger.info("Replicate:\t{0}/{1} [{2}] ({3}) ".format(\
 				indexREP,\
 				len(self.filteredReplicates),\
 				self.numLociPerReplicate[indexREP-1],\
