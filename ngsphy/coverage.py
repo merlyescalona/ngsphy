@@ -467,7 +467,7 @@ class CoverageMatrixGenerator:
 		status=True;
 		self.appLogger.info("Coverage calculations...}")
 		# for indexRep in self.filteredReplicates:
-		for index in range(0,self.filteredReplicates):
+		for index in range(0,len(self.filteredReplicates)):
 			nInds=self.numIndividualsPerReplicate[index]
 			nLoci=self.numLociPerReplicate[index]
 			# expectedCoverage=self.experiment.value(nInds*nLoci)
