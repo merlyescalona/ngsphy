@@ -466,9 +466,10 @@ class CoverageMatrixGenerator:
 		message=""
 		status=True;
 		self.appLogger.info("Coverage calculations...}")
-		for indexRep in self.filteredReplicates:
-			nInds=self.numIndividualsPerReplicate[indexRep-1]
-			nLoci=self.numLociPerReplicate[indexRep-1]
+		# for indexRep in self.filteredReplicates:
+		for index in range(0,self.filteredReplicates):
+			nInds=self.numIndividualsPerReplicate[index]
+			nLoci=self.numLociPerReplicate[index]
 			# expectedCoverage=self.experiment.value(nInds*nLoci)
 			val=self.experiment.value(1)
 			# self.appLogger.debug(val)
@@ -477,16 +478,21 @@ class CoverageMatrixGenerator:
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
-			self.appLogger.info("Rep {0}/{1} - Matrix ({2},{3})".format(indexRep,len(self.filteredReplicates), nInds, nLoci))
+			self.appLogger.info("Rep ID: - {0}/{1} - Matrix ({2},{3})".format(\
+				self.filteredReplicates[index],\
+				index,\
+				len(self.filteredReplicates),\
+				nInds,\
+				nLoci))
 			try:
 				if self.settings.locus:
 					self.appLogger.debug("Locus-wide multipliers")
-					multipliers=self.locusMultiplier[indexRep-1]
+					multipliers=self.locusMultiplier[index]
 					for loc in range(0,nLoci):
 						coverageMatrix[:, loc]=coverageMatrix[:,loc]*multipliers[loc]
 				if self.settings.individual:
 					self.appLogger.debug("individual-wide multipliers")
-					multipliers=self.individualsMultiplier[indexRep-1]
+					multipliers=self.individualsMultiplier[index]
 					for ind in range(0,nInds):
 						coverageMatrix[ind,:]=coverageMatrix[ind,:]*multipliers[ind]
 			except Exception as ex:
@@ -552,7 +558,7 @@ class CoverageMatrixGenerator:
 					"An unexpected error occurr with the not captured parameter. ",\
 					"Please verify. Exiting.")
 			# print(coverageMatrix)
-			self.write(coverageMatrix,indexRep)
+			self.write(coverageMatrix,self.filteredReplicates[index])
 		return status,message
 
 	def write(self,coverageMatrix,indexRep):
