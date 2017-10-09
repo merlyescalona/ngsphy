@@ -823,18 +823,26 @@ class IndividualAssignment:
 		"""
 		self.appLogger.info("Checking for indels...")
 		indelsList=[];status=True;message=""
-		for indexREP in self.filteredReplicates:
-			self.appLogger.info("ReplicateID: {0}".format(indexREP))
+
+		for index in range(0,len(self.filteredReplicates)):
+			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
+				self.filteredReplicates[index],\
+				index,\
+				len(self.filteredReplicates),\
+				self.numLociPerReplicate[index],\
+				curReplicatePath\
+			))
 			genomicdata=""
-			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
-				self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(indexREP, indexLOC))
+			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
+				self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(\
+					self.filteredReplicates[index], indexLOC))
 				fastapath=os.path.join(
 					self.settings.basepath,\
-					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
 					"{0}_{1:0{2}d}_TRUE.fasta".format(\
 						self.settings.simphyDataPrefix,\
 						indexLOC,\
-						self.numLociPerReplicateDigits[indexREP-1]\
+						self.numLociPerReplicateDigits[index]\
 					)\
 				)
 				genomicdata=None
