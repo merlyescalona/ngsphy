@@ -166,7 +166,7 @@ class IndividualAssignment:
 		------------------------------------------------------------------------
 		Returns: a list with the number of loci per species tree replicate
 		"""
-		query="select N_Loci from Species_Trees where SID in ({0})".format(",".join(indices))
+		query="select N_Loci from Species_Trees where SID in ({0})".format(",".join([str(i) for i in indices]))
 		con = sqlite3.connect(self.db)
 		res=con.execute(query).fetchall()
 		con.close()
