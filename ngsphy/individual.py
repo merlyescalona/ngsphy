@@ -86,7 +86,7 @@ class IndividualAssignment:
 			# BASEPATH -> FOLDER WHERE SIMPHY FOLDER IS
 			if self.settings.simphyFilter:
 				self.filteredReplicates=self.filterReplicatesMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
-				self.numLociPerReplicate=[item for item in self.filteredReplicates if item in self.numLociPerReplicate]
+				self.numLociPerReplicate=self.getSimPhyNumLociPerSpeciesTreeFiltered(self.filteredReplicates)
 				self.numLociPerReplicateDigits=[len(str(a))for a in self.numLociPerReplicate]
 			else:
 				# check ploidy matches given data
@@ -153,6 +153,20 @@ class IndividualAssignment:
 		Returns: a list with the number of loci per species tree replicate
 		"""
 		query="select N_Loci from Species_Trees"
+		con = sqlite3.connect(self.db)
+		res=con.execute(query).fetchall()
+		con.close()
+		res=[item for sublist in res for item in sublist]
+		return res
+
+	def getSimPhyNumLociPerSpeciesTreeFiltered(self, indices):
+		"""
+		Retrieves information of number of loci per species from the SimPhy
+		database.
+		------------------------------------------------------------------------
+		Returns: a list with the number of loci per species tree replicate
+		"""
+		query="select N_Loci from Species_Trees where SID in ({0})".format(",".join(indices))
 		con = sqlite3.connect(self.db)
 		res=con.execute(query).fetchall()
 		con.close()
