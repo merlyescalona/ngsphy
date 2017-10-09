@@ -267,9 +267,9 @@ class IndividualAssignment:
 			numFastaFiles=len(glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			numGeneTrees=len(glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			self.numLociPerReplicate[index]=numFastaFiles
-			self.appLogger.info(" ReplicateID {0} - {1}/{2} [{3}]".format(\
+			self.appLogger.info("ReplicateID {0} - {1}/{2} [{3}]".format(\
 				self.filteredReplicates[index],\
-				index,\
+				index+1,\
 			 	len(self.filteredReplicates),\
 				numFastaFiles))
 			self.numLociPerReplicateDigits[index]=len(str(numFastaFiles))
@@ -317,7 +317,7 @@ class IndividualAssignment:
 			)
 			self.appLogger.info("ReplicateID {0} - {1}/{2} [{3}] ({4}) ".format(\
 				self.filteredReplicates[index],\
-				index,\
+				index+1,\
 				len(self.filteredReplicates),\
 				self.numLociPerReplicate[index],\
 				curReplicatePath\
@@ -367,7 +367,7 @@ class IndividualAssignment:
 			)
 			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
 				self.filteredReplicates[index],\
-				index,\
+				index+1,\
 				len(self.filteredReplicates),\
 				self.numLociPerReplicate[index],\
 				curReplicatePath\
@@ -579,7 +579,7 @@ class IndividualAssignment:
 			"{0}_{1:0{2}d}.fasta".format(\
 				self.settings.simphyDataPrefix,\
 				1,\
-				self.numLociPerReplicateDigits[indexREP-1]))
+				self.numLociPerReplicateDigits[self.filteredReplicates.index(indexREP)]))
 		self.appLogger.debug("Reading file: {0}".format(filename))
 		leaves=None
 		with open(filename,"r") as f:
@@ -619,7 +619,7 @@ class IndividualAssignment:
 					pair=(indexREP,sp,lt,p1,p2)
 					mates+=[pair]
 					self.appLogger.debug("Pair generated: {0}".format(pair))
-		self.numIndividualsPerReplicate[indexREP-1]=len(mates)
+		self.numIndividualsPerReplicate[self.filteredReplicates.index(indexREP)]=len(mates)
 		return mates
 
 	def generateMatingTableFromDB(self,indexREP):
@@ -825,9 +825,9 @@ class IndividualAssignment:
 		indelsList=[];status=True;message=""
 
 		for index in range(0,len(self.filteredReplicates)):
-			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ".format(\
+			self.appLogger.info("ReplicateID {0} - {1}/{2} [{3}] ".format(\
 				self.filteredReplicates[index],\
-				index,\
+				index+1,\
 				len(self.filteredReplicates),\
 				self.numLociPerReplicate[index]
 			))

@@ -465,7 +465,7 @@ class CoverageMatrixGenerator:
 		"""
 		message=""
 		status=True;
-		self.appLogger.info("Coverage calculations...}")
+		self.appLogger.info("Coverage calculations...")
 		# for indexRep in self.filteredReplicates:
 		for index in range(0,len(self.filteredReplicates)):
 			nInds=self.numIndividualsPerReplicate[index]
@@ -478,9 +478,9 @@ class CoverageMatrixGenerator:
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
-			self.appLogger.info("Rep ID: - {0}/{1} - Matrix ({2},{3})".format(\
+			self.appLogger.info("ReplicateID: {0} - {1}/{2} - Matrix ({3},{4})".format(\
 				self.filteredReplicates[index],\
-				index,\
+				index+1,\
 				len(self.filteredReplicates),\
 				nInds,\
 				nLoci))
