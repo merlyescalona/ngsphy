@@ -244,7 +244,7 @@ class IndividualAssignment:
 			curReplicatePath=os.path.join(\
 				self.settings.basepath,\
 				"{0:0{1}d}".format(\
-					indexREP,\
+					self.filteredReplicates[index],\
 					self.numReplicateDigits\
 				)\
 			)
@@ -252,7 +252,7 @@ class IndividualAssignment:
 			# check composition of the current indexREP folder
 			numFastaFiles=len(glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			numGeneTrees=len(glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix)))
-			self.numLociPerReplicate[indexREP-1]=numFastaFiles
+			self.numLociPerReplicate[index]=numFastaFiles
 			self.appLogger.info(" ReplicateID {0} - {1}/{2} [{3}]".format(\
 				self.filteredReplicates[index],\
 				index,\
