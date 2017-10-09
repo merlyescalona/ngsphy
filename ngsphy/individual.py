@@ -80,20 +80,21 @@ class IndividualAssignment:
 			self.db = os.path.join(\
 				self.settings.basepath,\
 				"{0}.db".format(self.settings.projectName))
+
+			self.numLociPerReplicate=self.getSimPhyNumLociPerSpeciesTree()
+			self.numLociPerReplicateDigits=[len(str(a))for a in self.numLociPerReplicate]
 			# BASEPATH -> FOLDER WHERE SIMPHY FOLDER IS
 			if self.settings.simphyFilter:
 				self.filteredReplicates=self.filterReplicatesMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
+				self.numLociPerReplicate=[item for item in self.filteredReplicates if item in self.numLociPerReplicate]
+				self.numLociPerReplicateDigits=[len(str(a))for a in self.numLociPerReplicate]
 			else:
 				# check ploidy matches given data
 				status,message=self.checkPloidySimPhyData()
 				if not status: return status,message
  			# check that the species tree replicate folder have the correct data
 			gtperstOK,message=self.checkDataWithinReplicates()
-			if (not gtperstOK):
-				return gtperstOK,message
-			self.numLociPerReplicate=self.getSimPhyNumLociPerSpeciesTree()
-			self.numLociPerReplicateDigits=[len(str(a))for a in self.numLociPerReplicate]
-
+			if (not gtperstOK): return gtperstOK,message
 			self.settings.parser.set(\
 				"general",\
 				"numLociPerReplicate",\
@@ -237,9 +238,9 @@ class IndividualAssignment:
 		Checks the data files within the  replicates.
 		Existence of fasta files.
 		"""
-		self.appLogger.info("Checking - ReplicateID/numberOfWorkingReplicates [numberOfFiles]... ")
-
-		for indexREP in self.filteredReplicates:
+		self.appLogger.info("Checking replicate data: ReplicateID - currentReplicate/numberOfWorkingReplicates [numberOfFiles]")
+		# for indexREP in self.filteredReplicates:
+		for index in range(0,len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.basepath,\
 				"{0:0{1}d}".format(\
@@ -252,12 +253,16 @@ class IndividualAssignment:
 			numFastaFiles=len(glob.glob("{0}/{1}_*_TRUE*".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			numGeneTrees=len(glob.glob("{0}/g_trees*.trees".format(curReplicatePath, self.settings.simphyDataPrefix)))
 			self.numLociPerReplicate[indexREP-1]=numFastaFiles
-			self.appLogger.info(" Replicate: {0}/{1} [{2}]".format(indexREP, len(self.filteredReplicates), numFastaFiles))
-			self.numLociPerReplicateDigits[indexREP-1]=len(str(numFastaFiles))
+			self.appLogger.info(" ReplicateID {0} - {1}/{2} [{3}]".format(\
+				self.filteredReplicates[index],\
+				index,\
+			 	len(self.filteredReplicates),\
+				numFastaFiles))
+			self.numLociPerReplicateDigits[index]=len(str(numFastaFiles))
 			if (numFastaFiles<1):
 				# Do not have fasta files from the given replicate to work, I'll skip it.
 				self.appLogger.warning(\
-					"Replicate {0}({1}): It is not possible to do the mating for this replicate".format(indexREP, curReplicatePath))
+					"Replicate {0}({1}): It is not possible to do the mating for this replicate".format(self.filteredReplicates[index], curReplicatePath))
 				return False, "Please verify. Exiting."
 			if (numGeneTrees<1):
 				return False,"Trying to mate sequences, but there are no gene tree files to back that up. Please, finish the SimPhy run and try again afterwards."
@@ -296,7 +301,7 @@ class IndividualAssignment:
 					self.numReplicateDigits\
 				)\
 			)
-			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
+			self.appLogger.info("ReplicateID {0} - {1}/{2} [{3}] ({4}) ".format(\
 				self.filteredReplicates[index],\
 				index,\
 				len(self.filteredReplicates),\
