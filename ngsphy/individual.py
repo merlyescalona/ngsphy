@@ -825,12 +825,11 @@ class IndividualAssignment:
 		indelsList=[];status=True;message=""
 
 		for index in range(0,len(self.filteredReplicates)):
-			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
+			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ".format(\
 				self.filteredReplicates[index],\
 				index,\
 				len(self.filteredReplicates),\
-				self.numLociPerReplicate[index],\
-				curReplicatePath\
+				self.numLociPerReplicate[index]
 			))
 			genomicdata=""
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
