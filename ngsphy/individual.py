@@ -286,41 +286,43 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals: replicateID [numLoci] (path))...")
-		for indexREP in self.filteredReplicates:
+		self.appLogger.info("Generating individuals: replicateID - currentReplicate/totalNumReplicates [numLoci] (path)...")
+		# for indexREP in self.filteredReplicates:
+		for index in range(0,len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
 				"{0:0{1}d}".format(\
-					indexREP,\
+					self.filteredReplicates[index],\
 					self.numReplicateDigits\
 				)\
 			)
-			self.appLogger.info("Replicate:\t{0}/{1} [{2}] ({3}) ".format(\
-				indexREP,\
+			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
+				self.filteredReplicates[index],\
+				index,\
 				len(self.filteredReplicates),\
-				self.numLociPerReplicate[indexREP-1],\
+				self.numLociPerReplicate[index],\
 				curReplicatePath\
 			))
 			# iterating over the number of gts per st
 			matingTable=self.generateMatingTable(indexREP)
 			self.writeMatingTable(indexREP,matingTable)
 
-			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
 				fastapath=os.path.join(\
 					self.settings.basepath,
-					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
 					"{0}_{1:0{2}d}.fasta".format(\
 						self.settings.simphyDataPrefix,\
 						indexLOC,\
-						self.numLociPerReplicateDigits[indexREP-1]
+						self.numLociPerReplicateDigits[index]
 					)\
 				)
 				seqDict=parseMSAFile(fastapath)
 				outputFolder=os.path.join(
 					self.settings.individualsFolderPath,\
 					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
-					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])\
+					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
 				)
 				try:
 					self.appLogger.debug("Output folder: {0}".format(outputFolder))
@@ -329,7 +331,7 @@ class IndividualAssignment:
 					self.appLogger.warning("OS error: {0}".format(err))
 					self.appLogger.debug("Folder {0} exists.".format(outputFolder))
 				# generating and writing mating table
-				self.mate(indexREP,indexLOC,matingTable,seqDict)
+				self.mate(self.filteredReplicates[index],indexLOC,matingTable,seqDict)
 
 	def iterationHaploid(self):
 		"""
@@ -337,30 +339,37 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "relation table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals: replicateID [numLoci])...")
-		for indexREP in self.filteredReplicates:
-			self.appLogger.info("Generating individuals for replicate:\t{0} [{1}] ".format(indexREP,self.numLociPerReplicate[indexREP-1]+1))
+		self.appLogger.info("Generating individuals: replicateID - currentReplicate/totalNumReplicates [numLoci] (path)...")
+		# for indexREP in self.filteredReplicates:
+		for index in range(0, len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,
-				"{0:0{1}d}".format(indexREP, self.numReplicateDigits)
+				"{0:0{1}d}".format(self.filteredReplicates[index], self.numReplicateDigits)
 			)
+			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
+				self.filteredReplicates[index],\
+				index,\
+				len(self.filteredReplicates),\
+				self.numLociPerReplicate[index],\
+				curReplicatePath\
+			))
 			# iterating over the number of gts per st
 			individualTable=None
 			if (self.settings.inputmode < 4):
-				individualTable=self.generateIndividualTable(indexREP)
+				individualTable=self.generateIndividualTable(self.filteredReplicates[index])
 			else:
-				individualTable=self.generateMatingTableFromDB(indexREP)
-			self.writeIndividualTable(indexREP,individualTable)
-			for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+				individualTable=self.generateMatingTableFromDB(self.filteredReplicates[index])
+			self.writeIndividualTable(self.filteredReplicates[index],individualTable)
+			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
-				self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
+				self.appLogger.debug("Using REP={0}, LOC={1}".format(self.filteredReplicates[index],indexLOC))
 				fastapath=os.path.join(\
 					self.settings.basepath,\
-					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
 					"{0}_{1:0{2}d}.fasta".format(\
 						self.settings.simphyDataPrefix,\
 						indexLOC,\
-						self.numLociPerReplicateDigits[indexREP-1]
+						self.numLociPerReplicateDigits[index]
 					)\
 				)
 				seqDict=parseMSAFileWithDescriptions(fastapath)
@@ -374,15 +383,15 @@ class IndividualAssignment:
 				################################################################
 				outputFolder=os.path.join(
 					self.settings.individualsFolderPath,\
-					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
-					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])\
+					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
 				)
 				outputFolder=os.path.join(\
 					self.settings.individualsFolderPath,\
-					"{0:0{1}d}".format(indexREP, self.numReplicateDigits),\
+					"{0:0{1}d}".format(self.filteredReplicates[index], self.numReplicateDigits),\
 					"{0:0{1}d}".format(\
 						indexLOC,\
-						self.numLociPerReplicateDigits[indexREP-1])\
+						self.numLociPerReplicateDigits[index])\
 				)
 				try:
 					self.appLogger.debug("Output folder: {0}".format(outputFolder))
@@ -391,7 +400,7 @@ class IndividualAssignment:
 					self.appLogger.warning("OS error: {0}".format(err))
 					self.appLogger.debug("Folder {0} exists.".format(outputFolder))
 				# generating and writing mating table
-				self.generateIndividuals(indexREP,indexLOC,individualTable,seqDict)
+				self.generateIndividuals(self.filteredReplicates[index],indexLOC,individualTable,seqDict)
 
 	def generateIndividualTable(self,indexREP):
 		"""
