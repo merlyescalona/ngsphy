@@ -321,7 +321,7 @@ class IndividualAssignment:
 				seqDict=parseMSAFile(fastapath)
 				outputFolder=os.path.join(
 					self.settings.individualsFolderPath,\
-					"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
 					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
 				)
 				try:
