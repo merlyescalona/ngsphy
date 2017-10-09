@@ -504,7 +504,7 @@ class CoverageMatrixGenerator:
 				return False, message
 			# taxonomic variation
 			# I need the file with the realtion of the individuals
-			# dont car if haploid or diploid because ill only need the first 3 columns
+			# dont car if haploid or diploid because ill only need the first 3 columnsg
 			# which match in both cases
 			if self.settings.taxon:
 				self.appLogger.debug("Taxon-specific multipliers")
@@ -512,7 +512,7 @@ class CoverageMatrixGenerator:
 					self.settings.tablesFolderPath,
 					"{0}.{1:0{2}d}.individuals.csv".format(\
 						self.settings.projectName,\
-						indexRep,\
+						self.filteredReplicates[index],\
 						self.numReplicateDigits)
 					)
 				individualsTable=None
