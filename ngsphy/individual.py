@@ -304,8 +304,8 @@ class IndividualAssignment:
 				curReplicatePath\
 			))
 			# iterating over the number of gts per st
-			matingTable=self.generateMatingTable(indexREP)
-			self.writeMatingTable(indexREP,matingTable)
+			matingTable=self.generateMatingTable(self.filteredReplicates[index])
+			self.writeMatingTable(self.filteredReplicates[index],matingTable)
 
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
