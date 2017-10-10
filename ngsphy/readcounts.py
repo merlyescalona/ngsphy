@@ -133,9 +133,9 @@ class ReadCounts:
 		self.settings=settings
 
 		self.numReplicates=self.settings.parser.getint("general", "numreplicates")
-		cc=self.settings.parser.get("general", "numLociPerReplicate").strip().split(",")
+		cc=self.settings.parser.get("general", "numlociperreplicate").strip().split(",")
 		self.numLociPerReplicate=[ int(item) for item in cc if not item ==""]
-		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
+		cc=self.settings.parser.get("general", "numindividualsperreplicate").strip().split(",")
 		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
 		self.numReplicatesDigits=len(str(self.numReplicates))
 		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicate]

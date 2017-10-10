@@ -60,11 +60,11 @@ class IndividualAssignment:
 			# that the numLociPerReplicate option is set up.
 			status,message=self.checkPloidyTreeRelation()
 			if not status: return status,message
-			if not self.settings.parser.has_option("general","numLociPerReplicate"):
+			if not self.settings.parser.has_option("general","numlociperreplicate"):
 				self=numLociPerReplicate=[1]
 			else:
 				self.numLociPerReplicate=[\
-					self.settings.parser.getint("general","numLociPerReplicate")]
+					self.settings.parser.getint("general","numlociperreplicate")]
 			self.numLociPerReplicateDigits=[len(str(self.numLociPerReplicate[0]))]
 		elif self.settings.inputmode==4:
 			####################################################################
@@ -97,7 +97,7 @@ class IndividualAssignment:
 			if (not gtperstOK): return gtperstOK,message
 			self.settings.parser.set(\
 				"general",\
-				"numLociPerReplicate",\
+				"numlociperreplicate",\
 				",".join([str(a) for a in self.numLociPerReplicate]))
 			self.printSimPhyConfiguration()
 		else:
@@ -296,7 +296,7 @@ class IndividualAssignment:
 			self.iterationPolyploid()
 		self.settings.parser.set(\
 			"general",\
-			"numIndividualsPerReplicate",\
+			"numindividualsperreplicate",\
 			",".join([str(a) for a in self.numIndividualsPerReplicate]))
 
 	def iterationPolyploid(self):
@@ -305,7 +305,7 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals: replicateID - currentReplicate/totalNumReplicates [numLoci] (path)...")
+		self.appLogger.info("Generating individuals: replicateID - currentReplicate/numberOfWorkingReplicates [numLoci] (path)...")
 		# for indexREP in self.filteredReplicates:
 		for index in range(0,len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
@@ -358,7 +358,7 @@ class IndividualAssignment:
 		Within each species tree, iterates over the gene trees, generates
 		the "relation table" as well as the file with the individuals's sequences.
 		"""
-		self.appLogger.info("Generating individuals: replicateID - currentReplicate/totalNumReplicates [numLoci] (path)...")
+		self.appLogger.info("Generating individuals: replicateID - currentReplicate/numberOfWorkingReplicates [numLoci] (path)...")
 		# for indexREP in self.filteredReplicates:
 		for index in range(0, len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
@@ -374,6 +374,7 @@ class IndividualAssignment:
 			))
 			# iterating over the number of gts per st
 			individualTable=None
+			self.appLogger.info("Generating individual table")
 			if (self.settings.inputmode < 4):
 				individualTable=self.generateIndividualTable(self.filteredReplicates[index])
 			else:
@@ -433,22 +434,29 @@ class IndividualAssignment:
 		sequence and the corresponding individual identifier.
 		"""
 		# get first gt of the st to get the descriptions
-		indexLOC=1
-		self.appLogger.info("Generating mating table for replicate {0}".format(indexREP))
-		self.appLogger.debug("Using REP={0}, LOC={1}".format(indexREP,indexLOC))
+		indexLOC=1;
+		index=self.filteredReplicates.index(indexREP)
+		self.appLogger.info("ReplicateID {0} - {1}/{2} [Locus {3}]".format(\
+			indexREP,
+			index,\
+			len(self.filteredReplicates),\
+			indexLOC\
+			))
 		fastapath=os.path.join(\
 			self.settings.basepath,\
-			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
+			"{0:0{1}d}".format(\
+				self.filteredReplicates[index],\
+				self.numReplicateDigits),\
 			"{0}_{1:0{2}d}_TRUE.fasta".format(\
 				self.settings.simphyDataPrefix,\
 				indexLOC,\
-				self.numLociPerReplicateDigits[indexREP-1]\
+				self.numLociPerReplicateDigits[index]\
 			)\
 		)
 		descriptions=parseMSAFileWithDescriptions(fastapath).keys()
 		descriptions.sort()
 		table=[(item,descriptions[item]) for item in range(0,len(descriptions))]
-		self.numIndividualsPerReplicate[indexREP-1]=len(table)
+		self.numIndividualsPerReplicate[index]=len(table)
 		return table
 
 	def generateIndividuals(self,indexREP,indexLOC,individualTable,seqDict):
@@ -466,17 +474,18 @@ class IndividualAssignment:
 		Generates:
 		- A set of files, as many as individuals were described in the table.
 		"""
+		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.debug(\
 			"{0}/{1} - {2}".format(\
 				indexLOC,\
-				self.numLociPerReplicate[indexREP-1],\
-				self.numLociPerReplicateDigits[indexREP-1]\
+				self.numLociPerReplicate[index],\
+				self.numLociPerReplicateDigits[index]\
 			)\
 		)
 		outputFolder=os.path.join(\
 			self.settings.individualsFolderPath,\
-			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
-			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])
+			"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])
 		)
 		for currentInd in range(0,len(individualTable)):
 			# Extracting info from the dictionary
@@ -488,10 +497,10 @@ class IndividualAssignment:
 			seq=seqDict[description]
 			des=">{0}:{1:0{2}d}:{3:0{4}d}:{5}:{6}:{7}".format(
 				self.settings.projectName,\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits,\
 				indexLOC,\
-				self.numLociPerReplicateDigits[indexREP-1],\
+				self.numLociPerReplicateDigits[index],\
 				self.settings.simphyDataPrefix,\
 				indID,\
 				description[1:len(description)]\
@@ -500,10 +509,10 @@ class IndividualAssignment:
 				outputFolder,\
 				"{0}_{1:0{2}d}_{3:0{4}d}_{5}_{6}.fasta".format(\
 					self.settings.projectName,\
-					indexREP,\
+					self.filteredReplicates[index],\
 					self.numReplicateDigits,\
 					indexLOC,\
-					self.numLociPerReplicateDigits[indexREP-1],\
+					self.numLociPerReplicateDigits[index],\
 					self.settings.simphyDataPrefix,\
 					indID\
 				)\
@@ -524,15 +533,14 @@ class IndividualAssignment:
 		Generates:
 		- File with the table for the indexREP species tree replicate
 		"""
-		self.appLogger.debug("Writing table")
-		# mating table
 		# indexREP,SP,ind-tip1,ind-tip2
+		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.debug("Writing indexes into file...")
 		indexFilename=os.path.join(\
 			self.settings.tablesFolderPath,\
 			"{0}.{1:0{2}d}.individuals.csv".format(\
 				self.settings.projectName,\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits\
 			)\
 		)
@@ -548,7 +556,7 @@ class IndividualAssignment:
 			locusID=seqDescription.strip().split("_")[1]
 			geneID=seqDescription.strip().split("_")[2]
 			indexFile.write("{0:0{1}d},{2},{3},{4},{5}\n".format(\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits,\
 				indID,\
 				speciesID,\
@@ -570,16 +578,17 @@ class IndividualAssignment:
 		Returns:
 		- the mating table
 		"""
+		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.debug("Mating table")
 		filename=os.path.join(\
 			self.settings.basepath,\
 			"{0:0{1}d}".format(\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits),\
 			"{0}_{1:0{2}d}.fasta".format(\
 				self.settings.simphyDataPrefix,\
 				1,\
-				self.numLociPerReplicateDigits[self.filteredReplicates.index(indexREP)]))
+				self.numLociPerReplicateDigits[index]))
 		self.appLogger.debug("Reading file: {0}".format(filename))
 		leaves=None
 		with open(filename,"r") as f:
@@ -619,7 +628,7 @@ class IndividualAssignment:
 					pair=(indexREP,sp,lt,p1,p2)
 					mates+=[pair]
 					self.appLogger.debug("Pair generated: {0}".format(pair))
-		self.numIndividualsPerReplicate[self.filteredReplicates.index(indexREP)]=len(mates)
+		self.numIndividualsPerReplicate[index]=len(mates)
 		return mates
 
 	def generateMatingTableFromDB(self,indexREP):
@@ -635,22 +644,29 @@ class IndividualAssignment:
 		- the mating table
 		"""
 		# missing outgroup
+		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.info("Connecting to the db...")
 		con = sqlite3.connect(self.db)
-		query="select SID, Leaves, Ind_per_sp from Species_Trees WHERE SID={0}".format(indexREP)
+		query="select SID, Leaves, Ind_per_sp from Species_Trees WHERE SID={0}".format(\
+			self.filteredReplicates[index]
+		)
 		res=con.execute(query).fetchone()
 		con.close()
-		indexREP=res[0];leaves=res[1];nIndsPerSp=res[2]
+		leaves=res[1];nIndsPerSp=res[2]
 		# by default there are no outgroups, if there are, this
 		# value will change
 		nInds=leaves/2
 		mates=[]
-		if self.outgroup:
-			mates+=[(indexREP,0,0,0)]
-			nInds=(leaves-1)/2
+		with open(self.command) as command:
+			data=command.readline().strip().split()
+			data=[item.upper() for item in data]
+			if "-SO" in data:
+				mates+=[(self.filteredReplicates[index],0,0,0)]
+				nInds=(leaves-1)/2
 		inds=range(0,nIndsPerSp)
 		species=range(1,leaves)
-		self.appLogger.debug("indexREP: {0} / inds:{1} ".format(indexREP,inds))
+		self.appLogger.debug("indexREP: {0} / inds:{1} ".format(\
+			self.filteredReplicates[index],inds))
 		# I'm always assuming there's an outgroup
 		for sp in species:
 			t=copy.deepcopy(inds)
@@ -664,7 +680,7 @@ class IndividualAssignment:
 				pair=(indexREP,sp,p1,p2)
 				mates+=[pair]
 				self.appLogger.debug("Pair generated: {0}".format(pair))
-		self.numIndividualsPerReplicate[indexREP-1]=len(mates)
+		self.numIndividualsPerReplicate[index]=len(mates)
 		return mates
 
 	def writeMatingTable(self,indexREP,matingTable):
@@ -680,12 +696,13 @@ class IndividualAssignment:
 		Generates:
 		- File with the table for the indexREP species tree replicate
 		"""
+		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.debug("Writing indexes into file...")
 		indexFilename=os.path.join(\
 			self.settings.tablesFolderPath,\
 			"{0}.{1:0{2}d}.individuals.csv".format(\
 				self.settings.projectName,\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits\
 			)\
 		)
@@ -702,7 +719,7 @@ class IndividualAssignment:
 			mateID1=matingTable[indexRow][3]
 			mateID2=matingTable[indexRow][4]
 			indexFile.write("{0:0{1}d},{2},{3},{4},{5},{6}\n".format(\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits,\
 				indID,\
 				speciesID,\

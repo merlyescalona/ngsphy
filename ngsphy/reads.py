@@ -74,9 +74,9 @@ class ARTIllumina:
 		self.numReplicates=self.settings.numReplicates
 		self.numReplicateDigits=len(str(self.numReplicates))
 		self.filteredReplicates=[ int(numST) for numST in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
-		self.numLociPerReplicate=[int(numST) for numST in self.settings.parser.get("general","numLociPerReplicate").split(",")]
+		self.numLociPerReplicate=[int(numST) for numST in self.settings.parser.get("general","numlociperreplicate").split(",")]
 		self.numLociPerReplicateDigits=[ len(str(item)) for item in self.numLociPerReplicate]
-		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
+		cc=self.settings.parser.get("general", "numindividualsperreplicate").strip().split(",")
 		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
 		self.numIndividualsPerReplicateDigits=[len(str(item )) for item in self.numIndividualsPerReplicate]
 

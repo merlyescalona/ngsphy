@@ -430,9 +430,9 @@ class CoverageMatrixGenerator:
 		self.settings=settings
 		self.experiment=self.settings.experiment.asNGSPhyDistribution()
 		self.numReplicates=self.settings.numReplicates
-		cc=self.settings.parser.get("general", "numLociPerReplicate").strip().split(",")
+		cc=self.settings.parser.get("general", "numlociperreplicate").strip().split(",")
 		self.numLociPerReplicate=[ int(item) for item in cc if not item ==""]
-		cc=self.settings.parser.get("general", "numIndividualsPerReplicate").strip().split(",")
+		cc=self.settings.parser.get("general", "numindividualsperreplicate").strip().split(",")
 		self.numIndividualsPerReplicate=[ int(item) for item in cc if not item == ""]
 		self.numReplicateDigits=len(str(self.numReplicates))
 		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicate]
@@ -523,15 +523,15 @@ class CoverageMatrixGenerator:
 					if str(row['spID']) in self.settings.taxon.keys():
 						coverageMatrix[ind,]=np.array(coverageMatrix[ind,])*self.settings.taxon[str(row['spID'])]
 			#on/off target
-			onTargetLoci=range(0,nLoci)
-			offTargetLoci=[]
+			self.onTargetLoci=range(0,nLoci)
+			self.offTargetLoci=[]
 			try:
 				if self.settings.offtarget["loci"] > 0:
 					self.appLogger.debug("Off-target coverage")
 					nSamples=int(self.settings.offtarget["loci"]*nLoci)
-					offTargetLoci=np.random.choice(nLoci,nSamples,replace=False)
-					onTargetLoci=set(range(0,nLoci))-set(offTargetLoci)
-					for loc in offTargetLoci:
+					self.offTargetLoci=np.random.choice(nLoci,nSamples,replace=False)
+					self.onTargetLoci=set(range(0,nLoci))-set(self.offTargetLoci)
+					for loc in self.offTargetLoci:
 						coverageMatrix[:,loc]=coverageMatrix[:,loc]*self.settings.offtarget["coverage"]
 			except Exception as ex:
 				return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
@@ -541,14 +541,14 @@ class CoverageMatrixGenerator:
 					"Please verify. Exiting.")
 
 			# not captured
-			onTargetLoci=nLoci-len(offTargetLoci)
+			self.numOnTargetLoci=nLoci-len(self.offTargetLoci)
 			try:
 				if self.settings.notcaptured:
 					# random number of loci  (respecting probabilities)
 					self.appLogger.debug("Not captured on target")
-					nSamples=int(self.settings.notcaptured*onTargetLoci)
-					notcaptured=np.random.choice(onTargetLoci,nSamples,replace=False)
-					for loc in notcaptured:
+					nSamples=int(self.settings.notcaptured*self.numOnTargetLoci)
+					self.notcaptured=np.random.choice(self.numOnTargetLoci,nSamples,replace=False)
+					for loc in self.notcaptured:
 						coverageMatrix[:,loc]=coverageMatrix[:,loc]*0
 			except Exception as ex:
 				return False, "\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
@@ -564,15 +564,24 @@ class CoverageMatrixGenerator:
 		"""
 		Writing into file the coverage matrix
 		"""
-		self.appLogger.debug("Writing coverage matrix for replicate: {0:0{1}d}".format(indexRep, self.numReplicateDigits))
-		filename=os.path.join(self.settings.coverageFolderPath,"{0}.{1:0{2}d}.coverage.csv".format(\
-			self.settings.projectName,\
-			indexRep,\
-			self.numReplicateDigits\
+		self.appLogger.debug(\
+			"Writing coverage matrix for replicate: {0:0{1}d}".format(\
+				indexRep,\
+				self.numReplicateDigits))
+		filename=os.path.join(\
+			self.settings.coverageFolderPath,\
+			"{0}.{1:0{2}d}.coverage.csv".format(\
+				self.settings.projectName,\
+				indexRep,\
+				self.numReplicateDigits\
 			)
 		)
 		filepath=os.path.abspath(filename)
-		header=["indID"]+[ "L.{0:0{1}d}".format(loc+1,self.numLociPerReplicateDigits[self.filteredReplicates.index(indexRep)]) for loc in range(0,self.numLociPerReplicate[self.filteredReplicates.index(indexRep)])]
+		header= ["indID"] + \
+				[ "L.{0:0{1}d}".format(\
+					loc+1,\
+					self.numLociPerReplicateDigits[self.filteredReplicates.index(indexRep)])\
+				for loc in range(0,self.numLociPerReplicate[self.filteredReplicates.index(indexRep)])]
 		nInds=self.numIndividualsPerReplicate[self.filteredReplicates.index(indexRep)]
 		indIds=np.transpose(np.array(range(0,nInds)))
 		f=open(filepath,"w")
@@ -583,5 +592,32 @@ class CoverageMatrixGenerator:
 			line=", ".join(weird)
 			line=line.replace("[","").replace("]","")
 			# print(line)
-			f.write("{0} ,{1}\n".format(r,line))
+			f.write("{0},{1}\n".format(r,line))
+		f.close()
+
+		filename=os.path.join(\
+			self.settings.coverageFolderPath,\
+			"{0}.{1:0{2}d}.multipliers.txt".format(\
+				self.settings.projectName,\
+				indexRep,\
+				self.numReplicateDigits\
+			)
+		)
+		filepath=os.path.abspath(filename)
+		f=open(filepath,"w")
+		f.write("# Locus Multipliers:\n")
+		for index in range(0, len(self.locusMultiplier)):
+			f.write("{0}\t{1}\n".format(index, self.locusMultiplier[index]))
+		f.write("# Individual Multipliers:\n")
+		for index in range(0, len(self.individualsMultiplier)):
+			f.write("{0}\t{1}\n".format(index, self.individualsMultiplier[index]))
+		f.write("# On target loci\n")
+		f.write(",".join([str(item) for item in self.onTargetLoci]))
+		f.write("\n# Off target loci\n")
+		f.write(",".join([str(item) for item in self.offTargetLoci]))
+		f.write("\n# Not captured loci\n")
+		f.write(",".join([str(item) for item in self.notcaptured]))
+		f.write("\n# Taxon decay: \n")
+		for item in self.settings.taxon.keys():
+			f.write("{0},{1}\n".format(item, self.settings.taxon[item]))
 		f.close()
