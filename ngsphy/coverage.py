@@ -426,7 +426,7 @@ class CoverageMatrixGenerator:
 
 	def __init__(self, settings):
 		self.appLogger=logging.getLogger("ngsphy")
-		self.appLogger.info("Coverage calculations")
+		self.appLogger.info("Coverage calculations...")
 		self.settings=settings
 		self.experiment=self.settings.experiment.asNGSPhyDistribution()
 		self.numReplicates=self.settings.numReplicates
@@ -465,7 +465,6 @@ class CoverageMatrixGenerator:
 		"""
 		message=""
 		status=True;
-		self.appLogger.info("Coverage calculations...")
 		# for indexRep in self.filteredReplicates:
 		for index in range(0,len(self.filteredReplicates)):
 			nInds=self.numIndividualsPerReplicate[index]
@@ -478,7 +477,7 @@ class CoverageMatrixGenerator:
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
-			self.appLogger.info("ReplicateID: {0} - {1}/{2} - Matrix ({3},{4})".format(\
+			self.appLogger.info("ReplicateID: {0} - {1}/{2} | Matrix ({3},{4})".format(\
 				self.filteredReplicates[index],\
 				index+1,\
 				len(self.filteredReplicates),\
@@ -565,7 +564,7 @@ class CoverageMatrixGenerator:
 		"""
 		Writing into file the coverage matrix
 		"""
-		self.appLogger.info("Writing coverage matrix for replicate: {0:0{1}d}".format(indexRep, self.numReplicateDigits))
+		self.appLogger.debug("Writing coverage matrix for replicate: {0:0{1}d}".format(indexRep, self.numReplicateDigits))
 		filename=os.path.join(self.settings.coverageFolderPath,"{0}.{1:0{2}d}.coverage.csv".format(\
 			self.settings.projectName,\
 			indexRep,\

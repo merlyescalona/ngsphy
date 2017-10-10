@@ -115,12 +115,12 @@ class IndividualAssignment:
 		"""
 		self.appLogger.info("Creating folder structure for individual generation...")
 		try:
-			self.appLogger.info("Generated individuals/")
+			self.appLogger.info("Generating output folder {}".format(self.settings.individualsFolderPath))
 			os.makedirs(self.settings.individualsFolderPath)
 		except:
 			self.appLogger.debug("Output folder exists ({0})".format(self.settings.outputFolderPath))
 		try:
-			self.appLogger.info("Generated ind_labels/")
+			self.appLogger.info("Generating output folder {}".format(self.settings.tablesFolderPath))
 			os.makedirs(self.settings.tablesFolderPath)
 		except:
 			self.appLogger.debug("Output folder exists ({0})".format(self.settings.tablesFolderPath))
@@ -725,6 +725,7 @@ class IndividualAssignment:
 		Generates:
 		- A set of files, as many as individuals were described in the table.
 		"""
+		index=self.filteredReplicates.index(indexREP)
 		# Proper mating
 		seqDict=copy.deepcopy(sequenceDictionary)
 		species=seqDict.keys()
@@ -734,18 +735,21 @@ class IndividualAssignment:
 			for subkey in subspecies:
 				numSeqs+=len(seqDict[key][subkey])
 		numInds=np.trunc(numSeqs/2)+1
-		self.appLogger.debug("Writing {1} individuals from {0} number of sequences.".format(\
-			numSeqs,numInds)\
-		)
-		self.appLogger.debug("{0}/{1} - {2}".format(\
+		self.appLogger.info("ReplicateID {0} -  {1}/{2} |  Locus {3:0{5}d}/{4:0{5}d}. Writing {6} individuals from {7} sequecens.".format(\
+			self.filteredReplicates[index],\
+			index,\
+			len(self.filteredReplicates),\
 			indexLOC,\
-			self.numLociPerReplicate[indexREP-1],\
-			self.numLociPerReplicateDigits[indexREP-1])\
+			self.numLociPerReplicate[index],\
+			self.numLociPerReplicateDigits[index],\
+			numSeqs,\
+			numInds\
+			)\
 		)
 		outputFolder=os.path.join(\
 			self.settings.individualsFolderPath,\
-			"{0:0{1}d}".format(indexREP,self.numReplicateDigits),\
-			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[indexREP-1])\
+			"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
 		)
 		seq1="";des1="";seq2="";des2="";
 		for currentInd in range(0,len(matingTable)):
@@ -763,20 +767,20 @@ class IndividualAssignment:
 			shortDesc1=seqDict[tag][pair1]["description"]
 			des1=">{0}:{1:0{2}d}:{3:0{4}d}:{5}:{6}:{7}_S1".format(\
 				self.settings.projectName,\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits,\
 				indexLOC,\
-				self.numLociPerReplicateDigits[indexREP-1],\
+				self.numLociPerReplicateDigits[index],\
 				self.settings.simphyDataPrefix,\
 				currentInd,shortDesc1\
 			)
 			shortDesc2=seqDict[tag][pair2]["description"]
 			des2=">{0}:{1:0{2}d}:{3:0{4}d}:{5}:{6}:{7}_S2".format(\
 				self.settings.projectName,\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits,\
 				indexLOC,\
-				self.numLociPerReplicateDigits[indexREP-1],\
+				self.numLociPerReplicateDigits[index],\
 				self.settings.simphyDataPrefix,\
 				currentInd,\
 				shortDesc2\
@@ -785,10 +789,10 @@ class IndividualAssignment:
 				outputFolder,\
 				"{0}_{1:0{2}d}_{3:0{4}d}_{5}_{6}.fasta".format(\
 					self.settings.projectName,\
-					indexREP,\
+					self.filteredReplicates[index],\
 					self.numReplicateDigits,\
 					indexLOC,\
-					self.numLociPerReplicateDigits[indexREP-1],\
+					self.numLociPerReplicateDigits[index],\
 					self.settings.simphyDataPrefix,\
 					currentInd\
 				)\
