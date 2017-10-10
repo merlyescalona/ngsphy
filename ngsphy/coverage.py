@@ -424,6 +424,11 @@ class CoverageMatrixGenerator:
 	numLociPerReplicateDigits=[]
 	filteredReplicates=[]
 
+	onTargetLoci=[]
+	offTargetLoci=[]
+	notcaptured=[]
+	numOnTargetLoci=0
+
 	def __init__(self, settings):
 		self.appLogger=logging.getLogger("ngsphy")
 		self.appLogger.info("Coverage calculations...")
