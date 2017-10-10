@@ -440,11 +440,11 @@ class CoverageMatrixGenerator:
 		self.filteredReplicates=[int(item) for item in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
 		if (self.settings.locus):
 			distro=self.settings.locus.asNGSPhyDistribution()
-			self.alphashapesLocus=distro.value(len(self.filteredReplicates)
+			self.alphashapesLocus=distro.value(len(self.filteredReplicates))
 			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in range(0,len(self.filteredReplicates))]
 		if (self.settings.individual):
 			distro=self.settings.individual.asNGSPhyDistribution()
-			self.alphashapesIndividuals=distro.value(len(self.filteredReplicates)
+			self.alphashapesIndividuals=distro.value(len(self.filteredReplicates))
 			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in range(0,len(self.filteredReplicates))]
 		self.generateFolderStructure()
 
