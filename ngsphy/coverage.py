@@ -440,12 +440,12 @@ class CoverageMatrixGenerator:
 		self.filteredReplicates=[int(item) for item in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
 		if (self.settings.locus):
 			distro=self.settings.locus.asNGSPhyDistribution()
-			self.alphashapesLocus=distro.value(self.settings.numReplicates)
-			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in range(0,self.numReplicates)]
+			self.alphashapesLocus=distro.value(len(self.filteredReplicates)
+			self.locusMultiplier=[NGSPhyDistribution("g1",[self.alphashapesLocus[index]]).value(self.numLociPerReplicate[index]) for index in range(0,len(self.filteredReplicates))]
 		if (self.settings.individual):
 			distro=self.settings.individual.asNGSPhyDistribution()
-			self.alphashapesIndividuals=distro.value(self.settings.numReplicates)
-			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in range(0,self.numReplicates)]
+			self.alphashapesIndividuals=distro.value(len(self.filteredReplicates)
+			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in range(0,len(self.filteredReplicates))]
 		self.generateFolderStructure()
 
 	def generateFolderStructure(self):
@@ -572,8 +572,8 @@ class CoverageMatrixGenerator:
 			)
 		)
 		filepath=os.path.abspath(filename)
-		header=["indID"]+[ "L.{0:0{1}d}".format(loc+1,self.numLociPerReplicateDigits[indexRep-1]) for loc in range(0,self.numLociPerReplicate[indexRep-1])]
-		nInds=self.numIndividualsPerReplicate[indexRep-1]
+		header=["indID"]+[ "L.{0:0{1}d}".format(loc+1,self.numLociPerReplicateDigits[self.filteredReplicates.index(indexRep)]) for loc in range(0,self.numLociPerReplicate[self.filteredReplicates.index(indexRep)])]
+		nInds=self.numIndividualsPerReplicate[self.filteredReplicates.index(indexRep)]
 		indIds=np.transpose(np.array(range(0,nInds)))
 		f=open(filepath,"w")
 		f.write("{}\n".format(" ,".join(header)))
