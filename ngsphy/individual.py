@@ -735,9 +735,9 @@ class IndividualAssignment:
 			for subkey in subspecies:
 				numSeqs+=len(seqDict[key][subkey])
 		numInds=np.trunc(numSeqs/2)+1
-		self.appLogger.info("ReplicateID {0} -  {1}/{2} |  Locus {3:0{5}d}/{4:0{5}d}. Writing {6} individuals from {7} sequecens.".format(\
+		self.appLogger.debug("ReplicateID {0} -  {1}/{2} |  Locus {3:0{5}d}/{4:0{5}d}. Writing {6} individuals from {7} sequecens.".format(\
 			self.filteredReplicates[index],\
-			index,\
+			index+1,\
 			len(self.filteredReplicates),\
 			indexLOC,\
 			self.numLociPerReplicate[index],\
