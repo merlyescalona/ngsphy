@@ -129,75 +129,6 @@ class ARTIllumina:
 			self.appLogger.debug("Output folder exists ({0})".format(self.settings.scriptsFolderPath))
 
 
-	def writeSeedFile(self):
-		"""
-		For the generation of scripts for cluster environments (Execution section,
-		options run: SGE/SLUM)
-		This generates the seed file for the calling of jobs for cluster environments.
-		"""
-		self.appLogger.debug("Start")
-		seedfile=os.path.join(\
-			self.settings.scriptsFolderPath,\
-			"{0}.seedfile.txt".format(self.settings.projectName)\
-		)
-		sf=open(seedfile,"w")
-		for indexREP in self.filteredReplicates:
-			for indexREP in self.filteredReplicates:
-				csvfile=os.path.join(\
-					self.outputFolderPath,\
-					"{0}.{1:0{2}d}.{3}.csv".format(\
-						self.settings.projectName,\
-						indexREP,\
-						self.numReplicateDigits,\
-						self.individualsFileNameSuffix\
-					)\
-				)
-				# Generation of folder structure
-				d = csv.DictReader(csvfile)
-				self.matingDict = [row for row in d]
-				csvfile.close()
-				for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
-					for row in self.matingDict:
-						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
-						inputFile=os.path.join(\
-							self.settings.individualsFolderPath,\
-							row['repID'],\
-							"{0:0{1}d}".format(\
-								indexLOC,\
-							 	self.numLociPerReplicateDigits[indexREP-1]
-							),\
-							"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
-								self.settings.projectName,\
-								row['repID'],\
-								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1],\
-								self.settings.simphyDataPrefix,\
-								row['indID']\
-							)\
-						)
-
-						# This means, from a multiple (2) sequence fasta file.
-						outputFile=os.path.join(\
-							self.settings.readsFolderPath,\
-							row['repID'],\
-							"{0:0{1}d}".format(\
-								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1]
-							),\
-							"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
-								self.settings.projectName,\
-								row['repID'],\
-								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1],\
-								self.settings.simphyDataPrefix,\
-								row['indID']\
-							)\
-						)
-						sf.write("{0}\t{1}\n".format(inputFile,outputFile))
-				self.numFiles+=1
-		sf.close()
-		self.appLogger.info("Seed file written...")
-
 	def writeSGEScript(self):
 		"""
 		For the generation of scripts for cluster environments (Execution section,
@@ -213,25 +144,19 @@ class ARTIllumina:
 		j=open(jobfile,"w")
 		seedfile=os.path.join(\
 			self.settings.scriptsFolderPath,\
-			"{0}.seedfile.txt".format(self.settings.project)\
+			"{0}.sh".format(self.settings.projectName)\
 		)
-
-		inputFile="$inputfile"
-		outputFile="$outputfile"
-		callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
-		header="""#!/bin/bash
+		script="""#!/bin/bash
 # SGE submission options
 #$ -l num_proc=1		 # number of processors to use
 #$ -l h_rt=00:10:00	  # Set 10 mins  - Average amount of time for up to 1000bp
 #$ -t 1-{0}			  # Number of jobs/files that will be treated
 #$ -N art.sims		   # A name for the job
 
-inputfile=$(awk 'NR==$SGE_TASK_ID{{print $1}}' {1})
-outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,seedfile)
-		j.write(header)
-		j.write(" ".join(callParams))
-		footer="".format()
-		j.write(footer)
+command=$(awk 'NR==$SGE_TASK_ID{{print $1}}' {1})
+$command
+""".format(self.numFiles,seedfile)
+		j.write(script)
 		j.close()
 		self.appLogger.info("SGE Job file written ({0})...".format(jobfile))
 
@@ -249,27 +174,23 @@ outputfile=$(awk 'NR==$SGE_TASK_ID{{print $2}}' {1})\n""".format(self.numFiles,s
 		j=open(jobfile,"w")
 		seedfile=os.path.join(\
 			self.settings.scriptsFolderPath,\
-			"{0}.seedfile.txt".format(self.settings.projectName)
+			"{0}.sh".format(self.settings.projectName)\
 		)
-		inputFile="$inputfile"
-		outputFile="$outputfile"
-		callParams=["art_illumina"]+self.params+["--in", inputFile,"--out",outputFile]
 
-		header="""#!/bin/sh
+		script="""#!/bin/sh
 #SBATCH -n 1
 #SBATCH --cpus-per-task 1
 #SBATCH -t 00:10:00
 #SBATCH --mem 4G
 #SBATCH --array=1-{0}
 
-inputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $1}}' {1})
-outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
+command=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $1}}' {1})
+$command
+
 
 """.format(self.numFiles, seedfile)
 		footer="".format()
-		jobfile.write(header)
-		jobfile.write(" ".join(callParams))
-		jobfile.write(footer)
+		jobfile.write(script)
 		jobfile.close()
 		self.appLogger.info("SLURM Job file written ({0})...".format(jobfile))
 
@@ -282,6 +203,7 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		Returns:
 		- coverage Matrix
 		"""
+		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.debug("Retrieving coverage matrix")
 		# coverage matrix per ST - row:indv - col:loci
 		# each cov introduced as parameter is a NGSPhyDistribution
@@ -289,12 +211,11 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 			self.settings.coverageFolderPath,\
 			"{0}.{1:0{2}d}.coverage.csv".format(\
 				self.settings.projectName,\
-				indexREP,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits\
 			)
 		)
-
-		coverageMatrix=np.zeros(shape=(self.numIndividualsPerReplicate[indexREP-1], self.numLociPerReplicate[indexREP-1]))
+		coverageMatrix=np.zeros(shape=(self.numIndividualsPerReplicate[index], self.numLociPerReplicate[index]))
 		firstLine=True; counter=0
 		with open(coverageMatrixFilename, 'rb') as csvfile:
 			coveragereader = csv.reader(csvfile, delimiter=',')
@@ -302,9 +223,9 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				if firstLine:
 					firstLine=False
 				else:
-					coverageMatrix[counter,]=[float(row[index]) for index in range(1,len(row))]
+					coverageMatrix[counter,]=[float(row[i]) for i in range(1,len(row))]
 					counter+=1
-				if not counter < self.numIndividualsPerReplicate[indexREP-1]: break
+				if not counter < self.numIndividualsPerReplicate[index]: break
 		return coverageMatrix
 
 	def getCommands(self):
@@ -312,12 +233,12 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 		Generates command lines that will be called to generate the reads
 		"""
 		self.appLogger.debug("Start")
-		for indexREP in self.filteredReplicates:
+		for index in range(0, len(self.filteredReplicates)):
 			csvfilename=os.path.join(\
 				self.settings.tablesFolderPath,\
 				"{0}.{1:0{2}d}.{3}.csv".format(\
 					self.settings.projectName,\
-					indexREP,\
+					self.filteredReplicates[index],\
 					self.numReplicateDigits,\
 					self.individualsFileNameSuffix\
 				)
@@ -327,9 +248,9 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				self.matingDict = [row for row in d]
 				csvfile.close()
 				nInds=len(self.matingDict)
-				nLoci=self.numLociPerReplicate[indexREP-1]
-				coverageMatrix=self.retrieveCoverageMatrix(indexREP)
-				for indexLOC in range(1,self.numLociPerReplicate[indexREP-1]+1):
+				nLoci=self.numLociPerReplicate[index]
+				coverageMatrix=self.retrieveCoverageMatrix(self.filteredReplicates[index])
+				for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 					for row in self.matingDict:
 						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
 						inputFile=os.path.join(\
@@ -340,13 +261,13 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 							),\
 							"{0:0{1}d}".format(\
 								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1]\
+								self.numLociPerReplicateDigits[index]\
 							),\
 							"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
 								self.settings.projectName,\
 								int(row['repID']),\
 								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1],
+								self.numLociPerReplicateDigits[index],
 								self.settings.simphyDataPrefix,\
 								int(row['indID'])\
 							)\
@@ -360,13 +281,13 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 							),\
 							"{0:0{1}d}".format(\
 								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1]\
+								self.numLociPerReplicateDigits[index]\
 							),\
 							"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
 								self.settings.projectName,\
 								int(row['repID']),\
 								indexLOC,\
-								self.numLociPerReplicateDigits[indexREP-1],
+								self.numLociPerReplicateDigits[index],
 								self.settings.simphyDataPrefix,\
 								int(row['indID'])\
 							)\
@@ -453,26 +374,24 @@ outputfile=$(awk 'NR==$SLURM_ARRAY_TASK_ID{{print $2}}' {1})
 				else:
 					self.appLogger.info("Environment BASH. Writing scripts")
 					self.writeBashScript()
-
 			if (environment==2):
+				self.writeBashScript()
 				self.appLogger.info("Environment SGE. Writing scripts")
 				self.writeSeedFile()
-				self.writeSGEScript()
 			if (environment==3):
 				self.appLogger.info("Environment SLURM. Writing scripts")
-				self.writeSeedFile()
+				self.writeBashScript()
 				self.writeSLURMScript()
-
 		except ValueError as verror:
 			status=False
-			message="\n\t{0}\n\t{1}\n\t{2}".format(\
-				"Distributon parameter error:",\
+			message="\t{0}\n\t{1}\n\t{2}".format(\
+				"Distribution parameter error:",\
 				verror,\
 				"Please verify. Exciting."\
 			)
 		except RuntimeError as rte:
 			status=False
-			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
+			message="\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 				"Execution error.",\
 				rte,\
 				"Please verify. Exciting.",\
