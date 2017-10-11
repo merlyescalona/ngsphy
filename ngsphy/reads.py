@@ -263,9 +263,10 @@ $command
 								indexLOC,\
 								self.numLociPerReplicateDigits[index]\
 							),\
-							"{0}_{1}_{2:0{3}d}_{4}_{5}.fasta".format(\
+							"{0}_{1:0{2}d}_{4:0{4}d}_{5}_{6}.fasta".format(\
 								self.settings.projectName,\
 								int(row['repID']),\
+								self.numReplicateDigits,\
 								indexLOC,\
 								self.numLociPerReplicateDigits[index],
 								self.settings.simphyDataPrefix,\
@@ -283,9 +284,10 @@ $command
 								indexLOC,\
 								self.numLociPerReplicateDigits[index]\
 							),\
-							"{0}_{1}_{2:0{3}d}_{4}_{5}_R".format(\
+							"{0}_{1:0{2}d}_{3:0{4}d}_{5}_{6}_R".format(\
 								self.settings.projectName,\
 								int(row['repID']),\
+								self.numReplicateDigits,\
 								indexLOC,\
 								self.numLociPerReplicateDigits[index],
 								self.settings.simphyDataPrefix,\
