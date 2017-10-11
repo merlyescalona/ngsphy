@@ -353,10 +353,10 @@ $command
 		# Generating commands
 		try:
 			self.getCommands()
+			self.generateFolderStructureNGS()
 			if environment==1:
 				message="ART run has finished succesfully."
 				if (self.settings.runART):
-					self.generateFolderStructureNGS()
 					curr=0
 					self.appLogger.info("Running...")
 					while (curr < len(self.commands)):
