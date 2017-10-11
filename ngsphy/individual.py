@@ -50,7 +50,7 @@ class IndividualAssignment:
 		self.numReplicates=self.settings.numReplicates
 		self.filteredReplicates=range(1,self.numReplicates+1)
 		self.numReplicateDigits=len(str(self.numReplicates))
-		self.numIndividualsPerReplicate=[0]*self.numReplicates
+		self.numIndividualsPerReplicate=[0]*len(self.filteredReplicates)
 		self.numLociPerReplicate=[0]*self.numReplicates
 		self.numLociPerReplicateDigits=[0]*self.numReplicates
 		########################################################################
@@ -294,10 +294,7 @@ class IndividualAssignment:
 			self.iterationHaploid()
 		else:
 			self.iterationPolyploid()
-		self.settings.parser.set(\
-			"general",\
-			"numindividualsperreplicate",\
-			",".join([str(a) for a in self.numIndividualsPerReplicate]))
+
 
 	def iterationPolyploid(self):
 		"""
@@ -323,9 +320,17 @@ class IndividualAssignment:
 				curReplicatePath\
 			))
 			# iterating over the number of gts per st
-			matingTable=self.generateMatingTable(self.filteredReplicates[index])
+			self.appLogger.info("Generating individual table")
+			if (self.settings.inputmode < 4):
+				matingTable=self.generateMatingTable(self.filteredReplicates[index])
+			else:
+				matingTable=self.generateMatingTableFromDB(self.filteredReplicates[index])
+			self.numIndividualsPerReplicate[index]=len(matingTable)
+			self.settings.parser.set(\
+				"general",\
+				"numindividualsperreplicate",\
+				",".join([str(a) for a in self.numIndividualsPerReplicate]))
 			self.writeMatingTable(self.filteredReplicates[index],matingTable)
-
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
 				fastapath=os.path.join(\
@@ -363,7 +368,9 @@ class IndividualAssignment:
 		for index in range(0, len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,
-				"{0:0{1}d}".format(self.filteredReplicates[index], self.numReplicateDigits)
+				"{0:0{1}d}".format(\
+					self.filteredReplicates[index],\
+				 	self.numReplicateDigits)
 			)
 			self.appLogger.info("ReplicateID {0} - \t{1}/{2} [{3}] ({4}) ".format(\
 				self.filteredReplicates[index],\
@@ -375,10 +382,12 @@ class IndividualAssignment:
 			# iterating over the number of gts per st
 			individualTable=None
 			self.appLogger.info("Generating individual table")
-			if (self.settings.inputmode < 4):
-				individualTable=self.generateIndividualTable(self.filteredReplicates[index])
-			else:
-				individualTable=self.generateMatingTableFromDB(self.filteredReplicates[index])
+			individualTable=self.generateIndividualTable(self.filteredReplicates[index])
+			self.numIndividualsPerReplicate[index]=len(individualTable)
+			self.settings.parser.set(\
+				"general",\
+				"numindividualsperreplicate",\
+				",".join([str(a) for a in self.numIndividualsPerReplicate]))
 			self.writeIndividualTable(self.filteredReplicates[index],individualTable)
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
@@ -456,7 +465,6 @@ class IndividualAssignment:
 		descriptions=parseMSAFileWithDescriptions(fastapath).keys()
 		descriptions.sort()
 		table=[(item,descriptions[item]) for item in range(0,len(descriptions))]
-		self.numIndividualsPerReplicate[index]=len(table)
 		return table
 
 	def generateIndividuals(self,indexREP,indexLOC,individualTable,seqDict):
@@ -628,7 +636,6 @@ class IndividualAssignment:
 					pair=(indexREP,sp,lt,p1,p2)
 					mates+=[pair]
 					self.appLogger.debug("Pair generated: {0}".format(pair))
-		self.numIndividualsPerReplicate[index]=len(mates)
 		return mates
 
 	def generateMatingTableFromDB(self,indexREP):
@@ -680,7 +687,6 @@ class IndividualAssignment:
 				pair=(indexREP,sp,p1,p2)
 				mates+=[pair]
 				self.appLogger.debug("Pair generated: {0}".format(pair))
-		self.numIndividualsPerReplicate[index]=len(mates)
 		return mates
 
 	def writeMatingTable(self,indexREP,matingTable):
