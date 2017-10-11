@@ -263,7 +263,7 @@ $command
 								indexLOC,\
 								self.numLociPerReplicateDigits[index]\
 							),\
-							"{0}_{1:0{2}d}_{4:0{4}d}_{5}_{6}.fasta".format(\
+							"{0}_{1:0{2}d}_{3:0{4}d}_{5}_{6}.fasta".format(\
 								self.settings.projectName,\
 								int(row['repID']),\
 								self.numReplicateDigits,\
