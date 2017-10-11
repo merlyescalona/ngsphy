@@ -988,7 +988,7 @@ class Settings:
 			if (os.path.isdir(os.path.abspath(item)) and  baseitem.isdigit()):
 				self.numReplicates=self.numReplicates+1
 
-		self.parser.set("general","numspeciestrees",str(self.numReplicates))
+		self.parser.set("general","numreplicates",str(self.numReplicates))
 		# check if at least one
 		self.appLogger.debug("Num species trees:\t{0}".format(self.numReplicates))
 		if not (self.numReplicates>0):
@@ -1088,18 +1088,19 @@ class Settings:
 		message="Settings:\n"
 		sections=self.parser.sections()
 		for sec in sections:
-			message+="\t{0}\n".format(sec)
+			message+="\t{0:60s}\n".format("[{}]".format(sec).upper())
 			items=self.parser.items(sec)
 			for param in items:
 				extra=""
 				if param[0]=="inputmode":
-					if int(param[1])==1: extra="(Gene-tree distribution - SimPhy output)"
-					if int(param[1])==2: extra="(Single gene tree)"
-					if int(param[1])==3: extra="(Single gene tree with ancestral sequence)"
+					if int(param[1])==1: extra="(Single gene tree)"
+					if int(param[1])==2: extra="(Single gene tree with ancestral sequence)"
+					if int(param[1])==3: extra="(Single gene tree with anchor sequence)"
+					if int(param[1])==4: extra="(Gene-tree distribution - SimPhy output)"
 				if param[0]=="ploidy":
 					if int(param[1])==1: extra="(Haploid individuals)"
 					if int(param[1])==2: extra="(Diploid individuals)"
-				message+="\t\t{0}\t:\t{1} {2}\n".format(param[0],param[1],extra)
+				message+="\t\t{0:<30s} :\t{1} {2}\n".format(param[0],param[1],extra)
 		return message
 
 	def correctContentReferenceSequence(self):

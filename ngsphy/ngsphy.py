@@ -112,8 +112,8 @@ class NGSphy:
                 # Generate Individuals (plody independency)
                 self.indGenerator=ig.IndividualAssignment(self.settings)
                 matingOk,matingMessage=self.indGenerator.checkArgs()
-                self.settings.indels=not self.indGenerator.checkFilesForIndels()
                 if not matingOk: self.ending(matingOk,matingMessage)
+                self.settings.indels=not self.indGenerator.checkFilesForIndels()
                 self.indGenerator.iteratingOverReplicates()
                 # now checking NGS MODE
                 if self.settings.ngsmode>0:

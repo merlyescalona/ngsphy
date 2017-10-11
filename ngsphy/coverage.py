@@ -431,7 +431,7 @@ class CoverageMatrixGenerator:
 
 	def __init__(self, settings):
 		self.appLogger=logging.getLogger("ngsphy")
-		self.appLogger.info("Coverage calculations...")
+		self.appLogger.debug("Init class Coverage Matrix Generator...")
 		self.settings=settings
 		self.experiment=self.settings.experiment.asNGSPhyDistribution()
 		self.numReplicates=self.settings.numReplicates
@@ -450,7 +450,7 @@ class CoverageMatrixGenerator:
 		if (self.settings.individual):
 			distro=self.settings.individual.asNGSPhyDistribution()
 			self.alphashapesIndividuals=distro.value(len(self.filteredReplicates))
-			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for item in range(0,len(self.filteredReplicates))]
+			self.individualsMultiplier=[NGSPhyDistribution("g1",[self.alphashapesIndividuals[index]]).value(self.numIndividualsPerReplicate[index]) for index in range(0,len(self.filteredReplicates))]
 		self.generateFolderStructure()
 
 	def generateFolderStructure(self):
@@ -471,6 +471,7 @@ class CoverageMatrixGenerator:
 		message=""
 		status=True;
 		# for indexRep in self.filteredReplicates:
+		self.appLogger.info("Coverage calulation: ReplicateID - currentReplicate/numberOfWorkingReplicates (numIndividuals,numLoci)")
 		for index in range(0,len(self.filteredReplicates)):
 			nInds=self.numIndividualsPerReplicate[index]
 			nLoci=self.numLociPerReplicate[index]
@@ -482,30 +483,38 @@ class CoverageMatrixGenerator:
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
 			# individuals + loci multipliers
-			self.appLogger.info("ReplicateID: {0} - {1}/{2} | Matrix ({3},{4})".format(\
+			self.appLogger.info("ReplicateID {0} - {1}/{2} ({3},{4})".format(\
 				self.filteredReplicates[index],\
 				index+1,\
 				len(self.filteredReplicates),\
 				nInds,\
 				nLoci))
-			try:
-				if self.settings.locus:
+			if self.settings.locus:
+				try:
 					self.appLogger.debug("Locus-wide multipliers")
 					multipliers=self.locusMultiplier[index]
 					for loc in range(0,nLoci):
 						coverageMatrix[:, loc]=coverageMatrix[:,loc]*multipliers[loc]
-				if self.settings.individual:
+				except Exception as ex:
+					exc_type, exc_obj, exc_tb = sys.exc_info()
+					fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+					message="{0}\n\t{1}\n\t{2} | File: {3} - Line:{4}".format(\
+						"Unexpected. Coverage computation. Locus-wide multipliers.",
+						ex,exc_type, fname, exc_tb.tb_lineno)
+					return False, message
+			if self.settings.individual:
+				try:
 					self.appLogger.debug("individual-wide multipliers")
 					multipliers=self.individualsMultiplier[index]
 					for ind in range(0,nInds):
 						coverageMatrix[ind,:]=coverageMatrix[ind,:]*multipliers[ind]
-			except Exception as ex:
-				exc_type, exc_obj, exc_tb = sys.exc_info()
-				fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-				message="\n\t{0}\n\t{1}\n\t{2} | File: {3} - Line:{4}".format(\
-					"Unexpected. Coverage computation:",
-					ex,exc_type, fname, exc_tb.tb_lineno)
-				return False, message
+				except Exception as ex:
+					exc_type, exc_obj, exc_tb = sys.exc_info()
+					fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+					message="{0}\n\t{1}\n\t{2} | File: {3} - Line:{4}".format(\
+						"Unexpected. Coverage computation. Individual-wide multipliers.",
+						ex,exc_type, fname, exc_tb.tb_lineno)
+					return False, message
 			# taxonomic variation
 			# I need the file with the realtion of the individuals
 			# dont car if haploid or diploid because ill only need the first 3 columnsg
@@ -569,15 +578,16 @@ class CoverageMatrixGenerator:
 		"""
 		Writing into file the coverage matrix
 		"""
+		index=self.filteredReplicates.index(indexRep)
 		self.appLogger.debug(\
 			"Writing coverage matrix for replicate: {0:0{1}d}".format(\
-				indexRep,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits))
 		filename=os.path.join(\
 			self.settings.coverageFolderPath,\
 			"{0}.{1:0{2}d}.coverage.csv".format(\
 				self.settings.projectName,\
-				indexRep,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits\
 			)
 		)
@@ -585,9 +595,9 @@ class CoverageMatrixGenerator:
 		header= ["indID"] + \
 				[ "L.{0:0{1}d}".format(\
 					loc+1,\
-					self.numLociPerReplicateDigits[self.filteredReplicates.index(indexRep)])\
-				for loc in range(0,self.numLociPerReplicate[self.filteredReplicates.index(indexRep)])]
-		nInds=self.numIndividualsPerReplicate[self.filteredReplicates.index(indexRep)]
+					self.numLociPerReplicateDigits[index])\
+				for loc in range(0,self.numLociPerReplicate[index])]
+		nInds=self.numIndividualsPerReplicate[index]
 		indIds=np.transpose(np.array(range(0,nInds)))
 		f=open(filepath,"w")
 		f.write("{}\n".format(" ,".join(header)))
@@ -604,7 +614,7 @@ class CoverageMatrixGenerator:
 			self.settings.coverageFolderPath,\
 			"{0}.{1:0{2}d}.multipliers.txt".format(\
 				self.settings.projectName,\
-				indexRep,\
+				self.filteredReplicates[index],\
 				self.numReplicateDigits\
 			)
 		)

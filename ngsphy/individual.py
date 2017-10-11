@@ -83,16 +83,17 @@ class IndividualAssignment:
 
 			self.numLociPerReplicate=self.getSimPhyNumLociPerSpeciesTree()
 			self.numLociPerReplicateDigits=[len(str(a))for a in self.numLociPerReplicate]
-			# BASEPATH -> FOLDER WHERE SIMPHY FOLDER IS
+			# check ploidy matches given data
 			if self.settings.simphyFilter:
+				self.appLogger.info("Filtering replicates...")
 				self.filteredReplicates=self.filterReplicatesMatchingIndPerSpeciesAndPloidy(self.settings.ploidy)
 				self.numLociPerReplicate=self.getSimPhyNumLociPerSpeciesTreeFiltered(self.filteredReplicates)
 				self.numLociPerReplicateDigits=[len(str(a))for a in self.numLociPerReplicate]
-			else:
-				# check ploidy matches given data
-				status,message=self.checkPloidySimPhyData()
-				if not status: return status,message
+			self.appLogger.info("Checking filtered replicates...")
+			status,message=self.checkPloidySimPhyData()
+			if not status: return status,message
  			# check that the species tree replicate folder have the correct data
+			self.appLogger.info("Checking data within replicates...")
 			gtperstOK,message=self.checkDataWithinReplicates()
 			if (not gtperstOK): return gtperstOK,message
 			self.settings.parser.set(\
@@ -196,21 +197,29 @@ class IndividualAssignment:
 		------------------------------------------------------------------------
 		Returns: a list with the number of loci per species tree replicate
 		"""
-		query="select Ind_per_sp from Species_Trees WHERE Ind_per_sp"
-		con = sqlite3.connect(self.db)
-		res=con.execute(query).fetchall()
-		con.close()
-		res=[item for sublist in res for item in sublist]
-		status=True; message=""
-		for item in res:
-			if not item % self.settings.ploidy == 0:
-				status=False
-				message="\t\n{0}\t\n{1}\t\n{2}\t\n{3}".format(\
-					"There has been a problem with the ploidy.",\
-					"There is at least one species tree replicate, which number ",\
-					"of individuals does not match the ploidy specified",\
-					"Please verify. Exiting."
-				)
+		if not self.filteredReplicates == []:
+			query="select Ind_per_sp from Species_Trees WHERE SID in ({})".format(",".join([str(i) for i in self.filteredReplicates]))
+			con = sqlite3.connect(self.db)
+			res=con.execute(query).fetchall()
+			con.close()
+			res=[item for sublist in res for item in sublist]
+			status=True; message=""
+			for item in res:
+				if not item % self.settings.ploidy == 0:
+					status=False
+					message="{0}\n\t{1}\n\t{2}\n\t{3}".format(\
+						"There has been a problem with the ploidy.",\
+						"There is at least one species tree replicate, which number ",\
+						"of individuals does not match the ploidy specified",\
+						"Please verify. Exiting."
+					)
+		else:
+			status=False
+			message="{0}\n\t{1}\n\t{2}".format(\
+				"There has been a problem with the ploidy.",\
+				"No replicate satisfies the conditions.",\
+				"Please verify. Exiting."
+			)
 		return status, message
 
 	def checkPloidyTreeRelation(self):
@@ -294,7 +303,8 @@ class IndividualAssignment:
 			self.iterationHaploid()
 		else:
 			self.iterationPolyploid()
-
+		self.settings.parser.set("general","numindividualsperreplicate",\
+			",".join([str(a) for a in self.numIndividualsPerReplicate]))
 
 	def iterationPolyploid(self):
 		"""
@@ -303,7 +313,6 @@ class IndividualAssignment:
 		the "mating table" as well as the file with the individuals's sequences.
 		"""
 		self.appLogger.info("Generating individuals: replicateID - currentReplicate/numberOfWorkingReplicates [numLoci] (path)...")
-		# for indexREP in self.filteredReplicates:
 		for index in range(0,len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
@@ -320,16 +329,9 @@ class IndividualAssignment:
 				curReplicatePath\
 			))
 			# iterating over the number of gts per st
-			self.appLogger.info("Generating individual table")
-			if (self.settings.inputmode < 4):
-				matingTable=self.generateMatingTable(self.filteredReplicates[index])
-			else:
-				matingTable=self.generateMatingTableFromDB(self.filteredReplicates[index])
+			self.appLogger.debug("Generating individual table...")
+			matingTable=self.generateMatingTable(self.filteredReplicates[index])
 			self.numIndividualsPerReplicate[index]=len(matingTable)
-			self.settings.parser.set(\
-				"general",\
-				"numindividualsperreplicate",\
-				",".join([str(a) for a in self.numIndividualsPerReplicate]))
 			self.writeMatingTable(self.filteredReplicates[index],matingTable)
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
@@ -384,10 +386,6 @@ class IndividualAssignment:
 			self.appLogger.info("Generating individual table")
 			individualTable=self.generateIndividualTable(self.filteredReplicates[index])
 			self.numIndividualsPerReplicate[index]=len(individualTable)
-			self.settings.parser.set(\
-				"general",\
-				"numindividualsperreplicate",\
-				",".join([str(a) for a in self.numIndividualsPerReplicate]))
 			self.writeIndividualTable(self.filteredReplicates[index],individualTable)
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
@@ -619,7 +617,7 @@ class IndividualAssignment:
 			if leavesDict[geneFamily]==1:
 				sp=geneFamily.split("_")[0]
 				lt=geneFamily.split("_")[1]
-				pair=(indexREP,sp,lt,0,0)
+				pair=(self.filteredReplicates[index],sp,lt,0,0)
 				mates+=[pair]
 				self.appLogger.debug("Pair generated: {0}".format(pair))
 			else:
@@ -633,60 +631,9 @@ class IndividualAssignment:
 						break
 					sp=geneFamily.split("_")[0]
 					lt=geneFamily.split("_")[1]
-					pair=(indexREP,sp,lt,p1,p2)
+					pair=(self.filteredReplicates[index],sp,lt,p1,p2)
 					mates+=[pair]
 					self.appLogger.debug("Pair generated: {0}".format(pair))
-		return mates
-
-	def generateMatingTableFromDB(self,indexREP):
-		"""
-		Generates the "mating" table which stores the relation between the
-		sequences that generates an individual.
-		This table is generated from the SimPhy database, when using multiple
-		species tree replicates (SimPhy output)
-		------------------------------------------------------------------------
-		Parameters:
-		- indexREP: identifier of the Species tree replicate
-		Returns:
-		- the mating table
-		"""
-		# missing outgroup
-		index=self.filteredReplicates.index(indexREP)
-		self.appLogger.info("Connecting to the db...")
-		con = sqlite3.connect(self.db)
-		query="select SID, Leaves, Ind_per_sp from Species_Trees WHERE SID={0}".format(\
-			self.filteredReplicates[index]
-		)
-		res=con.execute(query).fetchone()
-		con.close()
-		leaves=res[1];nIndsPerSp=res[2]
-		# by default there are no outgroups, if there are, this
-		# value will change
-		nInds=leaves/2
-		mates=[]
-		with open(self.command) as command:
-			data=command.readline().strip().split()
-			data=[item.upper() for item in data]
-			if "-SO" in data:
-				mates+=[(self.filteredReplicates[index],0,0,0)]
-				nInds=(leaves-1)/2
-		inds=range(0,nIndsPerSp)
-		species=range(1,leaves)
-		self.appLogger.debug("indexREP: {0} / inds:{1} ".format(\
-			self.filteredReplicates[index],inds))
-		# I'm always assuming there's an outgroup
-		for sp in species:
-			t=copy.deepcopy(inds)
-			while not t==[]:
-				p1=0;p2=0
-				try:
-					p1=t.pop(rnd.sample(range(0,len(t)),1)[0])
-					p2=t.pop(rnd.sample(range(0,len(t)),1)[0])
-				except Exception as e:
-					break
-				pair=(indexREP,sp,p1,p2)
-				mates+=[pair]
-				self.appLogger.debug("Pair generated: {0}".format(pair))
 		return mates
 
 	def writeMatingTable(self,indexREP,matingTable):
