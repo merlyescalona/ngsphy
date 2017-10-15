@@ -414,6 +414,7 @@ class CoverageMatrixGenerator:
 	individualsMultiplier=[]
 
 	experiment=None
+	experimentValues=None
 
 	outputFolderPath=""
 
@@ -443,6 +444,7 @@ class CoverageMatrixGenerator:
 		self.numLociPerReplicateDigits=[len(str(item)) for item in self.numLociPerReplicate]
 		self.numIndividualsPerReplicateDigits=[len(str(item )) for item in self.numIndividualsPerReplicate]
 		self.filteredReplicates=[int(item) for item in self.settings.parser.get("general", "filtered_replicates").strip().split(",")]
+		self.experimentValues=[1]*len(self.filteredReplicates)
 		if (self.settings.locus):
 			distro=self.settings.locus.asNGSPhyDistribution()
 			self.alphashapesLocus=distro.value(len(self.filteredReplicates))
@@ -477,6 +479,7 @@ class CoverageMatrixGenerator:
 			nLoci=self.numLociPerReplicate[index]
 			# expectedCoverage=self.experiment.value(nInds*nLoci)
 			val=self.experiment.value(1)
+			self.experimentValues[index]=val
 			# self.appLogger.debug(val)
 			expectedCoverage=val*(nInds*nLoci)
 			coverageMatrix=np.matrix(expectedCoverage)
@@ -620,6 +623,14 @@ class CoverageMatrixGenerator:
 		)
 		filepath=os.path.abspath(filename)
 		f=open(filepath,"w")
+		f.write("# Experiment coverage:\n")
+		f.write("{0}\n".format(self.experimentValues[index]))
+		f.write("# Locus alpha shapes:\n")
+		for index in range(0, len(self.alphashapesLocus)):
+			f.write("{0}\t{1}\n".format(index, self.alphashapesLocus[index]))
+		f.write("# Individual alpha shapes:\n")
+		for index in range(0, len(self.alphashapesIndividuals)):
+			f.write("{0}\t{1}\n".format(index, self.alphashapesIndividuals[index]))
 		f.write("# Locus Multipliers:\n")
 		for index in range(0, len(self.locusMultiplier)):
 			f.write("{0}\t{1}\n".format(index, self.locusMultiplier[index]))
