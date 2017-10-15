@@ -481,7 +481,7 @@ class CoverageMatrixGenerator:
 			val=self.experiment.value(1)
 			self.experimentValues[index]=val
 			# self.appLogger.debug(val)
-			expectedCoverage=val*(nInds*nLoci)
+			expectedCoverage=[val]*(nInds*nLoci)
 			coverageMatrix=np.matrix(expectedCoverage)
 			coverageMatrix.shape=[nInds,nLoci]
 			# individuals + loci coverage variation
@@ -626,23 +626,21 @@ class CoverageMatrixGenerator:
 		f.write("# Experiment coverage:\n")
 		f.write("{0}\n".format(self.experimentValues[index]))
 		f.write("# Locus alpha shapes:\n")
-		for index in range(0, len(self.alphashapesLocus)):
-			f.write("{0}\t{1}\n".format(index, self.alphashapesLocus[index]))
+		f.write("{0}\n".format(self.alphashapesLocus[index]))
 		f.write("# Individual alpha shapes:\n")
-		for index in range(0, len(self.alphashapesIndividuals)):
-			f.write("{0}\t{1}\n".format(index, self.alphashapesIndividuals[index]))
+		f.write("{0}\n".format(self.alphashapesIndividuals[index]))
 		f.write("# Locus Multipliers:\n")
-		for index in range(0, len(self.locusMultiplier)):
-			f.write("{0}\t{1}\n".format(index, self.locusMultiplier[index]))
+		for item in range(0, len(self.locusMultiplier[index])):
+			f.write("{0}\t{1}\n".format(item+1, self.locusMultiplier[index][item]))
 		f.write("# Individual Multipliers:\n")
-		for index in range(0, len(self.individualsMultiplier)):
-			f.write("{0}\t{1}\n".format(index, self.individualsMultiplier[index]))
+		for item in range(0, len(self.individualsMultiplier[index])):
+			f.write("{0}\t{1}\n".format(item+1, self.individualsMultiplier[index][item]))
 		f.write("# On target loci\n")
-		f.write(",".join([str(item) for item in self.onTargetLoci]))
+		f.write(",".join([str(item+1) for item in self.onTargetLoci]))
 		f.write("\n# Off target loci\n")
-		f.write(",".join([str(item) for item in self.offTargetLoci]))
+		f.write(",".join([str(item+1) for item in self.offTargetLoci]))
 		f.write("\n# Not captured loci\n")
-		f.write(",".join([str(item) for item in self.notcaptured]))
+		f.write(",".join([str(item+1) for item in self.notcaptured]))
 		f.write("\n# Taxon decay: \n")
 		for item in self.settings.taxon.keys():
 			f.write("{0},{1}\n".format(item, self.settings.taxon[item]))
