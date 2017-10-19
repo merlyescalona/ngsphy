@@ -1,8 +1,7 @@
-[![Build Status](https://travis-ci.org/merlyescalona/ngsphy.svg?branch=master)](https://travis-ci.org/merlyescalona/ngsphy) [![PyPI version](https://badge.fury.io/py/ngsphy.svg)](https://badge.fury.io/py/ngsphy)
 
 # NGSphy
 
-[![Join the chat at https://gitter.im/ngsphy/Lobby](https://badges.gitter.im/ngsphy/Lobby.svg)](https://gitter.im/ngsphy/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/merlyescalona/ngsphy.svg?branch=master)](https://travis-ci.org/merlyescalona/ngsphy) [![PyPI version](https://badge.fury.io/py/ngsphy.svg)](https://badge.fury.io/py/ngsphy) [![Join the chat at https://gitter.im/ngsphy/Lobby](https://badges.gitter.im/ngsphy/Lobby.svg)](https://gitter.im/ngsphy/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 © 2017 Merly Escalona (<merlyescalona@uvigo.es>), Sara Rocha, David Posada
 
