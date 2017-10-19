@@ -2,6 +2,8 @@
 
 # NGSphy
 
+[![Join the chat at https://gitter.im/ngsphy/Lobby](https://badges.gitter.im/ngsphy/Lobby.svg)](https://gitter.im/ngsphy/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 © 2017 Merly Escalona (<merlyescalona@uvigo.es>), Sara Rocha, David Posada
 
 University of Vigo, Spain ([http://darwin.uvigo.es](http://darwin.uvigo.es))
