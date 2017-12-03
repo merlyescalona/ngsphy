@@ -1,3 +1,20 @@
+Version 1.0.10:
+    - Added: now printing a summary log with the importat parameters of the simulation.
+    - Added: random seed option in the general block.
+    - Added: the general random seed allows to automatically set up the indelible's control random seed when using inputmode in [1,2,3].
+    - Added: use cases for variant recovery and tree inference.
+    - Added: for input mode 2 and 3, where a sequence (anchor or ancestral) is introduced, there's a base frequency calculation to input into indelible, in case it is not explicit in the indelible-ngsphy control file.
+    - Update: on re-rooting. Now the tree is re-rooted on a dichotomy, with the outgroup branch length 0.
+    - Update: on NGS mode == readcounts, the output VCF file, renaming the ID for each record of the file.
+    - Update: now NGSphy produces folder with more descriptive names.
+    - Update: now possible to decide within [ngs-reads-art] options, whether coverage is per amplicon (fcov) or the total number of reads (rcount).
+    - Fixed: coverage calculation for diploid individuals updated.
+    - Fixed: a bug related to coverage computations. The indexes are now within the ranges.
+    - Fixed: a bug which modified the sequences generated from INDELible with the anchor sequence. This resulted in adding the wrong line
+    of the anchor file to the sequence dictionary, altering the resulting individual and generating a void FASTQ file.
+    - Fixed: (read counts) There was a problem in the output VCF file for read counts. Header was incorrect and CHROM id was related to the replicate/locus info and not to the name (description) of the reference sequence. File runs properly in tools like `vcftools` and CHROM field is now the description of the reference allele sequence.
+    - Fixed: (read counts) There was not an initialization in some NumPy `chararray`s and this was generating weird symbols, which didn't properly generate the data that was written
+        down in the VCF files. This was a particular situation for `ploidy == 2`. This has now been fixed.
 Version 1.0.5:
     - trying to fix the gene-tree distribution input mode. Basepath was not being assigned.
 Version 1.0.4:

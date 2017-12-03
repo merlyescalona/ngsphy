@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse,datetime,dendropy,glob, logging,msatools,os,re,sys
+import argparse,datetime,dendropy,glob, logging,msatools,os,re,random,sys
 import numpy as np
 from coverage import NGSPhyDistributionParser as ngsphydistro
 if (sys.version_info[0:2]<(3,0)):
@@ -124,6 +124,7 @@ class Settings:
 	readCountsReferenceAllelesFile=""
 
 	ngsmode=0
+	coveragemodeART=False # FALSE is FCOV/F - TRUE C/RCOUNTS
 
 	# coverage
 	ontarget=1
@@ -243,6 +244,14 @@ class Settings:
 				"Please verify. Exiting."\
 			)
 			return False, parserMessageWrong
+
+		# Checking seeding
+		if (self.parser.has_option("general","seed")):
+			self.seed=self.parser.getint("general","seed")
+		else:
+			self.seed=np.random.random_integers(0,10000000000)
+		random.seed(self.seed)
+		np.random.seed(seed=self.seed)
 
 		# CHECKING GENERAL PARAMETERS
 		# checking ploidy for the output data
@@ -571,12 +580,30 @@ class Settings:
 			if self.parser.has_option("ngs-reads-art","i"):self.parser.remove_option("ngs-reads-art","i")
 			if self.parser.has_option("ngs-reads-art","in"):self.parser.remove_option("ngs-reads-art","in")
 			self.appLogger.warning("Removing I/O options. Be aware: I/O naming is auto-generated.")
-			# Coverage parameters
-			if (self.parser.has_option("ngs-reads-art","fcov")): self.parser.remove_option("ngs-reads-art","fcov")
-			if (self.parser.has_option("ngs-reads-art","f")): self.parser.remove_option("ngs-reads-art","f")
-			if (self.parser.has_option("ngs-reads-art","rcount")): self.parser.remove_option("ngs-reads-art","rcount")
-			if (self.parser.has_option("ngs-reads-art","c")): self.parser.remove_option("ngs-reads-art","c")
-			self.appLogger.warning("Removing ART coverage options. Coverage is calculated with the [coverage] block parameters.")
+			if (not self.parser.has_option("ngs-reads-art","fcov")   and
+					not self.parser.has_option("ngs-reads-art","f")  and
+					not self.parser.has_option("ngs-reads-art","rcount") and
+					not self.parser.has_option("ngs-reads-art","c") ):
+				parserMessageWrong="\n\t{0}\n\t{1}\n\t{2}".format(\
+					"There has been a problem with the coverage process parameterization.",\
+					"One of the f/fcov or c/rcount parameteres needed.",
+					"Please verify. Exiting."
+				)
+				return False, parserMessageWrong
+			# # Coverage parameters
+			if (self.parser.has_option("ngs-reads-art","fcov")):
+				self.parser.remove_option("ngs-reads-art","fcov")
+				self.coveragemodeART=False
+			if (self.parser.has_option("ngs-reads-art","f")):
+				self.parser.remove_option("ngs-reads-art","f")
+				self.coveragemodeART=False
+			if (self.parser.has_option("ngs-reads-art","rcount")):
+				self.parser.remove_option("ngs-reads-art","rcount")
+				self.coveragemodeART=True
+			if (self.parser.has_option("ngs-reads-art","c")):
+				self.parser.remove_option("ngs-reads-art","c")
+				self.coveragemodeART=True
+			# self.appLogger.warning("Removing ART coverage options. Coverage is calculated with the [coverage] block parameters.")
 		else:
 			parserMessageWrong="\n\t{0}\n\t{1}".format(\
 				"art_illumina not found. Program either not installed or not in your current path.",\
@@ -1089,6 +1116,15 @@ class Settings:
 		sections=self.parser.sections()
 		for sec in sections:
 			message+="\t{0:60s}\n".format("[{}]".format(sec).upper())
+			if (sec=="ngs-reads-art"):
+				if self.coveragemodeART:
+					extra="Number of reads/read pairs to be generated per sequence/amplicon"
+					param0="rcount"
+				else:
+					extra="Fold of read coverage to be simulated or number of reads/read pairs generated for each amplicon"
+					param0="fcov"
+				param1=True
+				message+="\t\t{0:<30s} :\t{1} ({2})\n".format(param0,str(param1).lower(),extra)
 			items=self.parser.items(sec)
 			for param in items:
 				extra=""

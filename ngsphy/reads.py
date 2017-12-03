@@ -255,11 +255,11 @@ $command
 						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
 						inputFile=os.path.join(\
 							self.settings.individualsFolderPath,\
-							"{0:0{1}d}".format(\
+							"REPLICATE_{0:0{1}d}".format(\
 								int(row['repID']),\
 								self.numReplicateDigits
 							),\
-							"{0:0{1}d}".format(\
+							"LOCUS_{0:0{1}d}".format(\
 								indexLOC,\
 								self.numLociPerReplicateDigits[index]\
 							),\
@@ -276,11 +276,11 @@ $command
 						# This means, from a multiple (2) sequence fasta file.
 						outputFile=os.path.join(\
 							self.settings.readsFolderPath,\
-							"{0:0{1}d}".format(\
+							"REPLICATE_{0:0{1}d}".format(\
 								int(row['repID']),\
 								self.numReplicateDigits
 							),\
-							"{0:0{1}d}".format(\
+							"LOCUS_{0:0{1}d}".format(\
 								indexLOC,\
 								self.numLociPerReplicateDigits[index]\
 							),\
@@ -295,8 +295,13 @@ $command
 							)\
 						)
 						coverage=coverageMatrix[int(row['indID'])][indexLOC-1]
+						coverageParam=""
+						if self.settings.coveragemodeART:
+							coverageParam="--rcount"
+						else:
+							coverageParam="--fcov"
 						# Call to ART
-						callParams=["art_illumina"]+self.params+["--fcov",str(coverage),"--in", inputFile,"--out",outputFile]
+						callParams=["art_illumina"]+self.params+[coverageParam,str(coverage),"--in", inputFile,"--out",outputFile]
 						# self.params+=["--in ",inputFile,"--out",outputFile]
 						# print(callParams)
 						self.commands+=[[row['repID'],indexLOC,row['indID'],inputFile, outputFile]+callParams]
@@ -393,10 +398,10 @@ $command
 			)
 		except RuntimeError as rte:
 			status=False
-			message="\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
+			message="\t{0}\n\t{1}\n\t{2}".format(\
 				"Execution error.",\
 				rte,\
-				"Please verify. Exciting.",\
+				"Please verify. Exciting."\
 			)
 
 		return status, message

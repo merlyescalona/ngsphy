@@ -7,6 +7,11 @@ import settings as sp
 from msatools import *
 from select import select
 
+try:
+	from collections import Counter
+except ImportError:
+	from counter import Counter
+
 class SequenceGenerator:
 	"""
 	Class for the generation of genome sequences from gene trees
@@ -27,6 +32,7 @@ class SequenceGenerator:
 	appLoger=None
 	settings=None
 
+	ancestralFreq=dict({"A":0.25, "C":0.25, "G":0.25,"T":0.25})
 	newIndelibleAncestralSequence=""
 	newIndelibleControlFilePath=""
 	geneTreeFile=""
@@ -108,6 +114,7 @@ class SequenceGenerator:
 		description=description[1:len(description)]
 		referenceDict=msatools.parseMSAFileWithDescriptions(self.settings.ancestralSequenceFilePath)
 		reference=referenceDict[description]
+		self.getAncestralSequenceBaseFrequencies(reference)
 		try:
 			fout=open(self.newIndelibleAncestralSequence,"w")
 			fout.write(">ngsphypartition\n{}\n".format(reference))
@@ -123,6 +130,14 @@ class SequenceGenerator:
 			return status, message
 		return status, message
 
+	def getAncestralSequenceBaseFrequencies(self,reference):
+		counter=Counter(reference)
+		totalBases=len(reference)
+		self.ancestralFreq["A"]=float(int(counter["A"])/float(totalBases))
+		self.ancestralFreq["C"]=float(int(counter["C"])/float(totalBases))
+		self.ancestralFreq["G"]=float(int(counter["G"])/float(totalBases))
+		self.ancestralFreq["T"]=float(int(counter["T"])/float(totalBases))
+		self.appLogger.info("Extracting base frequencies: {}".format(self.ancestralFreq))
 
 	def writeIndelibleControlFile(self):
 		"""
@@ -152,6 +167,21 @@ class SequenceGenerator:
 				break
 			controllines+=[item.strip("\n")]
 
+		statesFreqPresent=-1
+		# BASE FREQUENCIES - [statefreq] T C A G
+		stateFreqEntry=["[statefreq]\t{0} {1} {2} {3}".format(\
+			self.ancestralFreq["T"],\
+			self.ancestralFreq["C"],\
+			self.ancestralFreq["A"],\
+			self.ancestralFreq["G"]\
+			)]
+		for index in range(0,len(controllines)):
+			if controllines[index].strip().startswith("[statefreq]"):
+				statesFreqPresent=index
+				break
+		if (statesFreqPresent < 0):
+			controllines+=stateFreqEntry
+
 		with open(self.settings.geneTreeFile) as f:
 			geneTreeFile=[line.strip() for line in f if not line.strip() == ""]
 		geneTreeFile="".join(geneTreeFile)
@@ -180,8 +210,8 @@ class SequenceGenerator:
 		)]
 
 		# full control file, missing checking settings of output and fastaextension
-		fastaoutput="\t[output] FASTA"
-		fastaoutputext="\t[fastaextension] fasta"
+		fastaoutput="[output] FASTA"
+		fastaoutputext="[fastaextension] fasta"
 		output=[]; outputext=[]
 		settings=False
 		for indexControl in range(0, len(controllines)):
@@ -196,13 +226,20 @@ class SequenceGenerator:
 		if not settings:
 			controllines.insert(1,"[SETTINGS]")
 		if (not "FASTA" in output) and (len(outputext) ==0):
-			controllines.insert(2,"  [output] FASTA")
-			controllines.insert(3,"  [fastaextension] fasta")
+			controllines.insert(2,"[output] FASTA")
+			controllines.insert(3,"[fastaextension] fasta")
 		elif (not "FASTA" in output):
-			controllines.insert(2,"  [output] FASTA")
+			controllines.insert(2,"[output] FASTA")
 		elif (len(outputext) ==0):
-			controllines.insert(2,"  [fastaextension] fasta")
-
+			controllines.insert(2,"[fastaextension] fasta")
+		# check whether there is thr [randomseed] options
+		# if exists keep, else use the program one
+		randomseed=False
+		for indexControl in range(0,len(controllines)):
+			data=controllines[indexControl].strip()
+			if data.startswith("[randomseed]"): randomseed=True
+		if not randomseed:
+			controllines.insert(2,"[randomseed] {0}".format(self.settings.seed))
 		# write controllines to file
 		f=open(self.newIndelibleControlFilePath,"w")
 		for item in controllines:

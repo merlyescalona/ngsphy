@@ -87,7 +87,7 @@ def parseMSAFileWithDescriptions(fastapath):
 						seqdata[-1]+=line.strip()
 	for line in seqdata:
 		if (count%2==0):
-			seq=line[0:-1].strip()
+			seq=line.strip()
 			seqDict[tmp]=seq
 			seq=None
 			description=None

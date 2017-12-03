@@ -573,6 +573,8 @@ class CoverageMatrixGenerator:
 					"Coverage Matrix Generator",\
 					"An unexpected error occurr with the not captured parameter. ",\
 					"Please verify. Exiting.")
+			if (self.settings.ploidy == 2):
+				coverageMatrix=coverageMatrix*0.5
 			# print(coverageMatrix)
 			self.write(coverageMatrix,self.filteredReplicates[index])
 		return status,message
@@ -626,15 +628,28 @@ class CoverageMatrixGenerator:
 		f.write("# Experiment coverage:\n")
 		f.write("{0}\n".format(self.experimentValues[index]))
 		f.write("# Locus alpha shapes:\n")
-		f.write("{0}\n".format(self.alphashapesLocus[index]))
+		if not len(self.alphashapesLocus) == 0:
+			f.write("{0}\n".format(self.alphashapesLocus[index]))
+		else:
+			f.write("None\n")
 		f.write("# Individual alpha shapes:\n")
-		f.write("{0}\n".format(self.alphashapesIndividuals[index]))
+		if not len(self.alphashapesIndividuals)==0:
+			f.write("{0}\n".format(self.alphashapesIndividuals[index]))
+		else:
+			f.write("None\n")
+
 		f.write("# Locus Multipliers:\n")
-		for item in range(0, len(self.locusMultiplier[index])):
-			f.write("{0}\t{1}\n".format(item+1, self.locusMultiplier[index][item]))
+		if not len(self.locusMultiplier) ==0:
+			for item in range(0, len(self.locusMultiplier[index])):
+				f.write("{0}\t{1}\n".format(item+1, self.locusMultiplier[index][item]))
+		else:
+			f.write("None\n")
 		f.write("# Individual Multipliers:\n")
-		for item in range(0, len(self.individualsMultiplier[index])):
-			f.write("{0}\t{1}\n".format(item+1, self.individualsMultiplier[index][item]))
+		if not len(self.individualsMultiplier) ==0:
+			for item in range(0, len(self.individualsMultiplier[index])):
+				f.write("{0}\t{1}\n".format(item+1, self.individualsMultiplier[index][item]))
+		else:
+			f.write("None\n")
 		f.write("# On target loci\n")
 		f.write(",".join([str(item+1) for item in self.onTargetLoci]))
 		f.write("\n# Off target loci\n")

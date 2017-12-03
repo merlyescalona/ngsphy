@@ -214,15 +214,15 @@ class ReadCounts:
 			self.appLogger.debug("{0}|{1}".format(i, self.filteredReplicates[i]))
 			noErrorFolder=os.path.join(\
 				self.readcountNoErrorFolderPath,\
-				"{0:0{1}d}".format(indexREP,self.numReplicatesDigits)\
+				"REPLICATE_{0:0{1}d}".format(indexREP,self.numReplicatesDigits)\
 			)
 			errorFolder=os.path.join(\
 				self.readcountErrorFolderPath,\
-				"{0:0{1}d}".format(indexREP,self.numReplicatesDigits)\
+				"REPLICATE_{0:0{1}d}".format(indexREP,self.numReplicatesDigits)\
 			)
 			ref_alleles=os.path.join(\
 				self.settings.refAllelesFolderPath,\
-				"{0:0{1}d}".format(indexREP,self.numReplicatesDigits)\
+				"REPLICATE_{0:0{1}d}".format(indexREP,self.numReplicatesDigits)\
 			)
 
 			try:
@@ -505,15 +505,18 @@ class ReadCounts:
 		tipID2=ind["mateID2"];
 		geneFamily="{0}_{1}".format(speciesID,locusID)
 		fullInd=np.chararray(shape=(2,seqSize), itemsize=1)
-		tmp=list(msa[geneFamily][str(tipID1)]['sequence'])
-		fullInd[0,:]=[item for item in tmp]
-		tmp=list(msa[geneFamily][str(tipID2)]['sequence'])
-		fullInd[1,:]=[item for item in tmp]
+		for i in range(0,seqSize):
+			fullInd[0,i]="";fullInd[1,i]=""
+		tmp1=list(msa[geneFamily][str(tipID1)]['sequence'])
+		tmp2=list(msa[geneFamily][str(tipID2)]['sequence'])
+		for i in range(0,seqSize):
+			fullInd[0,i]=tmp1[i]
+			fullInd[1,i]=tmp2[i]
 		return fullInd
 
 
 	def computeHaploid(self,indexREP,indexLOC,msa,individuals,refAllelesFilePath,\
-		referenceSeqFull,variableSites,DP):
+		referenceDescription,referenceSeqFull,variableSites,DP):
 		"""
 		compute the READ COUNT for the specic ploidy
 		------------------------------------------------------------------------
@@ -594,7 +597,7 @@ class ReadCounts:
 		# here corresponds to the INDEXST that is going to be written
 		self.writeVCFFile(\
 			indexREP,indexLOC,\
-			refAllelesFilePath, referenceSeqFull,\
+			refAllelesFilePath,referenceDescription, referenceSeqFull,\
 			alt,variableSitesPositionIndices,\
 			HTGeneral,HLGeneral,\
 			ADGeneral,DP,True)
@@ -618,7 +621,7 @@ class ReadCounts:
 
 		self.writeVCFFile(
 			indexREP,indexLOC,\
-			refAllelesFilePath, referenceSeqFull,\
+			refAllelesFilePath,referenceDescription, referenceSeqFull,\
 			altInd,variableSitesPositionIndices,\
 			HTGeneralWErrors,HLGeneralWErrors,\
 			ADGeneralWErrors,DP,False)
@@ -812,7 +815,8 @@ class ReadCounts:
 			ADWErrors[2,indexVar]=counter["G"];ADWErrors[3,indexVar]=counter["T"]
 		return ADNOErrors,ADWErrors
 
-	def computeDiploid(self,indexREP,indexLOC,msa,individuals,refAllelesFilePath,referenceSeqFull,variableSites,DP):
+	def computeDiploid(self,indexREP,indexLOC,msa,individuals,refAllelesFilePath,\
+		referenceDescription,referenceSeqFull,variableSites,DP):
 		"""
 		compute the READ COUNT for the specic ploidy
 		------------------------------------------------------------------------
@@ -888,7 +892,7 @@ class ReadCounts:
 		# here corresponds to the INDEXST that is going to be written
 		self.writeVCFFile(\
 			indexREP,indexLOC,\
-			refAllelesFilePath, referenceSeqFull,\
+			refAllelesFilePath,referenceDescription, referenceSeqFull,\
 			alt,variableSitesPositionIndices,\
 			GTGeneral,GLGeneral,\
 			ADGeneral,DP,True)
@@ -924,7 +928,7 @@ class ReadCounts:
 
 		self.writeVCFFile(
 			indexREP,indexLOC,\
-			refAllelesFilePath, referenceSeqFull,\
+			refAllelesFilePath,referenceDescription,referenceSeqFull,\
 			altInd,variableSitesPositionIndices,\
 			GTGeneralWErrors,GLGeneralWErrors,\
 			ADGeneralWErrors,DP,False)
@@ -1063,6 +1067,7 @@ class ReadCounts:
 			diploidCoverage=diploidDistro.value(1)[0]
 			finalRC=[indNucStrand1]*(diploidCoverage)
 			finalRC+=[indNucStrand2]*(posCoverage-diploidCoverage)
+
 			counter=Counter(finalRC)
 			# TRUE READ count
 			ADNOErrors[0,indexVar]=counter["A"];ADNOErrors[1,indexVar]=counter["C"]
@@ -1070,6 +1075,7 @@ class ReadCounts:
 			# SAMPLE READ COUNT - need to know error distribution
 			errorDistro=ngsphydistro("b",[posCoverage,self.settings.readCountsError])
 			errorD=errorDistro.value(1)[0]
+
 			errorPositions=[]
 			# need to know possible nucleotides to substitute my position with error
 			possibleNucs=list(set(self.__NUCLEOTIDES)-set([indNucStrand1]+[indNucStrand2]))
@@ -1085,7 +1091,7 @@ class ReadCounts:
 				for item in range(0,len(errorPositions)):
 					posToChange=errorPositions[item]
 					finalRC[posToChange]=errorChoices[item]
-			counter=Counter(finalRC)
+				counter=Counter(finalRC)
 			# if any of the nucleotides does not have a counter retrieving it will be 0
 			ADWErrors[0,indexVar]=counter["A"];ADWErrors[1,indexVar]=counter["C"]
 			ADWErrors[2,indexVar]=counter["G"];ADWErrors[3,indexVar]=counter["T"]
@@ -1166,7 +1172,7 @@ class ReadCounts:
 			if "T"==item: codedRef+=[3]
 		return np.array(codedRef)
 
-	def writeVCFFile(self, indexREP,indexLOC,refAllelesFilePath,REF,alt,variableSitesPositionIndices,HT,HL,AD,DP,flag):
+	def writeVCFFile(self, indexREP,indexLOC,refAllelesFilePath,referenceDescription,REF,alt,variableSitesPositionIndices,HT,HL,AD,DP,flag):
 		"""
 		gets single individual data formated as a GT:GL:AD:DP VCF column
 		------------------------------------------------------------------------
@@ -1174,6 +1180,7 @@ class ReadCounts:
 			indexREP
 			indexLOC
 			refAllelesFilePath
+			referenceDescription
 			reference sequence
 			alternative alleles
 			variableSitesPositionIndices
@@ -1192,7 +1199,7 @@ class ReadCounts:
 			self.appLogger.debug("Writing VCF file (no_error)")
 		else:
 			self.appLogger.debug("Writing VCF file (with_error)")
-		header="{0}\n{1}={2}\n{3}\n{4}={5}".format(\
+		header="{0}\r\n{1}={2}\r\n{3}\r\n{4}={5}".format(\
 			"##fileformat=VCFv4.0",\
 			"##fileDate",\
 			datetime.datetime.now(),\
@@ -1200,11 +1207,12 @@ class ReadCounts:
 			"##reference",\
 			refAllelesFilePath
 		)
-		formatLines="{0}\n{1}\n{2}\n{3}".format(
+		formatLines="{0}\r\n{1}\r\n{2}\r\n{3}\r\n{3}".format(\
 			"##FORMAT=<ID=GT,Number=1,Type=Integer,Description=\"Genotype\">",\
-			"##FORMAT=<ID=GL,Number=1,Type=Integer,Description=\"Log10 scale genotype likelihood\">",\
+			"##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"Log10 scale genotype likelihood\">",\
 			"##FORMAT=<ID=AD,Number=1,Type=Integer,Description=\"Allelic Depth\">",\
-			"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Depth of coverage\">"
+			"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Depth of coverage\">",\
+			"##FILTER=<ID=NONE,Description=\"No filter applied\">"\
 		)
 
 		indnames=["Ind{0}".format(i) for i in range(0,nInds)]
@@ -1212,15 +1220,12 @@ class ReadCounts:
 		headerCols=["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"]+indnames
 		# CHROM
 		numGeneTreeDigits=len(str(self.numLociPerReplicate[(indexREP-1)]))
-		chromName="REP.{0:0{1}d}.GT.{2:0{3}d}".format(indexREP,\
-			self.numReplicatesDigits,\
-			indexLOC,\
-			numGeneTreeDigits)
+		chromName=referenceDescription
 		# POS
 		nVariants=len(variableSitesPositionIndices)
 		POS=[(item+1) for item in variableSitesPositionIndices]
 		# ID
-		ID=["REP.{0:0{1}d}.GT.{2:0{3}d}.ID.{4}".format(\
+		ID=["REP_{0:0{1}d}_GT_{2:0{3}d}_ID_{4}".format(\
 			indexREP,\
 			self.numReplicatesDigits,\
 			indexLOC,
@@ -1231,7 +1236,7 @@ class ReadCounts:
 		# qual
 		QUAL=[u'\u00B7']*nVariants
 		# FILTER
-		FILTER=[u'\u00B7']*nVariants
+		FILTER=["NONE"]*nVariants
 		# INFO
 		INFO=[u'\u00B7']*nVariants
 		# format
@@ -1246,7 +1251,9 @@ class ReadCounts:
 		if flag:
 			outfile=os.path.join(
 				self.readcountNoErrorFolderPath,\
-				"{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
+				"REPLICATE_{0:0{1}d}".format(\
+					indexREP,\
+					self.numReplicatesDigits),\
 				"{0}_{1:0{2}d}_{3:0{4}d}_NOERROR.vcf".format(\
 					self.settings.simphyDataPrefix,\
 					indexREP,self.numReplicatesDigits,\
@@ -1256,7 +1263,9 @@ class ReadCounts:
 		else:
 			outfile=os.path.join(
 				self.readcountErrorFolderPath,\
-				"{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
+				"REPLICATE_{0:0{1}d}".format(\
+					indexREP,\
+					self.numReplicatesDigits),\
 				"{0}_{1:0{2}d}_{3:0{4}d}.vcf".format(\
 					self.settings.simphyDataPrefix,\
 					indexREP,self.numReplicatesDigits,\
@@ -1273,15 +1282,16 @@ class ReadCounts:
 			allVariants,variableSitesPositionIndices)
 		# (sizeChrom,sizePOS,sizeID,sizeREF,sizeALT,sizeQUAL,sizeFILTER,sizeINFO,sizeFORMAT,sizeInds)
 		maxLenIndName=max([len(elem) for elem in indnames])
-		maxLenIndName=max(colWidths[9], maxLenIndName)
+		maxLenIndName=max(colWidths[-1], maxLenIndName)
 		headerWidths=[maxLenIndName]*len(indnames)
 		headerWidths=colWidths+headerWidths
-		headerFields=["{0:{1}s}".format(\
-			headerCols[indexField],headerWidths[indexField])\
-			for indexField in range(0,len(headerCols))]
+		# headerFields=["{0:{1}s}".format(\
+		# 	headerCols[indexField],headerWidths[indexField])\
+		# 	for indexField in range(0,len(headerCols))]
+		headerFields=[headerCols[i] for i in range(0,len(headerCols))]
 		# filevcf=codecs.open(outfile, 'a+', 'utf-8')
 		filevcf=open(outfile, 'a')
-		filevcf.write("{0}\n{1}\n{2}\n".format(\
+		filevcf.write("{0}\r\n{1}\r\n{2}\r\n".format(\
 			header,\
 			formatLines,\
 			"\t".join(headerFields)\
@@ -1311,7 +1321,7 @@ class ReadCounts:
 				['{0:{1}}'.format(indVar,maxLenIndName) for indVar in allVariants[str(variableSitesPositionIndices[index])]]\
 			)
 			# sys.stdout.write("\n{}\n".format(INDS_FIELD))
-			line="{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\n".format(\
+			line="{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\r\n".format(\
 				CHROM_FIELD,POS_FIELD,ID_FIELD,REF_FIELD,ALT_FIELD,QUAL_FIELD,FILTER_FIELD,INFO_FIELD,FORMAT_FIELD,INDS_FIELD)
 			filevcf.write(line)
 		filevcf.close()
@@ -1338,18 +1348,18 @@ class ReadCounts:
 		self.appLogger.debug("getColWidhts(self,chromName,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT,allVariants, variableSites)")
 		#CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO,FORMAT
 		sizeChrom=len(chromName)
-		sizePOS=max([len(str(item)) for item in POS])
-		sizeID=max([len(item) for item in ID])
-		sizeREF=max([len(item) for item in REF])
+		sizePOS=max([len(str(item)) for item in POS]+[len("POS")])
+		sizeID=max([len(item) for item in ID]+[len("ID")])
+		sizeREF=max([len(item) for item in REF]+[len("REF")])
 		tmpALT=[",".join(ALT[str(var)]) for var in variableSitesPositionIndices]
-		sizeALT=max([len(item) for item in tmpALT])
-		sizeQUAL=max([len(item) for item in QUAL])
-		sizeFILTER=max([len(item) for item in FILTER])
-		sizeINFO=max([len(item) for item in INFO])
-		sizeFORMAT=max([len(item) for item in FORMAT])
+		sizeALT=max([len(item) for item in tmpALT]+[len("ALT")])
+		sizeQUAL=max([len(item) for item in QUAL]+[len("QUAL")])
+		sizeFILTER=max([len(item) for item in FILTER]+[len("FILTER")])
+		sizeINFO=max([len(item) for item in INFO]+[len("INFO")])
+		sizeFORMAT=max([len(item) for item in FORMAT]+[len("FORMAT")])
 		tmpInds=[]
 		for item in variableSitesPositionIndices:
-			tmpInds+=[max([ len(elem) for elem in allVariants[str(item)]])]
+			tmpInds+=[max([ len(str(elem)) for elem in allVariants[str(item)]])]
 		sizeInds=max(tmpInds)
 		return [sizeChrom,sizePOS,sizeID,sizeREF,sizeALT,sizeQUAL,sizeFILTER,sizeINFO,sizeFORMAT,sizeInds]
 
@@ -1369,7 +1379,7 @@ class ReadCounts:
 		self.appLogger.debug(" writeReference(self,indexREP,indexLOC,referenceSpeciesID,referenceTipID,referenceSeqFull):")
 		refAllelesFilePath=os.path.join(\
 			self.settings.refAllelesFolderPath,\
-			"{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
+			"REPLICATE_{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
 			"{0}_REF_{1}_{2}.fasta".format(\
 				self.settings.projectName,\
 				indexREP,
@@ -1445,6 +1455,7 @@ class ReadCounts:
 				referenceSpeciesID=str(referenceForCurrST[1])
 				referenceLocusID=str(referenceForCurrST[2])
 				referenceTipID=str(referenceForCurrST[3])
+				referenceDescription="_".join([str(i) for i in referenceForCurrST[1:4]])
 				referenceSeqFull=msa[tag][referenceTipID]['sequence']
 				refAllelesFilePath=self.writeReference(\
 					indexREP,indexLOC,\
@@ -1466,20 +1477,26 @@ class ReadCounts:
 					self.computeHaploid(\
 						indexREP,indexLOC,\
 						msa,individuals,\
-						refAllelesFilePath,referenceSeqFull,\
+						refAllelesFilePath,\
+						referenceDescription,\
+						referenceSeqFull,\
 						variableSites,DP)
 				if self.settings.ploidy==2:
 					self.computeDiploid(\
 						indexREP,indexLOC,\
 						msa,individuals,\
-						refAllelesFilePath,referenceSeqFull,\
+						refAllelesFilePath,\
+						referenceDescription,\
+						referenceSeqFull,\
 						variableSites,DP)
 				tEndTime=datetime.datetime.now()
 				ETA=(tEndTime-tStartTime).total_seconds()
 				if(self.settings.runningTimes):
 					outfile=os.path.join(
 						self.readcountNoErrorFolderPath,\
-						"{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
+						"REPLICATE_{0:0{1}d}".format(\
+							indexREP,\
+							self.numReplicatesDigits),\
 						"{0}_{1:0{2}d}_{3:0{4}d}*".format(
 							self.settings.simphyDataPrefix,\
 							indexREP,\
@@ -1543,6 +1560,7 @@ class ReadCounts:
 				nLoci=nLociList[indexFilterST]
 				self.appLogger.debug("Number of individuals: {0}".format(numIndividualsList[indexFilterST]))
 				self.appLogger.debug("Number of loci: {0}".format(nLoci))
+
 				indexLOC=1
 				threadsToBeRan=nLoci
 				self.appLogger.info("Simulating read counts for Replicate - {0:0{1}d}".format(\

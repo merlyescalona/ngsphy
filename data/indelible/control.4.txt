@@ -2,11 +2,6 @@
 [SETTINGS]
 	[output]	FASTA
 	[fastaextension]	fasta
-[MODEL] complex_common
-	[submodel]	GTR $(rd:6,16,2,8,20,4)
-	[statefreq] $(d:1,1,1,1)
-	[rates] 0 $(e:2) 0
-
 [SIMPHY-UNLINKED-MODEL]	simple_unlinked
 	[submodel]    HKY $(e:1)
   	[statefreq]   $(d:1,1,1,1)

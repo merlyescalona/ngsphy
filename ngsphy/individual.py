@@ -6,7 +6,7 @@ import random as rnd
 import settings as sp
 from msatools import *
 from select import select
-
+from ngsphyexceptions import *
 ################################################################################
 class IndividualAssignment:
 	"""
@@ -32,6 +32,7 @@ class IndividualAssignment:
 	numLociPerReplicateDigits=[]
 	numIndividualsPerReplicate=[]
 	filteredReplicates=[]
+	indelsPresence=False
 
 	def __init__(self, settings):
 		self.appLogger=logging.getLogger("ngsphy")
@@ -316,7 +317,7 @@ class IndividualAssignment:
 		for index in range(0,len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,\
-				"{0:0{1}d}".format(\
+				"REPLICATE_{0:0{1}d}".format(\
 					self.filteredReplicates[index],\
 					self.numReplicateDigits\
 				)\
@@ -347,8 +348,12 @@ class IndividualAssignment:
 				seqDict=parseMSAFile(fastapath)
 				outputFolder=os.path.join(
 					self.settings.individualsFolderPath,\
-					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
+					"REPLICATE_{0:0{1}d}".format(\
+						self.filteredReplicates[index],\
+						self.numReplicateDigits),\
+					"LOCUS_{0:0{1}d}".format(\
+						indexLOC,\
+						self.numLociPerReplicateDigits[index])\
 				)
 				try:
 					self.appLogger.debug("Output folder: {0}".format(outputFolder))
@@ -370,7 +375,7 @@ class IndividualAssignment:
 		for index in range(0, len(self.filteredReplicates)):
 			curReplicatePath=os.path.join(\
 				self.settings.individualsFolderPath,
-				"{0:0{1}d}".format(\
+				"REPLICATE_{0:0{1}d}".format(\
 					self.filteredReplicates[index],\
 				 	self.numReplicateDigits)
 			)
@@ -401,22 +406,18 @@ class IndividualAssignment:
 				)
 				seqDict=parseMSAFileWithDescriptions(fastapath)
 				################################################################
-				if self.settings.inputmode==3:
-					# need to modify the sequence of the anchor-root
-					seqs=None
-					with open(self.settings.ancestralSequenceFilePath, 'r') as f:
-						seqs=[line.strip() for line in f if not line.startswith("#")]
-					seqDict[self.settings.anchorTipLabel]=seqs[0]
+				# if self.settings.inputmode==3:
+				# 	# need to modify the sequence of the anchor-root
+				# 	seqs=None
+				# 	with open(self.settings.ancestralSequenceFilePath, 'r') as f:
+				# 		seqs=[line.strip() for line in f if not line.startswith("#")]
+				# 	seqDict[self.settings.anchorTipLabel]=seqs[0]
 				################################################################
-				outputFolder=os.path.join(
-					self.settings.individualsFolderPath,\
-					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-					"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
-				)
 				outputFolder=os.path.join(\
 					self.settings.individualsFolderPath,\
-					"{0:0{1}d}".format(self.filteredReplicates[index], self.numReplicateDigits),\
-					"{0:0{1}d}".format(\
+					"REPLICATE_{0:0{1}d}".format(\
+						self.filteredReplicates[index], self.numReplicateDigits),\
+					"LOCUS_{0:0{1}d}".format(\
 						indexLOC,\
 						self.numLociPerReplicateDigits[index])\
 				)
@@ -490,8 +491,12 @@ class IndividualAssignment:
 		)
 		outputFolder=os.path.join(\
 			self.settings.individualsFolderPath,\
-			"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])
+			"REPLICATE_{0:0{1}d}".format(\
+				self.filteredReplicates[index],\
+				self.numReplicateDigits),\
+			"LOCUS_{0:0{1}d}".format(\
+				indexLOC,\
+				self.numLociPerReplicateDigits[index])
 		)
 		for currentInd in range(0,len(individualTable)):
 			# Extracting info from the dictionary
@@ -718,8 +723,12 @@ class IndividualAssignment:
 		)
 		outputFolder=os.path.join(\
 			self.settings.individualsFolderPath,\
-			"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-			"{0:0{1}d}".format(indexLOC,self.numLociPerReplicateDigits[index])\
+			"REPLICATE_{0:0{1}d}".format(\
+				self.filteredReplicates[index],\
+				self.numReplicateDigits),\
+			"LOCUS_{0:0{1}d}".format(\
+				indexLOC,\
+				self.numLociPerReplicateDigits[index])\
 		)
 		seq1="";des1="";seq2="";des2="";
 		for currentInd in range(0,len(matingTable)):
@@ -796,33 +805,50 @@ class IndividualAssignment:
 
 		"""
 		self.appLogger.info("Checking for indels...")
-		indelsList=[];status=True;message=""
-
-		for index in range(0,len(self.filteredReplicates)):
-			self.appLogger.info("ReplicateID {0} - {1}/{2} [{3}] ".format(\
-				self.filteredReplicates[index],\
-				index+1,\
-				len(self.filteredReplicates),\
-				self.numLociPerReplicate[index]
-			))
-			genomicdata=""
-			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
-				self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(\
-					self.filteredReplicates[index], indexLOC))
-				fastapath=os.path.join(
-					self.settings.basepath,\
-					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-					"{0}_{1:0{2}d}_TRUE.fasta".format(\
-						self.settings.simphyDataPrefix,\
-						indexLOC,\
-						self.numLociPerReplicateDigits[index]\
-					)\
+		indelsList=[];self.indelsPresence=False;message=""
+		endStatus=True
+		try:
+			for index in range(0,len(self.filteredReplicates)):
+				self.appLogger.info("ReplicateID {0} - {1}/{2} [{3}] ".format(\
+					self.filteredReplicates[index],\
+					index+1,\
+					len(self.filteredReplicates),\
+					self.numLociPerReplicate[index]
+				))
+				genomicdata=""
+				for indexLOC in range(1,self.numLociPerReplicate[index]+1):
+					self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(\
+						self.filteredReplicates[index], indexLOC))
+					fastapath=os.path.join(
+						self.settings.basepath,\
+						"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+						"{0}_{1:0{2}d}_TRUE.fasta".format(\
+							self.settings.simphyDataPrefix,\
+							indexLOC,\
+							self.numLociPerReplicateDigits[index]\
+						)\
+					)
+					genomicdata=None
+					with open(fastapath, "r") as fasta:
+						genomicdata="".join([line.strip() for line in fasta if not line.startswith(">")])
+					dashpos=int(genomicdata.find("-"))
+					if dashpos >= 0: indelsList+=[True] #indel
+					else: indelsList+=[False] # ok
+			if sum(indelsList) > 0: self.indelsPresence=True
+		except IOError as e:
+			endStatus=False
+			message="{}\t{} {} {}\n\t{}\n\t{}\n\t{}\n\t{}\n\n\t{}\n\t{}\n\t{}\n\t{}".format(\
+				"[IOERROR]",\
+				"File",\
+				fastapath,\
+				"does not exist",\
+				"Input data should be in FASTA format. Please verify your dataset.",\
+				"--------------------------------------------------------------------------------",\
+				"If using input modes 1,2 or 3, make sure the control file is properly structured.",\
+				"If using input mode 4, make sure the INDELible control file for your SimPhy simulations contains the settings lines:",\
+				"[SETTINGS]",\
+				"  [fastaextension] fasta",\
+				"  [output] FASTA",\
+				"--------------------------------------------------------------------------------"\
 				)
-				genomicdata=None
-				with open(fastapath, "r") as fasta:
-					genomicdata="".join([line.strip() for line in fasta if not line.startswith(">")])
-				dashpos=int(genomicdata.find("-"))
-				if dashpos >= 0: indelsList+=[True] #indel
-				else: indelsList+=[False] # ok
-		if sum(indelsList) > 0: status=False
-		return status
+		return endStatus, message

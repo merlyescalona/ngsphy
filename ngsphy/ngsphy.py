@@ -11,33 +11,7 @@ import reads as ngs
 import readcounts as rc
 import rerooter as rr
 from select import select
-class NGSphyException(Exception):
-    """
-    Exception raised for errors of the NGSphy program.
-    ----------------------------------------------------------------------------
-    Attributes:
-        expression -- input expression in which the error occurred
-        message -- explanation of the error
-    """
-
-    def __init__(self, expression, message, time):
-        self.expression = expression
-        self.message = message
-        self.time= time
-
-class NGSphyExitException(Exception):
-    """
-    Exception raised for ending of the NGSphy process.
-    ----------------------------------------------------------------------------
-    Attributes:
-        expression -- input expression in which the error occurred
-        message -- explanation of the error
-    """
-    def __init__(self, expression, message, time):
-        self.expression = expression
-        self.message = message
-        self.time= time
-
+from ngsphyexceptions import *
 
 class NGSphy:
     """
@@ -69,6 +43,7 @@ class NGSphy:
     	else:
     		self.settingsFile=os.path.abspath(os.path.join(os.getcwd(),"settings.txt"))
 
+
     def run(self):
         """
         Execution of the process flow.
@@ -90,6 +65,7 @@ class NGSphy:
             	if not settingsOk: self.ending(settingsOk,settingsMessage)
             	# Generate BASIC folder structure - output folder
             	self.generateFolderStructure()
+
             	# Settings exist and are ok.
             	# reroot-tree
                 if self.settings.inputmode == 3:
@@ -113,7 +89,9 @@ class NGSphy:
                 self.indGenerator=ig.IndividualAssignment(self.settings)
                 matingOk,matingMessage=self.indGenerator.checkArgs()
                 if not matingOk: self.ending(matingOk,matingMessage)
-                self.settings.indels=not self.indGenerator.checkFilesForIndels()
+                indelsCheckOK, indelsMessage=self.indGenerator.checkFilesForIndels()
+                if not indelsCheckOK: self.ending(indelsCheckOK, indelsMessage)
+                self.settings.indels=self.indGenerator.indelsPresence
                 self.indGenerator.iteratingOverReplicates()
                 # now checking NGS MODE
                 if self.settings.ngsmode>0:
@@ -142,8 +120,7 @@ class NGSphy:
             			) )
             		self.readcount=rc.ReadCounts(self.settings)
             		status, message=self.readcount.run()
-            		if not status:
-            			self.ending(status,message)
+            		if not status: self.ending(status,message)
             	else:
             		self.appLogger.info("NGS simulation is not being made.")
             else:
@@ -169,6 +146,18 @@ class NGSphy:
     	except:
     		self.appLogger.debug("Output folder ({0}) exists. ".format(self.settings.outputFolderPath))
 
+
+    def generateSummaryLog(self, time):
+    	filename=os.path.join(\
+    		self.settings.outputFolderPath,\
+    		"{0}.{1:%Y}{1:%m}{1:%d}-{1:%H}:{1:%M}:{1:%S}.summary.log".format(\
+    			"NGSPHY",\
+    			time\
+    		)
+    	)
+    	with open(filename, 'w') as f:
+            f.write(self.settings.formatSettingsMessage())
+
     def ending(self, good, message):
         """
         Handles the ending of the processes. Since there is some dependency
@@ -182,6 +171,8 @@ class NGSphy:
         Raises a NGSphyException
         """
     	self.endTime=datetime.datetime.now()
+        if (os.path.exists(self.settings.outputFolderPath)):
+            self.generateSummaryLog(self.endTime)
         eta=self.endTime-self.startTime
         if good:
             raise NGSphyExitException(good,message,eta)

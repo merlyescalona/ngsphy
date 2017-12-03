@@ -1,0 +1,11 @@
+[TYPE] NUCLEOTIDE 1
+[SETTINGS]
+	[output]	FASTA
+	[fastaextension]	fasta
+	[ancestralprint]	NEW
+
+[SIMPHY-UNLINKED-MODEL]	simphy_unlinked_model
+	[submodel]    JC
+
+[SIMPHY-PARTITIONS] simple [1 simphy_unlinked_model 10000] // SimPhy unlinked mode, sequence length 10.000bp
+[SIMPHY-EVOLVE] 1 data // One sequence alignment

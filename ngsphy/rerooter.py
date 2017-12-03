@@ -60,14 +60,12 @@ class Rerooter:
 			 	schema="newick",\
 				rooting='force-rooted',\
 				preserve_underscores=True)
-			self.tree.resolve_polytomies()
 		except Exception as ex:
 			return False, ex
 		newroot=self.tree.find_node_with_taxon_label(self.settings.anchorTipLabel)
 		lennewroot=newroot.edge_length
-		# self.tree.resolve_polytomies()
 		if newroot:
-			self.tree.reroot_at_edge(newroot.edge,length1=0,length2=lennewroot, update_bipartitions=False)
+			self.tree.reroot_at_edge(newroot.edge,length1=lennewroot,length2=0, update_bipartitions=False)
 			self.settings.geneTreeFile=self.outputFilePath
 		else:
 			return False, "{0}\n\t{1}\n\t{2}".format(\
