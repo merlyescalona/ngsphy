@@ -11,6 +11,7 @@ indelible_control_file=files/control.benchmarking.txt
 [coverage]
 experiment=F:100
 [ngs-reads-art]
+fcov=true
 l=150
 m=250
 p=true

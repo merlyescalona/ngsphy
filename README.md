@@ -18,6 +18,7 @@ The documentation is available [here](https://github.com/merlyescalona/ngsphy/wi
 
 - If you use NGSphy, please cite:
     - Escalona, M, Rocha S and Posada D. *NGSphy: phylogenomic simulation of NGS data*. bioRxiv 197715; doi: https://doi.org/10.1101/197715
+    - Sukumaran, J and Holder MT. (2010). *DendroPy: A Python library for phylogenetic computing*. Bioinformatics 26: 1569-1571.
 
 - if running ART cite also:
     - Huang W, Li L, Myers JR and Marth, GT. (2012) *ART: a next-generation sequencing read simulator*. Bioinformatics  28 (4): 593-594
@@ -27,7 +28,6 @@ The documentation is available [here](https://github.com/merlyescalona/ngsphy/wi
 
 - if using single gene tree inputs, cite also:
     - Fletcher, W and Yang Z. (2009) *INDELible: A flexible simulator of biological sequence evolution*. Molecular Biology and Evolution. 26 (8): 1879–88.
-    - Sukumaran, J and Holder MT. (2010). *DendroPy: A Python library for phylogenetic computing*. Bioinformatics 26: 1569-1571.
 
 # Input/output files
 

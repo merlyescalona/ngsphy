@@ -11,6 +11,7 @@ indelible_control_file=control.2.txt
 experiment=F:50
 [ngs-reads-art]
 amp=true
+fcov=true
 l=100
 m=250
 p=true

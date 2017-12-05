@@ -10,6 +10,7 @@ simphy_data_prefix=data
 [coverage]
 experiment=F:10
 [ngs-reads-art]
+fcov=true
 l=150
 m=250
 p=true

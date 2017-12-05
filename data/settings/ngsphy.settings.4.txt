@@ -15,6 +15,7 @@ offtarget=0.25, 0.01
 notcaptured=0.5
 taxon= 1,0.5;2,0.25
 [ngs-reads-art]
+fcov=true
 l=100
 m=250
 p=true
