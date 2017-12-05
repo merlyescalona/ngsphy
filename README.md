@@ -36,7 +36,7 @@ The documentation is available [here](https://github.com/merlyescalona/ngsphy/wi
 [Single gene-tree scenario]
 - NGSPhy settings file
 - INDELible control file
-- [Newick file]() with single gene tree
+- [Newick file](http://evolution.genetics.washington.edu/phylip/newicktree.html) with single gene tree
 - ancestral sequence file ([FASTA](https://en.wikipedia.org/wiki/FASTA_format)) (optional)
 - reference allele file (optional)
 
