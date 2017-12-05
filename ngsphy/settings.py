@@ -248,8 +248,10 @@ class Settings:
 		# Checking seeding
 		if (self.parser.has_option("general","seed")):
 			self.seed=self.parser.getint("general","seed")
+			if (self.seed > ((2**32)-1)) or (self.seed < 0 ):
+				self.seed=np.random.random_integers(0,(2**32) - 1)
 		else:
-			self.seed=np.random.random_integers(0,10000000000)
+			self.seed=np.random.random_integers(0,(2**32) - 1)
 		random.seed(self.seed)
 		np.random.seed(seed=self.seed)
 

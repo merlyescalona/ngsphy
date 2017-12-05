@@ -573,8 +573,7 @@ class CoverageMatrixGenerator:
 					"Coverage Matrix Generator",\
 					"An unexpected error occurr with the not captured parameter. ",\
 					"Please verify. Exiting.")
-			if (self.settings.ploidy == 2):
-				coverageMatrix=coverageMatrix*0.5
+
 			# print(coverageMatrix)
 			self.write(coverageMatrix,self.filteredReplicates[index])
 		return status,message

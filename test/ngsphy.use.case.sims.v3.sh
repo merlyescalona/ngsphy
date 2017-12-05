@@ -450,7 +450,7 @@ done
 
 
 singletonsDNums="${CURRENT_DIR}/${CASE_NAME}/files/numvariants.singletons.decomposed.summary.txt"
-rm $
+rm $singletonsDNums
 echo -e "COVERAGE\tREPLICATE\tNUM_VARIANTS" >  $singletonsDNums
 for coverageLevel in ${coverages[*]}; do
     ${CURRENT_DIR}/${CASE_NAME}/singletons/$coverageLevel/

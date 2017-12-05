@@ -250,6 +250,8 @@ $command
 				nInds=len(self.matingDict)
 				nLoci=self.numLociPerReplicate[index]
 				coverageMatrix=self.retrieveCoverageMatrix(self.filteredReplicates[index])
+				if (self.settings.ploidy == 2):
+					coverageMatrix=coverageMatrix*0.5
 				for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 					for row in self.matingDict:
 						# indexREP,indexLOC,indID,speciesID,mateID1,mateID2
