@@ -53,27 +53,26 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 # Input modes
 
 ## Single gene-tree scenarios:
-- **inputmode 1**: allows you to generate DNA sequences from a single gene tree, generate haploid or diploid individuals (by random mating within the same species) and produce reads or read counts. [Tutorial 1]
-(https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#1-generating-read-counts-from-a-single-gene-tree).
+- **inputmode 1**: allows you to generate DNA sequences from a single gene tree, generate haploid or diploid individuals (by random mating within the same species) and produce reads or read counts [[Tutorial 1](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#1-generating-read-counts-from-a-single-gene-tree)].
 
+<div style="text-align:center">
 ![inputmode 1](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode1.png)
+</div>
 
-- **inputmode 2**: allows you to simulate data from a single gene tree and a known ancestral sequence. DNA sequences are evolved from the ancestral sequence under the specified gene-tree,  haploid or diploid individuals and reads or read counts  generated [Tutorial 2] (https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#2-generating-illumina-reads-from-a-single-gene-tree-using-an-ancestral-sequence).
-
+- **inputmode 2**: allows you to simulate data from a single gene tree and a known ancestral sequence. DNA sequences are evolved from the ancestral sequence under the specified gene-tree,  haploid or diploid individuals and reads or read counts  generated [[Tutorial 2](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#2-generating-illumina-reads-from-a-single-gene-tree-using-an-ancestral-sequence)].
+<div style="text-align:center">
 ![inputmode 2](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode2.png)
-
-- **inputmode 3**: allows you to simulate reads/read counts from a single gene tree and a known anchor (tip) sequence. Tree is re-rooted in the anchor sequence before the simulation of DNA sequences. [Tutorial 3]
-(https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#3-generating-read-counts-from-a-single-gene-tree-using-an-anchor-sequence)
-
+</div>
+- **inputmode 3**: allows you to simulate reads/read counts from a single gene tree and a known anchor (tip) sequence. Tree is re-rooted in the anchor sequence before the simulation of DNA sequences [[Tutorial 3](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#3-generating-read-counts-from-a-single-gene-tree-using-an-anchor-sequence)].
+<div style="text-align:center">
 ![inputmode 3](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode3.png)
-
+</div>
 ## Gene-tree/Species-tree distributions
 
-- **inputmode 4**: this mode uses the output from [SimPhy](http://github.com/adamallo/SimPhy)   to generate reads or reads counts. SimPhy generates distributions of gene trees and species trees under some desired conditions. Each species tree is here considered a replicate and within NGSphy you can then filter the species tree replicates if the contained gene trees do not match your requirements for downstream analyses (eg. number of gene-tree tips per species and your (even) requirement if you want to simulate diploids). [Tutorial 4]
-(https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#4-generating-illumina-reads-from-gene-tree-distribution)
-
+- **inputmode 4**: this mode uses the output from [SimPhy](http://github.com/adamallo/SimPhy)   to generate reads or reads counts. SimPhy generates distributions of gene trees and species trees under some desired conditions. Each species tree is here considered a replicate and within NGSphy you can then filter the species tree replicates if the contained gene trees do not match your requirements for downstream analyses (eg. number of gene-tree tips per species and your (even) requirement if you want to simulate diploids) [[Tutorial 4](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#4-generating-illumina-reads-from-gene-tree-distribution)].
+<div style="text-align:center">
 ![inputmode 4](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode4.png)
-
+</div>
 
 # Usage
 
