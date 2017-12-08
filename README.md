@@ -90,9 +90,9 @@ usage: ngsphy  [-s <settings_file_path>]
 
 - Optional arguments:
     - `-s <settings_file_path>, --settings <settings_file_path>`:
-        - Path to the settings file. This is optional, by default NGSphy loos for a `settings.txt` file in the current working directory. You can also specify a particular settings file with:
+        - Path to the settings file. This is optional, by default NGSphy looks for a `settings.txt` file in the current working directory. You can also specify a particular settings file with:
         ```
-        ngsphy -s settings.txt
+        ngsphy -s my_settings.txt
         ```
     - `-l <log_level>, --log <log_level>`: Specified hierarchical log levels that will be shown through the standard output. A detailed log will be stored in a separate file. Possible values:
         - `DEBUG`: shows very detailed information of the program's process.
