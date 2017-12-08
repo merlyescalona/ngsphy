@@ -53,6 +53,10 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 ## Input modes
 
 ### Single gene-tree scenarios:
+|  Description | Scheme |
+|-------------------------|---------|
+| inputmode 1: allows you to generate DNA sequences from a single gene tree, generate haploid or diploid individuals (by random mating within the same species) and produce reads or read counts [[Tutorial 1](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#1-generating-read-counts-from-a-single-gene-tree)]. |  ![inputmode 1](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode1.png)|
+
 - **inputmode 1**: allows you to generate DNA sequences from a single gene tree, generate haploid or diploid individuals (by random mating within the same species) and produce reads or read counts [[Tutorial 1](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#1-generating-read-counts-from-a-single-gene-tree)].
 
 
