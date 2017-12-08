@@ -14,10 +14,10 @@ NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (
 ## Getting started
 
 NGSphy is build to simulate reads (or read counts) from alignments originated from single-gene trees or gene-tree distributions (in its turn originated from species-tree distributions). It is designed to read directly from [SimPhy](http://github.com/adamallo/SimPhy) (a simulator of gene family evolution) in the case of gene-tree distributions, but it can also be fed with gene-trees directly. Alignments are simulated using [INDELible](http://abacus.gene.ucl.ac.uk/software/indelible/)  and can represent multiple
-haploid and/or diploid individuals per species. Then reads (using [ART](https://www.niehs.nih.gov/research/resources/software/biostatistics/art/index.cfm)) or read counts are simulated for each individual, with depth of coverage allowed to vary between species, individuals and loci. This flexibility allows for the simulation of both off-target (captured but not targeted) and non-captured (targeted but not captured) loci.
+haploid and/or diploid individuals per species. Then reads (using [ART](https://www.niehs.nih.gov/research/resources/software/biostatistics/art/index.cfm)) or read counts are simulated for each individual, with depth of coverage allowed to vary between species, individuals and loci. This flexibility allows for the simulation of both off-target (captured but not targeted) and uncaptured (targeted but not captured) loci.
 
 You will need a NGSphy settings file and the required files according to the input mode selected (see bellow).  Examples of setting files can be found  [here](https://github.com/merlyescalona/ngsphy/tree/master/data/settings).
-For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/Manual#4-installation) and for detailed explanations please search in the [full manual](https://github.com/merlyescalona/ngsphy/wiki/Manual). In the [Wiki](https://github.com/merlyescalona/ngsphy/wiki/) you can also find tutorials for a couple of different situations.
+For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/Manual#4-installation) and for detailed explanations please search in the [full manual](https://github.com/merlyescalona/ngsphy/wiki/Manual). In the [Wiki](https://github.com/merlyescalona/ngsphy/wiki/) you can find tutorials for each of the possible input modes.
 
 ## Input/output files
 

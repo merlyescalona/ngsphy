@@ -24,6 +24,7 @@ matrix:
                 - export PATH=$PATH:$(pwd)/indelible-ngsphy/bin
                 - export PERL_MM_USE_DEFAULT=1
                 - sudo cpan install Test::Taint Math::GSL
+                - pip install -r requirements.txt
         -   os: osx
             before_install:
                 - wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.1.tar.gz
@@ -50,7 +51,6 @@ matrix:
                 - export PERL_MM_USE_DEFAULT=1
                 - sudo cpanm install Test::Taint  Math::GSL
 install:
-    - pip install -r requirements.txt
     - python setup.py install
 script:
     - test/ngsphy.all.tests.sh
