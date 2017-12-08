@@ -9,19 +9,19 @@ University of Vigo, Spain ([http://darwin.uvigo.es](http://darwin.uvigo.es))
 
 ## About NGSphy
 
-NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (read counts or Illumina reads) obtained from thousands of gene families evolving under a common species tree, with multiple haploid and/or diploid individuals per species, where sequencing coverage (depth) heterogeneity can vary among species, individuals and loci, including off-target and not-captured loci.
+NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (read counts or Illumina reads) obtained from thousands of gene families evolving under a common species tree, with multiple haploid and/or diploid individuals per species, where sequencing coverage (depth) heterogeneity can vary among species, individuals and loci, including off-target and uncaptured loci.
 
-# Getting started
+## Getting started
 
 NGSphy is build to simulate reads (or read counts) from alignments originated from single-gene trees or gene-tree distributions (in its turn originated from species-tree distributions). It is designed to read directly from [SimPhy](http://github.com/adamallo/SimPhy) (a simulator of gene family evolution) in the case of gene-tree distributions, but it can also be fed with gene-trees directly. Alignments are simulated using [INDELible](http://abacus.gene.ucl.ac.uk/software/indelible/)  and can represent multiple
 haploid and/or diploid individuals per species. Then reads (using [ART](https://www.niehs.nih.gov/research/resources/software/biostatistics/art/index.cfm)) or read counts are simulated for each individual, with depth of coverage allowed to vary between species, individuals and loci. This flexibility allows for the simulation of both off-target (captured but not targeted) and non-captured (targeted but not captured) loci.
 
 You will need a NGSphy settings file and the required files according to the input mode selected (see bellow).  Examples of setting files can be found  [here](https://github.com/merlyescalona/ngsphy/tree/master/data/settings).
-For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/Manual#4-installation) and for detailed explanations please search in the [full manual](https://github.com/merlyescalona/ngsphy/wiki/Manual). In the [Wiki](https://github.com/merlyescalona/ngsphy/wiki/) you can also find tutorials for a couple different situations.
+For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/Manual#4-installation) and for detailed explanations please search in the [full manual](https://github.com/merlyescalona/ngsphy/wiki/Manual). In the [Wiki](https://github.com/merlyescalona/ngsphy/wiki/) you can also find tutorials for a couple of different situations.
 
-# Input/output files
+## Input/output files
 
-## Input
+### Input
 
 [Single gene-tree scenario]
 - [NGSPhy settings file](https://github.com/merlyescalona/ngsphy/wiki/Manual#6-the-settings-file)
@@ -35,7 +35,7 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 - [SimPhy](http://github.com/adamallo/SimPhy) output
 - reference allele file (optional)
 
-## Output files
+### Output files
 - NGS reads:
     - [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format)
     - [ALN](http://meme-suite.org/doc/clustalw-format.html)
@@ -50,9 +50,9 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 - bash scripts
 
 
-# Input modes
+## Input modes
 
-## Single gene-tree scenarios:
+### Single gene-tree scenarios:
 - **inputmode 1**: allows you to generate DNA sequences from a single gene tree, generate haploid or diploid individuals (by random mating within the same species) and produce reads or read counts [[Tutorial 1](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#1-generating-read-counts-from-a-single-gene-tree)].
 
 
@@ -71,14 +71,14 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 ![inputmode 3](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode3.png)
 
 
-## Gene-tree/Species-tree distributions
+### Gene-tree/Species-tree distributions
 
 - **inputmode 4**: this mode uses the output from [SimPhy](http://github.com/adamallo/SimPhy)   to generate reads or reads counts. SimPhy generates distributions of gene trees and species trees under some desired conditions. Each species tree is here considered a replicate and within NGSphy you can then filter the species tree replicates if the contained gene trees do not match your requirements for downstream analyses (eg. number of gene-tree tips per species and your (even) requirement if you want to simulate diploids) [[Tutorial 4](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#4-generating-illumina-reads-from-gene-tree-distribution)].
 
 ![inputmode 4](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode4.png)
 
 
-# Usage
+## Usage
 
 NGSphy does not have a Graphical User Interface (GUI) and works on the Linux/Mac command line in a non-interactive fashion.
 
