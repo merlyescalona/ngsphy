@@ -290,6 +290,7 @@ class IndividualAssignment:
 				return False, "Please verify. Exiting."
 			if (numGeneTrees<1):
 				return False,"Trying to mate sequences, but there are no gene tree files to back that up. Please, finish the SimPhy run and try again afterwards."
+			self.appLogger.debug("numGeneTrees ({}) == numFastaFiles ({})? ".format(numGeneTrees,numFastaFiles))
 			if not numGeneTrees == numFastaFiles:
 				return False, "There are no sequences o there is a missmatch between the number of trees and the number of sequences in the folder."
 		return True,"Got number of gene trees per species trees"

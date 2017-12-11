@@ -35,7 +35,7 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 - [SimPhy](http://github.com/adamallo/SimPhy) output
 - reference allele file (optional)
 
-### Output files
+### Output
 - NGS reads:
     - [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format)
     - [ALN](http://meme-suite.org/doc/clustalw-format.html)
