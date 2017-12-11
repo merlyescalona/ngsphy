@@ -1,0 +1,17 @@
+[general]
+path=./
+output_folder_name=NGSphy_test2_200x_RC
+ploidy=2
+seed=50426717
+[data]
+inputmode=1
+gene_tree_file=files/supp.test2.tree
+indelible_control_file=files/control.supp.test2.txt
+[coverage]
+experiment=F:200
+[ngs-read-counts]
+read_counts_error=0
+reference_alleles_file=files/my_reference_allele_file.test2.txt
+[execution]
+environment = bash
+threads=2

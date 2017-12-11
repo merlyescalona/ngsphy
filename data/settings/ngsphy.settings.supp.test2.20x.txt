@@ -1,0 +1,23 @@
+[general]
+path=./output/20x/
+output_folder_name=NGSphy_test2_20x
+ploidy=2
+seed=50426717
+[data]
+inputmode=1
+gene_tree_file=files/supp.test2.tree
+indelible_control_file=files/control.supp.test2.txt
+[coverage]
+experiment=F:20
+[ngs-reads-art]
+fcov=true
+l=150
+m=250
+p=true
+q=true
+s=50
+ss=HS25
+[execution]
+environment = bash
+runART=on
+threads=2

@@ -1,0 +1,9 @@
+[TYPE] NUCLEOTIDE 1
+[SETTINGS]
+	[output]	FASTA
+	[fastaextension]	fasta
+	[ancestralprint]	NEW
+[MODEL] m1 // no insertions, no gamma
+    [submodel] JC
+    [statefreq] 0.25 0.25 0.25 0.25 // frequencies for T C A G
+[NGSPHYPARTITION] supp.test1 m1 1000

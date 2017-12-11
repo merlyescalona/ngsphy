@@ -1,12 +1,12 @@
 [general]
 path=./output/10x/
-output_folder_name=NGSphy_case1_10x
+output_folder_name=NGSphy_test2_10x
 ploidy=2
 seed=50426717
 [data]
-inputmode=4
-simphy_folder_path=SimPhy_usecase
-simphy_data_prefix=data
+inputmode=1
+gene_tree_file=files/supp.test2.tree
+indelible_control_file=files/control.supp.test2.txt
 [coverage]
 experiment=F:10
 [ngs-reads-art]

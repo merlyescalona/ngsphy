@@ -6,4 +6,4 @@
 [MODEL] m1 // no insertions, no gamma
     [submodel] JC
     [statefreq] 0.25 0.25 0.25 0.25 // frequencies for T C A G
-[NGSPHYPARTITION] original m1 1000
+[NGSPHYPARTITION] supp.test2 m1 1000
