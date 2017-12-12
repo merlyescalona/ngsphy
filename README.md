@@ -74,7 +74,7 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 
 ### Gene-tree/Species-tree distributions
 
-- **inputmode 4**: this mode uses the output from [SimPhy](http://github.com/adamallo/SimPhy)   to generate reads or reads counts. SimPhy generates distributions of gene trees and species trees under some desired conditions. Each species tree is here considered a replicate and within NGSphy you can then filter the species tree replicates if the contained gene trees do not match your requirements for downstream analyses (eg. number of gene-tree tips per species and your (even) requirement if you want to simulate diploids) [[Tutorial 4](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#4-generating-illumina-reads-from-gene-tree-distribution)].
+- **inputmode 4**: this mode uses the output from [SimPhy](http://github.com/adamallo/SimPhy)   to generate reads or reads counts. SimPhy generates distributions of gene trees and species trees under some desired conditions. Each species tree is here considered a replicate. Given replicates with the same number of tips for all the gene trees, within NGSphy you can then filter the species tree replicates if the contained gene trees do not match your requirements for downstream analyses (eg. number of gene-tree tips per species and your (even) requirement if you want to simulate diploids) [[Tutorial 4](https://github.com/merlyescalona/ngsphy/wiki/Tutorials-setting-examples#4-generating-illumina-reads-from-gene-tree-distribution)].
 
 ![inputmode 4](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode4.png)
 

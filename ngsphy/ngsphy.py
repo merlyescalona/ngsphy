@@ -42,7 +42,15 @@ class NGSphy:
     		self.settingsFile=os.path.abspath(args.settings)
     	else:
     		self.settingsFile=os.path.abspath(os.path.join(os.getcwd(),"settings.txt"))
-
+        if not (os.path.exists(self.settingsFile)):
+            self.endTime=datetime.datetime.now()
+            message="\t{0}\n\t{1}\n\t{2}\n\t{3}\n".format(\
+                "The settings file:",\
+                self.settingsFile,\
+                "Does not exist...",\
+                "Please verify. Exiting."
+            )
+            raise NGSphyExitException(ex.expression,message,self.endTime)
 
     def run(self):
         """
