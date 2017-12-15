@@ -307,7 +307,7 @@ class NGSPhyDistribution:
 		"""
 		mean=float(self.__params[0]*1.0)
 		sigma=float(self.__params[1]*1.0)
-		distro=lognorm(mean,sigma)
+		distro=lognorm(s=sigma,scale=np.exp(mean))
 		f=distro.rvs(size=samples)
 		return f
 
@@ -343,7 +343,7 @@ class NGSPhyDistribution:
 		- samples: number of values that will be returned.
 		"""
 		locMean=float(self.__params[0]*1.0)
-		scaleVariance=float(self.__params[1]*1.0)
+		scaleVariance=np.sqrt(float(self.__params[1]*1.0))
 		distro=norm(loc=locMean,scale=scaleVariance)
 		f=distro.rvs(size=samples)
 		return f

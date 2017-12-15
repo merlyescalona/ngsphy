@@ -1,4 +1,4 @@
-Version 1.0.10:
+Version 1.0.10-11:
     - Added: now printing a summary log with the importat parameters of the simulation.
     - Added: random seed option in the general block.
     - Added: the general random seed allows to automatically set up the indelible's control random seed when using inputmode in [1,2,3].
@@ -9,6 +9,7 @@ Version 1.0.10:
     - Update: now NGSphy produces folder with more descriptive names.
     - Update: now possible to decide within [ngs-reads-art] options, whether coverage is per amplicon (fcov) or the total number of reads (rcount).
     - Fixed: coverage calculation for diploid individuals updated.
+    - Fixed: coverage distribution parameterization.
     - Fixed: a bug related to coverage computations. The indexes are now within the ranges.
     - Fixed: a bug which modified the sequences generated from INDELible with the anchor sequence. This resulted in adding the wrong line
     of the anchor file to the sequence dictionary, altering the resulting individual and generating a void FASTQ file.
