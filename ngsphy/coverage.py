@@ -261,7 +261,7 @@ class NGSPhyDistribution:
 		# If i want  mean=1, theta=E|x|/alpha=1/alpha
 		shape=float(self.__params[0]*1.0)
 		theta=float(1/(shape*1.0))
-		distro=gamma(shape,theta)
+		distro=gamma(a=shape,scale=theta)
 		f=distro.rvs(size=samples)
 		return f
 
@@ -290,7 +290,7 @@ class NGSPhyDistribution:
 		"""
 		shape=float(self.__params[0]*1.0)
 		theta=float(self.__params[1]*1.0)
-		distro=gamma(shape,theta)
+		distro=gamma(a=shape,scale=theta)
 		f=distro.rvs(size=samples)
 		return f
 
