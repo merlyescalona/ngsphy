@@ -1046,10 +1046,10 @@ class Settings:
 
 		for leaf in leaves:
 			leafedge= leaf.edge_length
-			if not leafedge:
+			if leafedge == None:
 				break
-		if not leafedge:
-			message="\n\t{0}\n\t{1}\n\t{2}\n\t{3}\n\t{4}\n\t{5}\n\t".format(\
+		if leafedge == None:
+			message="\n\t{0}\n\t{1}\n\t{2}".format(\
 			"INDELible control file - Something's wrong!",\
 			"Branch lengths are not specified in the gene tree file.",\
 			"Please verify. Exiting."\
