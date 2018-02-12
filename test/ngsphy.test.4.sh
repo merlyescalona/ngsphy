@@ -36,12 +36,13 @@ perl INDELIble_wrapper.pl testwsimphy/ control.4.txt $RANDOM 1
 
 if [[ $(uname -s) -eq "Darwin" ]]; then
     echo $(pwd)
-    cd testwsimphy/1; indelible
+    cd $(pwd)/ngsphy-test4/testwsimphy/1
     echo $(pwd)
-    cd ../2
+    indelible
+    cd $(pwd)/ngsphy-test4/testwsimphy/2
     echo $(pwd)
     indelible;
-    cd ../../
+    cd $(pwd)/ngsphy-test4/
     echo $(pwd)
 fi
 echo "Running NGSPHY"
