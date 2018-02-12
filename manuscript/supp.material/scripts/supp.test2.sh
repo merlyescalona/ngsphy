@@ -39,11 +39,7 @@ ngsphy -s files/ngsphy.settings.supp.test2.200x.rc.txt
 cat ${CURRENT_DIR}/${CASE_NAME}/NGSphy_test2_200x_RC/alignments/1/ngsphydata_1_TRUE.fasta | grep -a1 "1_0_0" | tail -2 | tr -d " "  > ${CURRENT_DIR}/${CASE_NAME}/reference/reference.fasta
 cp ${CURRENT_DIR}/${CASE_NAME}/NGSphy_test2_200x_RC/reads/no_error/REPLICATE_1/ngsphydata_1_1_NOERROR.vcf ${CURRENT_DIR}/${CASE_NAME}/files/true.vcf
 ################################################################################
-# 3. Allele count
-################################################################################
-gacmsa -i ${CURRENT_DIR}/${CASE_NAME}/NGSphy_test2_200x_RC/alignments/1/ngsphydata_1_TRUE.fasta -o ${CURRENT_DIR}/${CASE_NAME}/files/true.ac.txt
-################################################################################
-# 4. Running NGSphy
+# 3. Running NGSphy
 ################################################################################
 echo "Running NGSphy - 100 replicates - Coverage 2x"
 for replicate in $(seq 1 100); do { time ngsphy -s ${CURRENT_DIR}/${CASE_NAME}/files/ngsphy.settings.supp.test2.2x.txt &> ${CURRENT_DIR}/${CASE_NAME}/files/ngsphy.2x.output; } 2>> ${CURRENT_DIR}/${CASE_NAME}/files/ngsphy.2x.timings; done
@@ -56,13 +52,13 @@ for replicate in $(seq 1 100); do { time ngsphy -s ${CURRENT_DIR}/${CASE_NAME}/f
 echo "Running NGSphy - 100 replicates - Coverage 200x"
 for replicate in $(seq 1 100); do { time ngsphy -s ${CURRENT_DIR}/${CASE_NAME}/files/ngsphy.settings.supp.test2.200x.txt &> ${CURRENT_DIR}/${CASE_NAME}/files/ngsphy.200x.output; } 2>> ${CURRENT_DIR}/${CASE_NAME}/files/ngsphy.200x.timings; done
 ################################################################################
-# 5. Indexing reference
+# 4. Indexing reference
 ################################################################################
 bwa index $referenceFile
 samtools faidx $referenceFile
 java -jar -Xmx4G $PICARD CreateSequenceDictionary REFERENCE=$referenceFile OUTPUT="$CURRENT_DIR/${CASE_NAME}/reference/reference.dict"
 ################################################################################
-# 6. Mapping
+# 5. Mapping
 ################################################################################
 # Organizational purposes
 for coverageLevel in ${coverages[*]}; do
@@ -86,7 +82,7 @@ for ngsphyoutput in $(find ${CURRENT_DIR}/${CASE_NAME}/output -mindepth 1 -maxde
 done
 bash $CURRENT_DIR/${CASE_NAME}/src/mappings.sh
 ################################################################################
-# 7. Sorting + bamming
+# 6. Sorting + bamming
 ################################################################################
 for samFile in $(find ${CURRENT_DIR}/${CASE_NAME}/mappings -type f | grep sam$); do
     echo $samFile
@@ -99,7 +95,7 @@ done
 bash $CURRENT_DIR/${CASE_NAME}/src/bamming.sh
 
 ################################################################################
-# 8. Mark Duplicates
+# 7. Mark Duplicates
 ################################################################################
 summaryFile="$CURRENT_DIR/${CASE_NAME}/files/duplicates.summary.txt"
 for bamFile in $(find ${CURRENT_DIR}/${CASE_NAME}/mappings -type f | grep sorted.bam$); do
@@ -130,7 +126,7 @@ for bamFile in $(find ${CURRENT_DIR}/${CASE_NAME}/mappings -type f | grep sorted
     samtools index $dedupOutput
 done
 ################################################################################
-#9. INDEL REALIGNMENT
+# 8. INDEL REALIGNMENT
 ################################################################################
 for bamFile in $(find ${CURRENT_DIR}/${CASE_NAME}/mappings -type f | grep dedup.bam$| tail -n+1700); do
     echo "$bamFile"
@@ -154,7 +150,7 @@ for bamFile in $(find ${CURRENT_DIR}/${CASE_NAME}/mappings -type f | grep dedup.
 done
 
 ################################################################################
-# 10. GATK - single call joint genotyping
+# 9. GATK - single call joint genotyping
 ################################################################################
 for bamFile in $(find ${CURRENT_DIR}/${CASE_NAME}/mappings -type f | grep realigned.bam$); do
     echo "$bamFile"
@@ -186,7 +182,7 @@ for coverageLevel in ${coverages[*]}; do
     done
 done
 ################################################################################
-# 11 - Count discovered variants
+# 10 - Count discovered variants
 ################################################################################
 mkdir ${CURRENT_DIR}/${CASE_NAME}/varsites/
 numVariantsSummary="${CURRENT_DIR}/${CASE_NAME}/files/numvariants.summary.txt"
@@ -205,7 +201,7 @@ for coverageLevel in ${coverages[*]}; do
     done
 done
 ################################################################################
-# 12. get information per coverage on the varibale sites
+# 11. get information per coverage on the varibale sites
 ################################################################################
 for coverageLevel in ${coverages[*]}; do
     find ${CURRENT_DIR}/${CASE_NAME}/varsites/$coverageLevel -name "*.varsites" > ${CURRENT_DIR}/${CASE_NAME}/files/varsites.$coverageLevel.files

@@ -15,9 +15,14 @@ NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (
 
 NGSphy is designed to simulate reads (or read counts) from alignments originated from single gene trees or gene-tree distributions (originated from species-tree distributions). It is designed to read directly from [SimPhy](http://github.com/adamallo/SimPhy) (a simulator of gene family evolution) in the case of gene-tree distributions, but it can also be fed with gene trees directly. These trees can contain orthologs, paralogs and xenologs. Alignments are simulated using [INDELible](http://abacus.gene.ucl.ac.uk/software/indelible/)  and can represent multiple haploid and/or diploid individuals per species. Then, either Illumina reads (using [ART](https://www.niehs.nih.gov/research/resources/software/biostatistics/art/index.cfm)) or read counts are simulated for each individual, with the depth of coverage allowed to vary between species, individuals and loci. This flexibility allows for the simulation of both off-target (captured but not targeted) and uncaptured (targeted but not captured) loci.
 
-
-You will need a NGSphy settings file and the required files according to the input mode selected (see bellow).  Examples of setting files can be found  [here](https://github.com/merlyescalona/ngsphy/tree/master/data/settings).
-For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/Manual#4-installation) and for detailed explanations please search in the [full manual](https://github.com/merlyescalona/ngsphy/wiki/Manual). In the [Wiki](https://github.com/merlyescalona/ngsphy/wiki/) you can find tutorials for each of the possible input modes.
+You will need a NGSphy settings file and the required files according to the input mode selected (see bellow).
+- Examples of setting files can be found  [here](https://github.com/merlyescalona/ngsphy/tree/master/data/settings).
+- For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/Manual#4-installation)
+- For detailed explanations please search in the [full manual](https://github.com/merlyescalona/ngsphy/wiki/Manual).
+- In the [Wiki](https://github.com/merlyescalona/ngsphy/wiki/) you can find:
+    - tutorials for each of the possible input modes
+    - [a validation test](https://github.com/merlyescalona/ngsphy/wiki/Validation-test)
+    - [a use case test](https://github.com/merlyescalona/ngsphy/wiki/Use-case-test)
 
 ## Input/output files
 
@@ -78,8 +83,18 @@ For installation please go [here](https://github.com/merlyescalona/ngsphy/wiki/M
 
 ![inputmode 4](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode4.png)
 
+# Coverage heterogeneity
 
-## Usage
+NGSphy allows to introduce coverage heterogeneity for three different kind of scenarios, following statistical distributions (more details on [Manual - Section 6.3](Manual#63-coverage-block)):
+- **Experiment coverage:** allows to introduce expected coverage for each replicate, and the variation of coverage across individuals and across loci.
+    - Available for all input/simulation modes.
+- **Targeted sequencing parameters:** allow the user to emulate the variation in depth of coverage that can occur in a targeted-sequencing experiment. These parameters identify the on-target/off-target loci as well as the number of loci that may not be captured.
+    - Only possible for input mode 4 - gene tree distributions (SimPhy data).
+- **Taxon-specific effects:** allows the user to define of coverage variation for specific taxa. It can be used for example to emulate a decay in coverage, related to the phylogenetic distance of the a species to the reference species used to build the target-loci probes.
+    - Available for all input/simulation modes.
+
+
+# Usage
 
 NGSphy does not have a Graphical User Interface (GUI) and works on the Linux/Mac command line in a non-interactive fashion.
 

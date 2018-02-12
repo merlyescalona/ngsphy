@@ -46,6 +46,7 @@ find ${CURRENT_DIR}/${CASE_NAME}/output/ -mindepth 3 -type f | grep ngsphy.tree 
 cd ${CURRENT_DIR}/${CASE_NAME}/
 <<RCODE
 library(ape)
+library(ggplot2)
 library(phangorn)
 library(reshape2)
 ###############################################################################

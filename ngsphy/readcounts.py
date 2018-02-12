@@ -1208,7 +1208,7 @@ class ReadCounts:
 			refAllelesFilePath
 		)
 		formatLines="{0}\r\n{1}\r\n{2}\r\n{3}\r\n{3}".format(\
-			"##FORMAT=<ID=GT,Number=1,Type=Integer,Description=\"Genotype\">",\
+			"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",\
 			"##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"Log10 scale genotype likelihood\">",\
 			"##FORMAT=<ID=AD,Number=1,Type=Integer,Description=\"Allelic Depth\">",\
 			"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Depth of coverage\">",\
