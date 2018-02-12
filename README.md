@@ -30,29 +30,30 @@ You will need a NGSphy settings file and the required files according to the inp
 
 [Single gene-tree scenario]
 - [NGSPhy settings file](https://github.com/merlyescalona/ngsphy/wiki/Manual#6-the-settings-file)
-- [INDELible control file](https://github.com/merlyescalona/ngsphy/wiki/Manual#625-indelible-control-file---ngsphy-version)
+- [INDELible control file](https://github.com/merlyescalona/ngsphy/wiki/Manual#626-indelible-control-file---ngsphy-version)
 - [Newick file](http://evolution.genetics.washington.edu/phylip/newicktree.html) with single gene tree
 - ancestral sequence file ([FASTA](https://en.wikipedia.org/wiki/FASTA_format)) (optional)
 - [reference allele file](https://github.com/merlyescalona/ngsphy/wiki/Manual#651-reference-allele-file-optional) (optional)
 
 [Species-tree scenario]
-- NGSPhy settings file
-- [SimPhy](http://github.com/adamallo/SimPhy) output
-- reference allele file (optional)
+- [NGSPhy settings file](https://github.com/merlyescalona/ngsphy/wiki/Manual#6-the-settings-file)
+- [SimPhy output](http://github.com/adamallo/SimPhy)
+- [reference allele file](https://github.com/merlyescalona/ngsphy/wiki/Manual#651-reference-allele-file-optional) (optional)
+
 
 ### Output
-- NGS reads:
+- NGS reads (required for downstream analysis):
     - [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format)
     - [ALN](http://meme-suite.org/doc/clustalw-format.html)
     - [BAM](https://samtools.github.io/hts-specs/)
-- read counts:
+- read counts (required for downstream analysis):
     - [VCF](https://samtools.github.io/hts-specs/)
-- sequence alignments:
+- sequence alignments (required for downstream analysis):
     - [FASTA](https://en.wikipedia.org/wiki/FASTA_format)
-- coverage variation
+- coverage variation (intermediate output):
     - [CSV](https://en.wikipedia.org/wiki/Comma-separated_values)
-- log files
-- bash scripts
+- log files (intermediate output)
+- bash scripts (intermediate output)
 
 
 ## Input modes
