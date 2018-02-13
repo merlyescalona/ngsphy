@@ -55,4 +55,4 @@ matrix:
         #     install:
         #         - python setup.py install --user
 script:
-    - test/ngsphy.all.tests.sh
+    - test/ngsphy.all.tests.sh ngsphy

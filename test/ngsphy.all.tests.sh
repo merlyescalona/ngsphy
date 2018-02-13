@@ -1,13 +1,14 @@
 #!/bin/sh
+ngsphyPATH=$1
 echo "Running test 1"
 echo "-------------------------------------------------------------------------"
-bash test/ngsphy.test.1.sh $(pwd)
-echo "Running test 1"
+bash  $ngsphyPATH/test/ngsphy.test.1.sh $ngsphyPATH
+echo  $ngsphyPATH/"Running test 1"
 echo "-------------------------------------------------------------------------"
-bash test/ngsphy.test.2.sh $(pwd)
-echo "Running test 1"
+bash  $ngsphyPATH/test/ngsphy.test.2.sh $ngsphyPATH
+echo  $ngsphyPATH/"Running test 1"
 echo "-------------------------------------------------------------------------"
-bash test/ngsphy.test.3.sh $(pwd)
-echo "Running test 1"
+bash  $ngsphyPATH/test/ngsphy.test.3.sh $ngsphyPATH
+echo  $ngsphyPATH/"Running test 1"
 echo "-------------------------------------------------------------------------"
-bash test/ngsphy.test.4.sh $(pwd)
+bash  $ngsphyPATH/test/ngsphy.test.4.sh $ngsphyPATH

@@ -947,8 +947,8 @@ class Settings:
 		if len(self.partition)!=4:
 			parserMessageWrong="Validating INDELible Control file: \n\t{0}\n\t{1}\n\t{2}".format(\
 			"[NGSPHYPARTITION] block has the wrong number of parameters.",\
-			"[NGSPHYPARTITION] <tree_filename_basename> <model_name> <sequence_length>"
-			"Please verify. Exiting"
+			"[NGSPHYPARTITION] <tree_filename_basename> <model_name> <sequence_length>",\
+			"Please verify. Exiting"\
 			)
 			return False, parserMessageWrong
 		# check tree corresponds to newick inputbasename
@@ -957,8 +957,8 @@ class Settings:
 			parserMessageWrong="Validating INDELible Control file: \n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 			"[NGSPHYPARTITION] block, tree name does not correspond with the Newick File introduced.",\
 			"Remember! Newick filename: newick.tree.",\
-			"[NGSPHYPARTITION] newick model1 200"
-			"Please verify. Exiting"
+			"[NGSPHYPARTITION] newick model1 200",\
+			"Please verify. Exiting"\
 			)
 			return False, parserMessageWrong
 
@@ -967,15 +967,15 @@ class Settings:
 			parserMessageWrong="Validating INDELible Control file: \n\t{0}\n\t{1}\n\t{2}\n\t{3}".format(\
 			"[NGSPHYPARTITION] block, model name does not correspond to the model defined.",\
 			"[MODEL] modelname\n...",\
-			"[NGSPHYPARTITION] tree modelname 200"
-			"Please verify. Exiting"
+			"[NGSPHYPARTITION] tree modelname 200",\
+			"Please verify. Exiting"\
 			)
 			return False, parserMessageWrong
 
 		if not self.partition[3].isdigit():
 			parserMessageWrong="Validating INDELible Control file: \n\t{0}\n\t{1}".format(\
 			"[NGSPHYPARTITION] block, sequence length is not valid.",\
-			"Please verify. Exiting"
+			"Please verify. Exiting"\
 			)
 			return False, parserMessageWrong
 
@@ -1039,7 +1039,8 @@ class Settings:
 		such status
 		"""
 		self.appLogger.debug("Checking branch lengths")
-		message=""; status=True
+		message=""
+		status=True
 		tree=dendropy.Tree.get(path=self.geneTreeFile, schema="newick",preserve_underscores=True)
 		leaves=[ node for node in tree.leaf_node_iter()]
 		leafedge=None

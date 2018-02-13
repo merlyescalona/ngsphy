@@ -5,7 +5,7 @@ def readme():
 long_description='NGSphy is a Python open-source tool for the genome-wide simulation of NGS data (read counts or Illumina reads) obtained from thousands of gene families evolving under a common species tree, with multiple haploid and/or diploid individuals per species, where sequencing coverage (depth) heterogeneity can vary among species, individuals and loci, including off-target or uncaptured loci.'
 
 setup(name='ngsphy',\
-    version='1.0.11',\
+    version='1.0.12',\
     description='phylogenomic simulation of NGS data ',\
     long_description=long_description,\
     url='https://github.com/merlyescalona/ngsphy',\

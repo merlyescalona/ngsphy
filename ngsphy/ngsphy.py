@@ -50,7 +50,7 @@ class NGSphy:
                 "Does not exist...",\
                 "Please verify. Exiting."
             )
-            raise NGSphyExitException(ex.expression,message,self.endTime)
+            raise NGSphyExitException(False,message,self.endTime)
 
     def run(self):
         """
