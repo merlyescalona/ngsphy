@@ -41,19 +41,22 @@ You will need a NGSphy settings file and the required files according to the inp
 - [reference allele file](https://github.com/merlyescalona/ngsphy/wiki/Manual#651-reference-allele-file-optional) (optional)
 
 
-### Output
-- NGS reads (required for downstream analysis):
+### Key output files
+- NGS reads
     - [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format)
     - [ALN](http://meme-suite.org/doc/clustalw-format.html)
     - [BAM](https://samtools.github.io/hts-specs/)
-- read counts (required for downstream analysis):
+- read counts
     - [VCF](https://samtools.github.io/hts-specs/)
-- sequence alignments (required for downstream analysis):
+- sequence alignments
     - [FASTA](https://en.wikipedia.org/wiki/FASTA_format)
-- coverage variation (intermediate output):
+
+###  Run information files
+- coverage variation
     - [CSV](https://en.wikipedia.org/wiki/Comma-separated_values)
-- log files (intermediate output)
-- bash scripts (intermediate output)
+    - plain text
+- log files
+- bash scripts
 
 
 ## Input modes
