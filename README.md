@@ -84,15 +84,21 @@ You will need a NGSphy settings file and the required files according to the inp
 
 ![inputmode 4](https://github.com/merlyescalona/ngsphy/wiki/img/ngsphy.inputmode4.png)
 
-# Coverage heterogeneity
+# NGS coverage heterogeneity
 
-NGSphy allows to introduce coverage heterogeneity for three different kind of scenarios, following statistical distributions (more details on [Manual - Section 6.3](Manual#63-coverage-block)):
-- **Experiment coverage:** allows to introduce expected coverage for each replicate, and the variation of coverage across individuals and across loci.
-    - Available for all input/simulation modes.
-- **Targeted sequencing parameters:** allow the user to emulate the variation in depth of coverage that can occur in a targeted-sequencing experiment. These parameters identify the on-target/off-target loci as well as the number of loci that may not be captured.
-    - Only possible for input mode 4 - gene tree distributions (SimPhy data).
-- **Taxon-specific effects:** allows the user to define of coverage variation for specific taxa. It can be used for example to emulate a decay in coverage, related to the phylogenetic distance of the a species to the reference species used to build the target-loci probes.
-    - Available for all input/simulation modes.
+NGSphy can introduce coverage heterogeneity at three different levels: experiment, individual and locus-wide, according to to user-defined statistical distributions, One can also try to mimic the variation in coverage expected for targeted sequencing, including off-target loci, non-captured loci and taxon-specific effects (more details on [Manual - Section 6.3](Manual#63-coverage-block)). These parameters can be used to recreate different experimental situations:
+
+- **NGS run effects:** where we expect to obtain different coverages for different runs (replicates), and  variation of coverage across individuals and across loci. within single runs.
+
+*[Available for all input/simulation modes]*
+
+- **Targeted sequencing:** where some target loci are not captured (non-capture loci), some are captured with different coverage but were not targeted (off-target loci).
+
+*[Only possible for input mode 4 (gene tree distributions (SimPhy data))]*
+
+- **Taxon-specific effects:** they can be used, for example, to emulate a decay in coverage related to the phylogenetic distance of the species of interest to the reference sequence used to build the target/capture probes.
+
+*[Available for all input/simulation modes]*
 
 
 # Usage
