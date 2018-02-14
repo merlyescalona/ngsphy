@@ -34,15 +34,16 @@ fi
 echo "Simulating DNA sequences from the gene/species trees above"
 perl INDELIble_wrapper.pl testwsimphy/ control.4.txt $RANDOM 1
 
+currentFolder=$(pwd)
 if [[ $(uname -s) -eq "Darwin" ]]; then
-    echo $(pwd)
-    cd $(pwd)/testwsimphy/1
+    echo $currentFolder
+    cd $currentFolder/testwsimphy/1
     echo $(pwd)
     indelible
-    cd $(pwd)/testwsimphy/2
+    cd $currentFolder/testwsimphy/2
     echo $(pwd)
     indelible;
-    cd $(pwd)/
+    cd $currentFolder/
     echo $(pwd)
 fi
 echo "Running NGSPHY"
