@@ -603,15 +603,26 @@ class IndividualAssignment:
 		"""
 		index=self.filteredReplicates.index(indexREP)
 		self.appLogger.debug("Mating table")
-		filename=os.path.join(\
-			self.settings.basepath,\
-			"{0:0{1}d}".format(\
-				self.filteredReplicates[index],\
-				self.numReplicateDigits),\
-			"{0}_{1:0{2}d}.fasta".format(\
-				self.settings.simphyDataPrefix,\
-				1,\
-				self.numLociPerReplicateDigits[index]))
+		if(self.settings.inputmode<4):
+			filename=os.path.join(\
+				self.settings.basepath,\
+				"REPLICATE_{0:0{1}d}".format(\
+					self.filteredReplicates[index],\
+					self.numReplicateDigits),\
+				"{0}_{1:0{2}d}.fasta".format(\
+					self.settings.simphyDataPrefix,\
+					1,\
+					self.numLociPerReplicateDigits[index]))
+		else:
+			filename=os.path.join(\
+				self.settings.basepath,\
+				"{0:0{1}d}".format(\
+					self.filteredReplicates[index],\
+					self.numReplicateDigits),\
+				"{0}_{1:0{2}d}.fasta".format(\
+					self.settings.simphyDataPrefix,\
+					1,\
+					self.numLociPerReplicateDigits[index]))
 		self.appLogger.debug("Reading file: {0}".format(filename))
 		leaves=None
 		with open(filename,"r") as f:
