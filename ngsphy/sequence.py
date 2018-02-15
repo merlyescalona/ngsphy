@@ -44,7 +44,7 @@ class SequenceGenerator:
 		self.appLogger=logging.getLogger("ngsphy")
 		self.appLogger.debug('INDELible run')
 		self.settings=settings
-		self.settings.alignmentsFolderPath=os.path.join(self.settings.alignmentsFolderPath,"1")
+		self.settings.alignmentsFolderPath=os.path.join(self.settings.alignmentsFolderPath,"REPLICATE_1")
 		self.newIndelibleControlFilePath=os.path.join(\
 			self.settings.alignmentsFolderPath,"control.txt")
 		self.newIndelibleAncestralSequence=os.path.join(\
