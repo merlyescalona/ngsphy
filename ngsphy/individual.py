@@ -407,15 +407,26 @@ class IndividualAssignment:
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
 				self.appLogger.debug("Using REP={0}, LOC={1}".format(self.filteredReplicates[index],indexLOC))
-				fastapath=os.path.join(\
-					self.settings.basepath,\
-					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-					"{0}_{1:0{2}d}.fasta".format(\
-						self.settings.simphyDataPrefix,\
-						indexLOC,\
-						self.numLociPerReplicateDigits[index]
-					)\
-				)
+				if(self.settings.inputmode<4):
+					fastapath=os.path.join(\
+						self.settings.basepath,\
+						"REPLICATE_{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+						"{0}_{1:0{2}d}.fasta".format(\
+							self.settings.simphyDataPrefix,\
+							indexLOC,\
+							self.numLociPerReplicateDigits[index]
+						)\
+					)
+				else:
+					fastapath=os.path.join(\
+						self.settings.basepath,\
+						"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+						"{0}_{1:0{2}d}.fasta".format(\
+							self.settings.simphyDataPrefix,\
+							indexLOC,\
+							self.numLociPerReplicateDigits[index]
+						)\
+					)
 				seqDict=parseMSAFileWithDescriptions(fastapath)
 				################################################################
 				# if self.settings.inputmode==3:
