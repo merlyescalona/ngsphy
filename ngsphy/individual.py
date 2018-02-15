@@ -822,7 +822,7 @@ class IndividualAssignment:
 						self.filteredReplicates[index], indexLOC))
 					fastapath=os.path.join(
 						self.settings.basepath,\
-						"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+						"REPLICATE_{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
 						"{0}_{1:0{2}d}_TRUE.fasta".format(\
 							self.settings.simphyDataPrefix,\
 							indexLOC,\
