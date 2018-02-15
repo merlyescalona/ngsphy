@@ -462,17 +462,32 @@ class IndividualAssignment:
 			len(self.filteredReplicates),\
 			indexLOC\
 			))
-		fastapath=os.path.join(\
-			self.settings.basepath,\
-			"{0:0{1}d}".format(\
-				self.filteredReplicates[index],\
-				self.numReplicateDigits),\
-			"{0}_{1:0{2}d}_TRUE.fasta".format(\
-				self.settings.simphyDataPrefix,\
-				indexLOC,\
-				self.numLociPerReplicateDigits[index]\
-			)\
-		)
+
+		if(self.settings.inputmode<4):
+			fastapath=os.path.join(\
+				self.settings.basepath,\
+				"REPLICATE_{0:0{1}d}".format(\
+					self.filteredReplicates[index],\
+					self.numReplicateDigits),\
+				"{0}_{1:0{2}d}_TRUE.fasta".format(\
+					self.settings.simphyDataPrefix,\
+					indexLOC,\
+					self.numLociPerReplicateDigits[index]\
+				)\
+			)
+		else:
+			fastapath=os.path.join(\
+				self.settings.basepath,\
+				"{0:0{1}d}".format(\
+					self.filteredReplicates[index],\
+					self.numReplicateDigits),\
+				"{0}_{1:0{2}d}_TRUE.fasta".format(\
+					self.settings.simphyDataPrefix,\
+					indexLOC,\
+					self.numLociPerReplicateDigits[index]\
+				)\
+			)
+
 		descriptions=parseMSAFileWithDescriptions(fastapath).keys()
 		descriptions.sort()
 		table=[(item,descriptions[item]) for item in range(0,len(descriptions))]
