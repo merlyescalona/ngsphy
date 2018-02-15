@@ -45,6 +45,7 @@ class SequenceGenerator:
 		self.appLogger.debug('INDELible run')
 		self.settings=settings
 		self.settings.alignmentsFolderPath=os.path.join(self.settings.alignmentsFolderPath,"REPLICATE_1")
+		self.settings.basepath=self.settings.alignmentsFolderPath
 		self.newIndelibleControlFilePath=os.path.join(\
 			self.settings.alignmentsFolderPath,"control.txt")
 		self.newIndelibleAncestralSequence=os.path.join(\
