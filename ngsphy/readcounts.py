@@ -1424,16 +1424,26 @@ class ReadCounts:
 			nLoci=self.numLociPerReplicate[indexREP-1]
 			self.appLogger.debug("Iterating over nLoci: {0}/{1}".format(indexLOC,nLoci))
 			numGeneTreeDigits=len(str(nLoci))
-			filepathLoc=os.path.join(\
-				self.settings.basepath,\
-				"{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
-				"{0}_{1:0{2}d}_TRUE.fasta".format(\
-					self.settings.simphyDataPrefix,\
-					indexLOC,\
-					numGeneTreeDigits\
-				)\
-			)
-
+			if self.settings.inputmode<4:
+				filepathLoc=os.path.join(\
+					self.settings.basepath,\
+					"REPLICATE_{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
+					"{0}_{1:0{2}d}_TRUE.fasta".format(\
+						self.settings.simphyDataPrefix,\
+						indexLOC,\
+						numGeneTreeDigits\
+					)\
+				)
+			else:
+				filepathLoc=os.path.join(\
+					self.settings.basepath,\
+					"{0:0{1}d}".format(indexREP,self.numReplicatesDigits),\
+					"{0}_{1:0{2}d}_TRUE.fasta".format(\
+						self.settings.simphyDataPrefix,\
+						indexLOC,\
+						numGeneTreeDigits\
+					)\
+				)
 			# dictionary. indices=variable sites, content=variable nucleotide set
 			self.appLogger.debug(\
 				"Extracting variable positions from Replicate - {0:0{1}d}/ Locus - {2:0{3}d}".format(\
