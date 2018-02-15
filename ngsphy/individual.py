@@ -337,15 +337,26 @@ class IndividualAssignment:
 			self.writeMatingTable(self.filteredReplicates[index],matingTable)
 			for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 				# parsingMSA file
-				fastapath=os.path.join(\
-					self.settings.basepath,
-					"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-					"{0}_{1:0{2}d}.fasta".format(\
-						self.settings.simphyDataPrefix,\
-						indexLOC,\
-						self.numLociPerReplicateDigits[index]
-					)\
-				)
+				if(self.settings.inputmode<4):
+					fastapath=os.path.join(
+						self.settings.basepath,\
+						"REPLICATE_{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+						"{0}_{1:0{2}d}_TRUE.fasta".format(\
+							self.settings.simphyDataPrefix,\
+							indexLOC,\
+							self.numLociPerReplicateDigits[index]\
+						)\
+					)
+				else:
+					fastapath=os.path.join(
+						self.settings.basepath,\
+						"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+						"{0}_{1:0{2}d}_TRUE.fasta".format(\
+							self.settings.simphyDataPrefix,\
+							indexLOC,\
+							self.numLociPerReplicateDigits[index]\
+						)\
+					)
 				seqDict=parseMSAFile(fastapath)
 				outputFolder=os.path.join(
 					self.settings.individualsFolderPath,\
@@ -820,15 +831,26 @@ class IndividualAssignment:
 				for indexLOC in range(1,self.numLociPerReplicate[index]+1):
 					self.appLogger.debug("indexREP: {0}\tlocID: {1}".format(\
 						self.filteredReplicates[index], indexLOC))
-					fastapath=os.path.join(
-						self.settings.basepath,\
-						"REPLICATE_{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
-						"{0}_{1:0{2}d}_TRUE.fasta".format(\
-							self.settings.simphyDataPrefix,\
-							indexLOC,\
-							self.numLociPerReplicateDigits[index]\
-						)\
-					)
+					if(self.settings.inputmode<4):
+						fastapath=os.path.join(
+							self.settings.basepath,\
+							"REPLICATE_{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+							"{0}_{1:0{2}d}_TRUE.fasta".format(\
+								self.settings.simphyDataPrefix,\
+								indexLOC,\
+								self.numLociPerReplicateDigits[index]\
+							)\
+						)
+					else:
+						fastapath=os.path.join(
+							self.settings.basepath,\
+							"{0:0{1}d}".format(self.filteredReplicates[index],self.numReplicateDigits),\
+							"{0}_{1:0{2}d}_TRUE.fasta".format(\
+								self.settings.simphyDataPrefix,\
+								indexLOC,\
+								self.numLociPerReplicateDigits[index]\
+							)\
+						)
 					genomicdata=None
 					with open(fastapath, "r") as fasta:
 						genomicdata="".join([line.strip() for line in fasta if not line.startswith(">")])
