@@ -133,7 +133,7 @@ usage: ngsphy  [-s <settings_file_path>]
 ## Citation
 
 - If you use NGSphy, please cite:
-    - Escalona, M, Rocha S and Posada D. *NGSphy: phylogenomic simulation of NGS data*. bioRxiv 197715; doi: https://doi.org/10.1101/197715
+    - Escalona, M, Rocha S and Posada D. (2018) *NGSphy: phylogenomic simulation of NGS data*. Bioinformatics; doi: https://doi.org/10.1093/bioinformatics/bty146
     - Sukumaran, J and Holder MT. (2010). *DendroPy: A Python library for phylogenetic computing*. Bioinformatics 26: 1569-1571.
 
 - if running ART cite also:
